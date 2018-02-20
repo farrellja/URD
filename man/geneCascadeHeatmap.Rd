@@ -6,7 +6,7 @@
 \usage{
 geneCascadeHeatmap(cascade, color.scale = brewer.pal(9, "YlOrRd"),
   add.time = NULL, times.annotate = seq(0, 1, 0.1), title = "",
-  annotation.list = NULL)
+  annotation.list = NULL, row.font.size = 1, max.font.size = 0.9)
 }
 \arguments{
 \item{cascade}{(list) A processed gene cascade from \code{\link{geneCascadeProcess}}}
@@ -18,7 +18,11 @@ to label the x-axis of the heatmap or NULL to instead use pseudotime}
 
 \item{times.annotate}{(Numeric vector)}
 
-\item{annotation.list}{}
+\item{annotation.list}{Color bar}
+
+\item{row.font.size}{(Numeric) The font size of rows (gene names) should scale automatically, but this allows manual adjustment if needed.}
+
+\item{max.font.size}{(Numeric) This is used to prevent the font from getting big enough that it runs off the page.}
 }
 \description{
 Plot Gene Cascade Heatmap
