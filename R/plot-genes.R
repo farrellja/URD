@@ -75,32 +75,87 @@ plotViolin <- function(object, labels.plot, clustering, clusters.use=NULL, legen
   return(the.plot)
 }
 
-plotScatter <- function(object, label.x, label.y, label.color, label.x.type="search", label.y.type="search", label.color.type="search", cells=NULL, point.size=1, point.alpha=1, title="", xlim=NULL, ylim=NULL, density.background=T, density.color="#333333") {
+#' Gene Expression Scatterplot
+#' 
+#' @importFrom reshape2 melt
+#' @importFrom KernSmooth bkde2d
+#' 
+#' @param object An URD object
+#' @param label.x (Character) Value to plot on the x-axis
+#' @param label.y (Character) Value to plot on the y-axis
+#' @param label.color (Character) Value to plot as point color
+#' @param label.x.type (Character)
+#' @param label.y.type (Character)
+#' @param label.color.type (Character)
+#' @param cells (Character vector) Names of cells to include in the plot (Default, \code{NULL} is all cells.)
+#' @param point.size (Numeric) Adjust size of points on the plot
+#' @param point.alpha (Numeric) Adjust transparency of points on the plot
+#' @param title (Character) Title of plot
+#' @param xlim (Numeric vector) X-axis limits (Default \code{NULL} lets ggplot2 automatically decide.)
+#' @param ylim (Numeric vector) Y-axis limits (Default \code{NULL} lets ggplot2 automatically decide.)
+#' @param density.background (Logical) Should 
+#' @param density.color (Character) Darkest color of the density scale
+#' @param xlab (Character) X-axis label
+#' @param ylab (Character) Y-axis label
+#' @param colorlab (Character) Color guide label
+#' @param legend (Logical) Display a legend
+
+plotScatter <- function(object, label.x, label.y, label.color=NULL, label.x.type="search", label.y.type="search", label.color.type="search", cells=NULL, point.size=1, point.alpha=1, xlim=NULL, ylim=NULL, density.background=T, density.color="#888888", xlab=label.x, ylab=label.y, colorlab=label.color, title="", legend=T) {
   # Get data for plot
-  x <- data.for.plot(object, label=label.x, label.type=label.x.type, as.discrete.list=T)
-  y <- data.for.plot(object, label=label.y, label.type=label.y.type, as.discrete.list=T)
-  col <- data.for.plot(object, label=label.color, label.type=label.color.type, as.discrete.list=T)
+  x <- data.for.plot(object, label=label.x, label.type=label.x.type, as.discrete.list=T, cells.use=cells)
+  y <- data.for.plot(object, label=label.y, label.type=label.y.type, as.discrete.list=T, cells.use=cells)
+  if (!is.null(label.color)) col <- data.for.plot(object, label=label.color, label.type=label.color.type, as.discrete.list=T, cells.use=cells)
   
   # Check for improper data choices
   if (x$discrete | y$discrete) stop ("label.x and label.y must point to continuous data types.")
+  
+  # Determine x and y limits if not provided
+  if (is.null(xlim)) xlim <- range(x$data)
+  if (is.null(ylim)) ylim <- range(y$data)
   
   # Build data frame for ggplot
   gg.data <- data.frame(
     x=x$data,
     y=y$data,
-    color=col$data,
     stringsAsFactors=F
   )
+  if (!is.null(label.color)) gg.data$color <- col$data
   
   # Build basic ggplot
-  the.plot <- ggplot(data=gg.data, aes(x=x, y=y, color=color)) + geom_point(alpha=point.alpha, size=point.size) + theme_bw() + labs(x=label.x, y=label.y, title=title, color=label.color)
+  the.plot <- ggplot(data=gg.data, aes(x=x, y=y)) + theme_bw() + labs(x=xlab, y=ylab, title=title, color=colorlab) + theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank())
   
-  the.plot <- ggplot(data=gg.data, aes(x=x, y=y)) + theme_bw() + labs(x=label.x, y=label.y, title=title, color=label.color)
+  # Add density
+  if (density.background) {
+    # Auto-estimate bandwidth to use, lifted from graphics::smoothScater
+    bandwidth <- diff(apply(gg.data[,1:2], 2, stats::quantile, probs = c(0.05, 0.95), na.rm = TRUE, names = FALSE))/25
+    bandwidth[bandwidth == 0] <- 1
+    # Do 2D kernel-density estimate
+    kde <- KernSmooth::bkde2D(gg.data[,1:2], bandwidth=bandwidth, gridsize=c(128,128))
+    # Transform into gg-ready data.frame
+    rownames(kde$fhat) <- kde$x1
+    colnames(kde$fhat) <- kde$x2
+    kde.gg <- reshape2::melt(kde$fhat)
+    names(kde.gg) <- c("x","y","density")
+    kde.gg$density <- kde.gg$density ^ 0.25
+    # Add it to ggplot
+    the.plot <- the.plot + geom_raster(data=kde.gg, aes(x=x,y=y,fill=density)) + scale_fill_gradient(low="#FFFFFF", high=density.color)
+  }
   
-  the.plot <- the.plot + geom_hex(bins=30) + scale_fill_gradient(low="#DDDDDD", high=density.color, trans="log10")
+  # Add points
+  if (!is.null(label.color)) {
+    the.plot <- the.plot + geom_point(aes(color=color), alpha=point.alpha, size=point.size)
+  } else {
+    the.plot <- the.plot + geom_point(alpha=point.alpha, size=point.size)
+  }
   
+  # Legend
+  if (legend) {
+    the.plot <- the.plot + guides(fill=FALSE)
+  } else {
+    the.plot <- the.plot + guides(fill=FALSE, color=FALSE)
+  }
   
-  the.plot <- the.plot + geom_
-  
-  the.plot <- the.plot + geom_point(aes(color=color), alpha=point.alpha, size=point.size)
+  return(the.plot)
+
 }
+
