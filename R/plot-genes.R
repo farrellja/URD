@@ -78,7 +78,7 @@ plotViolin <- function(object, labels.plot, clustering, clusters.use=NULL, legen
 #' Gene Expression Scatterplot
 #' 
 #' @importFrom reshape2 melt
-#' @importFrom KernSmooth bkde2d
+#' @importFrom KernSmooth bkde2D
 #' 
 #' @param object An URD object
 #' @param label.x (Character) Value to plot on the x-axis
