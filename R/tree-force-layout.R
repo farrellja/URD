@@ -1,0 +1,536 @@
+#' Generate force-directed layout using tip-walk data.
+#' 
+#' 
+#' @importFrom RANN nn2
+#' @importFrom stats quantile
+#' @importFrom reshape2 melt
+#' @importFrom igraph graph_from_data_frame layout_with_fr layout_with_drl layout_with_kk vcount V distances
+#' 
+#' @param object An URD object
+#' @param num.nn (Numeric) Number of nearest neighbors to use, 
+#' @param pseudotime (Character) Pseudotime to use (i.e. a column name of \code{@@pseudotime}). (NULL omits pseudotime from the distance calculation of the nearest neighbor network.)
+#' @param method (Character) Which force-directed layout algorithm to use
+#' @param dim (Numeric) Don't change this from 2.
+#' @param cells.to.do (Character vector) Cells to use in the layout (default \code{NULL} is all cells in the tree.)
+#' @param cut.outlier.cells Who knows
+#' @param cut.outlier.edges Who knows
+#' @param cut.unconnected.segments (Numeric) Cut connections in the nearest-neighbor graph that are more
+#' distant in the tree dendrogram structure than this. Default value is 1, which is the most aggressive.
+#' It will only maintain connections within a segment and to that segment's parent or children. Higher values
+#' permit more distant connections. (To disable, set to NA or NULL, which will permit any connections.)
+#' @param min.final.neighbors (Numeric) After trimming outlier and unconnected connections in the nearest
+#' neighbor graph, 
+#'
+#' 
+#' @export
+
+treeForceDirectedLayout <- function(object, num.nn=NULL, pseudotime, method=c("fr", "drl", "kk"), dim=2, cells.to.do=NULL, cut.outlier.cells=NULL, cut.outlier.edges=NULL, cut.unconnected.segments=1, min.final.neighbors=2, tips=object@tree$tips, max.pseudotime.diff=NULL,  plot.outlier.cuts=F, verbose=F, coords="auto", start.temp=NULL, density.neighbors=10) {
+  # Params
+  if (length(method) > 1) method <- method[1]
+  if (is.null(cells.to.do)) cells.to.do <- rownames(object@diff.data)
+  starting.cells <- length(cells.to.do)
+  if (is.null(num.nn)) num.nn <- ceiling(sqrt(length(cells.to.do)))
+  if (is.null(tips)) tips <- object@tree$tips
+  if (coords=="auto") {
+    coords <- as.matrix(object@tree$cell.layout[cells.to.do,c("x","y")])
+  } else if (!is.null(coords) && class(coords) != "matrix") {
+    stop("coords must either be 'auto', NULL, or a matrix.")
+  }
+  
+  if (verbose) print(paste(Sys.time(), ": Starting with parameters", method, num.nn, "NN", dim, "D", length(cells.to.do), "cells"))
+  
+  # Get and normalize walk data, then add pseudotime (unless NULL in which case don't use)
+  if (verbose) print(paste0(Sys.time(), ": Preparing walk data."))
+  walk.data <- object@diff.data[cells.to.do,paste0("visitfreq.raw.", object@tree$tips)]
+  walk.total <- apply(walk.data, 1, sum)
+  walk.data <- sweep(walk.data, 1, walk.total, "/")
+  if (!is.null(pseudotime)) walk.data$pseudotime <- object@pseudotime[cells.to.do, pseudotime]
+  walk.data <- as.matrix(walk.data)
+  
+  # Calculate nearest neighbor graph
+  if (verbose) print(paste0(Sys.time(), ": Calculating nearest neighbor graph."))
+  walk.nn <- RANN::nn2(data=walk.data,query=walk.data,k=max(num.nn)+1, treetype = "kd", searchtype="priority")
+
+  rownames(walk.nn$nn.idx) <- rownames(walk.data)
+  walk.nn$nn.idx <- walk.nn$nn.idx[,2:(num.nn+1)]
+  rownames(walk.nn$nn.dists) <- rownames(walk.data)
+  walk.nn$nn.dists <- walk.nn$nn.dists[,2:(num.nn+1)]
+  walk.nn$nn.label <- apply(walk.nn$nn.idx, 2, function(y) rownames(walk.data)[y])
+  rownames(walk.nn$nn.label) <- rownames(walk.data)
+  
+  # Cull outlier cells with unusual second nearest neighbor distances
+  if (!is.null(cut.outlier.cells)) {
+    q <- quantile(walk.nn$nn.dists[,2])
+    outer.fence <- q[4] + cut.outlier.cells*(q[4]-q[1])
+    if (plot.outlier.cuts) {
+      hist(walk.nn$nn.dists[,2], breaks=100, main="Outlier Removal: Second Nearest Neighbor", xlab="Distance to 2nd Nearest Neighbor")
+      abline(v=outer.fence, col='red')
+    }
+    if (verbose) print(paste0(Sys.time(), ": Removing ", round(length(which(walk.nn$nn.dists[,2] > outer.fence)) / starting.cells, digits=2), "% of cells as outliers."))
+    cells.keep <- which(walk.nn$nn.dists[,2] <= outer.fence)
+  } else {
+    cells.keep <- 1:dim(walk.data)[1]
+  }
+  
+  # Turn nearest neighbors into edge list
+  if (verbose) print(paste0(Sys.time(), ": Preparing edge list."))
+  edges <- melt(walk.nn$nn.label[cells.keep,], stringsAsFactors=F)
+  dists <- melt(walk.nn$nn.dists[cells.keep,])
+  edges <- edges[,c(1,3)]
+  names(edges) <- c("V1", "V2")
+  edges$dists <- dists$value
+  edges$V1 <- as.character(edges$V1)
+  edges$V2 <- as.character(edges$V2)
+  
+  starting.edges <- dim(edges)[1]
+  
+  # Cut connections with unusually long distances
+  if (!is.null(cut.outlier.edges)) {
+    q <- quantile(edges$dists)
+    outer.fence <- q[4] + cut.outlier.edges*(q[4]-q[1])
+    if (verbose) print(paste0(Sys.time(), ": Removing ", round(length(which(edges$dists > outer.fence)) / starting.edges * 100, digits=3), "% of edges as outliers."))
+    if (plot.outlier.cuts) {
+      hist(edges$dists, breaks=100, main="Outlier Removal: Edge distances", xlab="Edge distance")
+      abline(v=outer.fence, col='red')
+    }
+    edges <- edges[edges$dists <= outer.fence,]
+  }
+  
+  # Cut connections with overly large pseudotime differences
+  if (!is.null(max.pseudotime.diff)) {
+    edges$pt1 <- object@pseudotime[edges$V1,pseudotime]
+    edges$pt2 <- object@pseudotime[edges$V2,pseudotime]
+    edges$dpt <- abs(edges$pt1 - edges$pt2)
+    if (verbose) print(paste0(Sys.time(), ": Removing ", round(length(which(edges$dpt > max.pseudotime.diff)) / starting.edges * 100, digits=3), "% of edges with too large pseudotime difference."))
+    edges <- edges[which(edges$dpt <= max.pseudotime.diff),]
+  }
+  
+  # Cut edges between overly distant (e.g. non-connected) segments
+  if (!is.na(cut.unconnected.segments) & !is.null(cut.unconnected.segments) & cut.unconnected.segments > 0) {
+    # Determine which segments each connected cell belongs to
+    edges$seg1 <- object@diff.data[edges$V1, "segment"]
+    edges$seg2 <- object@diff.data[edges$V2, "segment"]
+    # Determine distance in the tree between each segment
+    seg.dist <- igraph::distances(object@tree$tree.igraph, mode="all")
+    edges$seg.dist <- apply(edges[,c("seg1","seg2")], 1, function(segs) seg.dist[segs[1],segs[2]])
+    
+    if (verbose) print(paste0(Sys.time(), ": Removing ", round(length(which(edges$seg.dist > cut.unconnected.segments)) / starting.edges * 100, digits=2), "% of edges that are between segments with distance > ", cut.unconnected.segments))
+    edges <- edges[edges$seg.dist <= cut.unconnected.segments,]
+  }
+  
+  # Trim cells that are no longer well connected to the graph
+  if (verbose) print(paste0(Sys.time(), ": Trimming cells that are no longer well connected."))
+  connections.remaining <- table(edges$V1)
+  cells.without.enough.connections <- sum(connections.remaining < min.final.neighbors)
+  cells.with.enough.connections <- names(which(connections.remaining >= min.final.neighbors))
+  while(cells.without.enough.connections > 0) {
+    cells.with.enough.connections <- names(which(connections.remaining >= min.final.neighbors))
+    edges <- edges[which(edges$V1 %in% cells.with.enough.connections & edges$V2 %in% cells.with.enough.connections),]
+    connections.remaining <- table(edges$V1)
+    cells.without.enough.connections <- sum(connections.remaining < min.final.neighbors)
+  }
+  if (verbose) print(paste0(Sys.time(), ": ", round(length(cells.with.enough.connections)/starting.cells*100, digits=2), "% of starting cells preserved."))
+  
+  # Create igraph representation
+  if (verbose) print(paste0(Sys.time(), ": Preparing igraph object."))
+  if (method=="kk") {
+    # kk requires that weights be higher for points that should be far apart -- use distance directly
+    edges$weight <- edges$dists
+  } else {
+    # everything else places points with high weight nearby -- use inverse of distance as graph weight
+    edges$weight <- 1/edges$dists
+  }
+  object@tree$walks.force.edges <- edges
+  igraph.walk.weights <- graph_from_data_frame(edges, directed=F)
+  
+  if (!is.null(coords)) {
+    cells.remain <- unique(c(edges$V1, edges$V2))
+    coords.remain <- rownames(coords) %in% cells.remain
+    coords <- coords[coords.remain,]
+  }
+  
+  if (is.null(start.temp)) start.temp <- sqrt(vcount(igraph.walk.weights))
+  
+  # Do force-directed layout
+  if (verbose) print(paste0(Sys.time(), ": Doing force-directed layout."))
+  if (method=="fr") igraph.walk.layout <- layout_with_fr(igraph.walk.weights, dim=dim, coords=coords, start.temp=start.temp)
+  if (method=="drl") igraph.walk.layout <- layout_with_drl(igraph.walk.weights, dim=dim, options=list(edge.cut=0))
+  if (method=="kk") igraph.walk.layout <- layout_with_kk(igraph.walk.weights, dim=dim)
+  
+  # Store the layout
+  if (dim==2) {
+    # Calculate weighted pseudotime of cells' neighbors for tree layout.
+    if (verbose) print(paste0(Sys.time(), ": Calculating z-coordinate for telescope plots."))
+    neighbor.pt <- unlist(lapply(1:dim(walk.nn$nn.label)[1], function(i) {
+      weighted.mean(x=object@pseudotime[walk.nn$nn.label[i,],pseudotime], w=1/walk.nn$nn.dists[i,])
+    }))
+    names(neighbor.pt) <- rownames(walk.nn$nn.label)
+    # Store the layout
+    object@tree$walks.force.layout <- as.data.frame(igraph.walk.layout, stringsAsFactors=F)
+    names(object@tree$walks.force.layout) <- c("x","y")
+    rownames(object@tree$walks.force.layout) <- V(igraph.walk.weights)$name
+    # Normalize neighbor.pt range
+    neighbor.pt.factor <- mean(apply(object@tree$walks.force.layout[,c("x","y")], 2, max)) / max(neighbor.pt)
+    object@tree$walks.force.layout$telescope.pt <- neighbor.pt[rownames(object@tree$walks.force.layout)] * neighbor.pt.factor
+    
+    # Calculate local density for adjusting alpha
+    if (verbose) print(paste0(Sys.time(), ": Calculating neighbor distance."))
+    object <- fdl.density(object, neighbor=density.neighbors)
+    
+  } else if (dim==3) {
+    object@tree$walks.force.layout.3d <- as.data.frame(igraph.walk.layout, stringsAsFactors=F)
+    names(object@tree$walks.force.layout.3d) <- c("x","y","z")
+    rownames(object@tree$walks.force.layout.3d) <- V(igraph.walk.weights)$name
+  }
+  
+  # Return the object
+  if (verbose) print(paste0(Sys.time(), ": Finished."))
+  return(object)
+}
+
+#' Plot tree force-directed layout in 2D
+#' 
+#' @import ggplot2
+#' 
+#' @param object An URD object
+#' 
+#' @export
+plotTreeForce2D <- function(object, label=NULL, label.type="search", title=label, show.points=T, point.alpha=1, point.size=1, show.neighbors=F, neighbors.max=10000, colors=NULL) {
+  # Load colors if not specified
+  if (is.null(colors)) colors <- defaultURDContinuousColors()
+  
+  gg.data <- object@tree$walks.force.layout
+  if (!is.null(label)) color.data <- data.for.plot(object = object, label = label, label.type = label.type, as.color = F, as.discrete.list=T, cells.use = rownames(gg.data))
+  gg.data$expression <- color.data$data
+  gg <- ggplot() + theme_bw() + labs(x="", y="", color="", title=title)
+  if (show.neighbors) {
+    edge.data <- object@tree$walks.force.edges
+    if (dim(edge.data)[1] > neighbors.max) edge.data <- edge.data[sample(1:dim(edge.data)[1], neighbors.max, replace=F),]
+    edge.data[,c("x1","y1")] <- gg.data[edge.data$V1,c("x","y")]
+    edge.data[,c("x2","y2")] <- gg.data[edge.data$V2,c("x","y")]
+    if (show.points) gg <- gg + geom_segment(data=edge.data, aes(x=x1, y=y1, xend=x2, yend=y2), color='black', alpha=0.02)
+    if (!show.points) gg <- gg + geom_segment(data=edge.data, aes(x=x1, y=y1, xend=x2, yend=y2, color=weight), alpha=0.04)
+  }
+  if (show.points) gg <- gg + geom_point(data=gg.data, aes(x=x, y=y, color=expression), size=point.size, alpha=point.alpha) 
+  if (!color.data$discrete) gg <- gg + scale_color_gradientn(colors = colors)
+  return(gg)
+}
+
+plot.tree.force.3d <- function(object, label=NULL, label.type="search", show.points=T, point.alpha=1, point.size=1, show.neighbors=F, neighbors.max=10000) {
+  gg.data <- object@tree$walks.force.layout.3d
+  if (!is.null(label)) color.data <- data.for.plot(object = object, name = label, type = label.type, as.color = T, as.discrete.list=T, cells.use = rownames(gg.data))
+  gg.data$expression <- color.data$data
+  open3d()
+  points3d(x=gg.data$x, y=gg.data$y, z=gg.data$z, col=gg.data$expression, alpha=point.alpha)
+  
+  
+  if (show.neighbors) {
+    edge.data <- object@tree$walks.force.edges
+    if (dim(edge.data)[1] > neighbors.max) edge.data <- edge.data[sample(1:dim(edge.data)[1], neighbors.max, replace=F),]
+    edge.data[,c("x1","y1")] <- gg.data[edge.data$V1,c("x","y")]
+    edge.data[,c("x2","y2")] <- gg.data[edge.data$V2,c("x","y")]
+    if (show.points) gg <- gg + geom_segment(data=edge.data, aes(x=x1, y=y1, xend=x2, yend=y2), color='black', alpha=0.02)
+    if (!show.points) gg <- gg + geom_segment(data=edge.data, aes(x=x1, y=y1, xend=x2, yend=y2, color=weight), alpha=0.04)
+  }
+  if (show.points) gg <- gg + geom_point(data=gg.data, aes(x=x, y=y, color=expression), alpha=point.alpha) 
+  if (!color.data$discrete) gg <- gg + scale_color_gradientn(colors = colrs)
+  return(gg)
+}
+
+#' Plot force-directed layout of tree
+#' 
+#' @param object An URD object
+#' @param label (Character)
+#' @param label.type (Character)
+#' @param view (Character) Can 
+#' @param alpha (Numeric) Maximum transparency of points
+#' @param alpha.fade (Numeric) Minimum transparency of points
+#' @param size (Numeric) Size of points in the plot
+#' @param size.fade (Numeric) DOESN'T WORK.
+#' @param title (Character) Title to add to the plot. Unfortunately, this provides rather ugly titles -- they are well positioned automatically for quick iteration, but not suitable for final figures.
+#' @param label.tips (Logical) Should text identifying the tips of the tree be placed in the force directed layout? Defaults to TRUE if \code{@@tree$segment.names} has been set.
+#' @param use.short.names (Logical) Should short names from \code{@@tree$segment.names.short} be used? Defaults to TRUE if those values have been set.
+#' @param seg.show (Character vector) Segments of the tree to put on the plot (Default \code{NULL} is all segments)
+#' @param cells.show (Character vector) Cells of the tree to show (Default \code{NULL} is all cells)
+#' @param fade.below (Numeric)
+#' @param density.alpha (Logical) 
+#' @param label.spacing (Numeric)
+#' @param text.cex (Numeric) Size of the label text
+#' @param colors (Character vector)
+#' @param discrete.colors (Character vector)
+#' 
+#' @return Nothing. Produces a plot using the \code{rgl} package, displayed in an X11 window.
+#' 
+#' @export
+plotTreeForce <- function(object, label, label.type="search", view="default", alpha=0.8, alpha.fade=0.1, size=5, size.fade=3, title=NULL, label.tips=(!is.null(object@tree$segment.names) | !is.null(object@tree$segment.names.short)), use.short.names=!is.null(object@tree$segment.names.short), seg.show=NULL, cells.show=NULL, fade.below=(2/9), density.alpha=T, label.spacing=5, text.cex=0.8, colors=NULL, discrete.colors=NULL) {
+
+  if (requireNamespace("rgl", quietly = TRUE)) {
+    
+    # Figure out which view to use
+    if (!is.null(view)) {
+      if (view=="default") {
+        if ("force.view.default" %in% names(object@tree)) view <- object@tree$force.view.default
+        else view <- NULL
+      }
+      view <- object@tree$force.view.list[[view]]
+    }
+    
+    # Get default colors
+    if (is.null(colors)) colors <- defaultURDContinuousColors()
+    
+    # Get layout data and expression data
+    gg.data <- object@tree$walks.force.layout
+    gg.data$segment <- object@diff.data[rownames(gg.data),"segment"]
+    if (!is.null(label)) {
+      color.data <- data.for.plot(object = object, label = label, label.type = label.type, as.color = T, as.discrete.list=T, cells.use = rownames(gg.data), continuous.colors=colors, colors.use = discrete.colors)
+      gg.data$expression <- color.data$data
+    }
+    gg.data$alpha <- alpha
+    gg.data$size <- size
+    
+    # Focus on expression
+    # For this, grey out any thing below focus, set alpha low for those, and increase progressively until 2*focus.
+    if (fade.below > 0 & !color.data$discrete) {
+      # Get the actual expression data
+      expression.data <- data.for.plot(object=object, label=label, label.type=label.type, as.color=F, cells.use=rownames(gg.data))
+      # Figure out ranges
+      expression.range <- range(expression.data)
+      fade.range <- diff(expression.range) * fade.below + expression.range[1]
+      # Adjust gg.data
+      fade <- (fade.range-expression.data+expression.range[1])/fade.range
+      fade[fade < 0] <- 0
+      gg.data$alpha <- alpha - ((alpha-alpha.fade) * fade)
+      gg.data$size <- size - ((size-size.fade) * fade)
+    }
+    
+    # Open 3D view
+    if (!is.null(view)) {
+      open3d(
+        zoom=view$rgl.setting$zoom, 
+        scale=view$rgl.setting$scale, 
+        userMatrix=view$rgl.setting$userMatrix, 
+        windowRect=view$rgl.setting$windowRect
+      )
+    } else {
+      open3d()
+    }
+    
+    # Determine which cells should have alpha reduced
+    #if (!is.null(seg.show) & is.null(cells.show)) {
+    #  segs.show <- segChildrenAll(object, seg.show, include.self=T)
+    #  cells.show <- rownames(gg.data)[which(gg.data$segment %in% segs.show)]
+    #}
+    #if (!is.null(cells.show)) {
+    #  gg.data[!(rownames(gg.data) %in% cells.show), "alpha"] <- alpha.fade
+    #}
+    
+    # Adjust transparency for local density
+    if (density.alpha) {
+      dr <- range(object@tree$walks.force.layout$n.dist)
+      n.dist <- object@tree$walks.force.layout$n.dist / dr[2]
+      density.adj <- sqrt(n.dist)
+      density.adj <- density.adj / median(density.adj)
+      gg.data$alpha <- gg.data$alpha * density.adj
+    }
+    
+    # Exclude 
+    if (!is.null(seg.show) & is.null(cells.show)) {
+      segs.show <- segChildrenAll(object, seg.show, include.self=T)
+      cells.show <- rownames(gg.data)[which(gg.data$segment %in% segs.show)]
+    }
+    if (!is.null(cells.show)) {
+      gg.data <- gg.data[cells.show,]
+    }
+    
+    # Add the points to the plot
+    points3d(x=gg.data$x, y=gg.data$y, z=gg.data$telescope.pt, col=gg.data$expression, alpha=gg.data$alpha, size=size)
+    
+    # Add title to plot
+    if (!is.null(title)) bgplot3d({plot.new(); title(main=title, line=3)})
+    
+    # Add labels to tips
+    if (label.tips) {
+      
+      # Grab the final tips
+      tip.labels <- data.frame(
+        tip=unique(setdiff(object@tree$segment.joins$child, object@tree$segment.joins$parent)),
+        stringsAsFactors=F, row.names=unique(setdiff(object@tree$segment.joins$child, object@tree$segment.joins$parent))
+      )
+      
+      # Figure out the actual label for each tip
+      tip.labels$label <- unlist(lapply(tip.labels$tip, function(tip) {
+        if (use.short.names) object@tree$segment.names.short[tip] else object@tree$segment.names[tip]
+      }))
+      
+      # Figure out the location for each label by projecting out the vector at the end of each tip
+      tip.labels[,c("x","y","z")] <- t(as.data.frame(lapply(tip.labels$tip, function(tip) {
+        #cells.in.tip <- rownames(object@diff.data)[which(object@diff.data[rownames(object@tree$walks.force.layout),"segment"] == tip)]
+        cells.in.tip <- rownames(gg.data)[gg.data$segment == tip]
+        cell.pt.order <- cells.in.tip[order(object@tree$pseudotime[cells.in.tip], decreasing = T)]
+        tip.vec <- as.numeric(apply(gg.data[c(cell.pt.order[1],cell.pt.order[5]),c("x","y","telescope.pt")], 2, diff))
+        s <- sqrt(label.spacing^2/(tip.vec[1]^2+tip.vec[2]^2+tip.vec[3]^2))
+        tip.vec <- s*tip.vec
+        return(apply(rbind(as.numeric(gg.data[cell.pt.order[1],c("x","y","telescope.pt")]), tip.vec), 2, sum))
+      })))
+      
+      # Add the text
+      text3d(x=tip.labels$x, y=tip.labels$y, z=tip.labels$z, text=tip.labels$label, adj=0.5, cex=text.cex)
+    }
+  } else {
+    stop("Package rgl is required for this function. To install: install.packages('rgl')\n")
+  }
+}
+
+#' Calculate force-directed layout local density
+#' 
+#' Add distance to nth nearest neighbor to force directed layout so that you can later
+#' calculate local density and adjust alpha values.
+#' 
+#' @importFrom RANN nn2
+#' 
+#' @param object An URD object
+#' @param neighbor (Numeric) Distance to \code{neighbor}th nearest neighbor is used for
+#' density adjustment of point transparency on force-directed layout plots.
+fdl.density <- function(object, neighbor=10) {
+  nn <- RANN::nn2(object@tree$walks.force.layout, k = neighbor, treetype = 'bd')
+  object@tree$walks.force.layout$n.dist <- nn$nn.dists[,neighbor]
+  return(object)
+}
+
+#' Store a 3D view for force-directed layouts
+#' 
+#' The last stored view will be the "default."
+#' 
+#' @param object An URD object
+#' @param view.name (Character) Name to use for this view
+#' 
+#' @return An URD object with the parameters for that view stored in \code{@@tree$force.view.list}.
+#' 
+#' @export
+plotTreeForceStore3DView <- function(object, view.name) {
+  if (requireNamespace("rgl", quietly = TRUE)) {
+    
+    # If not appending to a views list, make one
+    if (is.null(object@tree$force.view.list)) object@tree$force.view.list <- list()
+    # Grab rgl plot settings, if desired
+    rgl.settings <- rgl::par3d(no.readonly=F)
+    # Make a list of everything
+    this.view <- list(rgl.settings=rgl.settings)
+    # Store if in the views list
+    object@tree$force.view.list[[view.name]] <- this.view
+    # Store 'default' view
+    object@tree$force.view.default <- view.name
+    # Return the final views list
+    return(object)
+  } else {
+    stop("Package rgl is required for this function. To install: install.packages('rgl')\n")
+  }
+}
+
+#' Rotate coordinates in 3D
+#' 
+#' @param m (Matrix) n cells x 3 matrix of coordinates
+#' @param a (Numeric) Angle to rotate
+#' @param axis (Character) Which axis to rotate around
+#' 
+#' @return n x 3 matrix of rotated coordinates
+rotateCoords3d <- function(m, a, axis=c("x","y","z")) {
+  if (length(axis) > 1) axis <- axis[1]
+  if (dim(m)[2] != 3) stop("Supply an n x 3 matrix.")
+  if (axis == "x") r.mat <- matrix(c(1, 0, 0, 0, cos(a), -1*sin(a), 0, sin(a), cos(a)), ncol=3, byrow=T)
+  if (axis == "y") r.mat <- matrix(c(cos(a), 0, sin(a), 0, 1, 0, -1*sin(a), 0, cos(a)), ncol=3, byrow=T)
+  if (axis == "z") r.mat <- matrix(c(cos(a), -1*sin(a), 0, sin(a), cos(a), 0, 0, 0, 1), ncol=3, byrow=T)
+  m %*% r.mat
+}
+
+#' Translate coordinates in 3D
+#' 
+#' @param m (Matrix) n cells x 3 coordinates matrix
+#' @param x (Numeric) Distance to move in x
+#' @param y (Numeric) Distance to move in y
+#' @param z (Numeric) Distance to move in z
+#' 
+#' @return n x 3 matrix of translated coordinates
+translateCoords3d <- function(m, x, y, z) {
+  if (dim(m)[2] != 3) stop("Supply an n x 3 matrix.")
+  sweep(m, 2, c(x, y, z), "+")
+}
+
+#' Rotate points in force-directed layout
+#' 
+#' This function can be used in addition to \code{\link{treeForceTranslateCoords}}
+#' in order to fine-tune the presentation of a force-directed layout. For instance,
+#' this can be used to achieve an improved 2D visualization by modifying overlapping
+#' portions of the layout.
+#' 
+#' @param object An URD object
+#' @param cells (Character vector) Cells to modify (Default \code{NULL} is all cells in the force-directed layout)
+#' @param seg (Character) Instead of specifying cells, just grab all cells from this segment and downstream. Ignored if \code{cells} is specified.
+#' @param angle (Numeric) Angle to rotate
+#' @param axis (Character: "x", "y", "z") Axis around which to rotate
+#' @param around.cell (Character or Numeric) If a character, then the name of a cell to rotate around. If numeric, then will choose the Nth cell by pseudotime. (This can be helpful for rotating a segment around its base to spread segments of the tree apart more. If \code{NULL}, then rotates around (0,0,0).
+#' @param throw.out.cells (Numeric) Throw out the youngest N cells in pseudotime
+#' @param pseudotime (Character) Pseudotime (i.e. column name of \code{@@pseudotime}) to use for determining cells to throw out.
+#' 
+#' @return An URD object with the coordinates of some cells in \code{@@tree$walks.force.layout} modified.
+#' 
+#' @export
+treeForceRotateCoords <- function(object, cells=NULL, seg=NULL, angle, axis=c("x", "y", "z"), around.cell=NULL, throw.out.cells=0, pseudotime=NULL) {
+  # If segment specified, grab the cells from that segment
+  if (!is.null(seg) & is.null(cells)) cells <- cellsInCluster(object, "segment", segChildrenAll(object, seg, include.self=T))
+  # If cells not specified, do all cells in the layout.
+  if (is.null(cells)) cells <- rownames(object@tree$walks.force.layout)
+  # Make sure all cells specified are actually in the force-directed layout
+  cells <- intersect(cells, rownames(object@tree$walks.force.layout))
+  # If throw.out.cells is on, by removing n cells with the youngest pseudotime.
+  if ((throw.out.cells > 0)) {
+    if (is.null(pseudotime)) stop ("To use throw.out.cells, must specify pseudotime.")
+    cells <- setdiff(cells, cells[order(object@pseudotime[cells,pseudotime])[1:throw.out.cells]])
+  }
+  # Grab the appropriate chunk of the layout.
+  m <- as.matrix(object@tree$walks.force.layout[cells, c("x","y","telescope.pt")])
+  # If a cell is specified to rotate around, translate coords so that cell is at 0, 0, 0
+  if (!is.null(around.cell)) {
+    if (is.numeric(around.cell)) {
+      #around.cell <- rownames(m)[order(m[,3])[around.cell]]
+      around.cell <- cells[order(object@pseudotime[cells,pseudotime])[around.cell]]
+    }
+    around.coords <- m[around.cell,]
+    m <- translateCoords3d(m=m, x=-1*around.coords[1], y=-1*around.coords[2], z=-1*around.coords[3])
+  }
+  # Do the rotation
+  mprime <- rotateCoords3d(m=m, a=angle, axis=axis)
+  # If you were rotating around an arbitrary cell, put them back
+  if (!is.null(around.cell)) {
+    mprime <- translateCoords3d(m=mprime, x=around.coords[1], y=around.coords[2], z=around.coords[3])
+  }
+  object@tree$walks.force.layout[cells, c("x", "y", "telescope.pt")] <- mprime
+  return(object)
+}
+
+#' Translate points in force-directed layout
+#' 
+#' This function can be used in addition to \code{\link{treeForceRotateCoords}}
+#' in order to fine-tune the presentation of a force-directed layout. For instance,
+#' this can be used to achieve an improved 2D visualization by modifying overlapping
+#' portions of the layout.
+#' 
+#' @param object An URD object
+#' @param cells (Character vector) Cells to modify (Default \code{NULL} is all cells in the force-directed layout)
+#' @param seg (Character) Instead of specifying cells, just grab all cells from this segment and downstream. Ignored if \code{cells} is specified.
+#' @param x (Numeric) Distance to move cells along x-axis
+#' @param y (Numeric) Distance to move cells along y-axis
+#' @param z (Numeric) Distance to move cells along z-axis
+#' 
+#' @return An URD object with the coordinates of some cells in \code{@@tree$walks.force.layout} modified.
+#' 
+#' @export
+treeForceTranslateCoords <- function(object, cells=NULL, seg=NULL, x, y, z) {
+  if (!is.null(seg) & is.null(cells)) cells <- cellsInCluster(object, "segment", segChildrenAll(object, seg, include.self=T))
+  if (is.null(cells)) cells <- rownames(object@tree$walks.force.layout)
+  cells <- intersect(cells, rownames(object@tree$walks.force.layout))
+  m <- as.matrix(object@tree$walks.force.layout[cells, c("x","y","telescope.pt")])
+  mprime <- translateCoords3d(m=m, x=x, y=y, z=z)
+  object@tree$walks.force.layout[cells, c("x", "y", "telescope.pt")] <- mprime
+  return(object)
+}

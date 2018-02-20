@@ -1,0 +1,38 @@
+Package: URD
+Title: Unbiased Reconstruction of Developmental trajectories
+Version: 0.0.0.9000
+Authors@R: person("Jeffrey", "Farrell", email = "jfarrell@g.harvard.edu", role = c("aut", "cre"))
+Description: URD (Unbiased Reconstruction of Developmental trajectories) finds complex  .
+Depends: 
+	R (>= 3.2.0),
+	ggplot2,
+	Matrix
+Imports:
+	bit64,
+	data.table,
+	destiny,
+	gdata,
+	ggraph,
+	gmodels,
+	gplots,
+	gridExtra,
+	igraph,
+	MASS,
+	minpack.lm,
+	plyr,
+	RANN,
+	RColorBrewer,
+	reshape2,
+	rgl,
+	rhdf5,
+	Rtsne,
+	scales,
+	stats,
+	sva,
+	utils
+Suggests:
+	Seurat
+License: What license is it under?
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 6.0.1
