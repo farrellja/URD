@@ -340,184 +340,11 @@ binomTestAlongTree <- function(object, pseudotime, tips, log.effect.size=log(2),
   }
 }
 
-# Try and adapt this for the precision-recall curve.
-
-#' Test for differential gene expression along tree using binomial test
+#' Test for differential gene expression along tree using precision-recall test
 #' 
 #' This test performs differential expression testing along URD's recovered tree
-#' structure using a binomial expression test (see: \code{\link{markersBinom}}).
-#' 
-#' It starts from the segment provided in \code{tips} and compares it to each of
-#' its siblings (and their descendants) matched to the same pseudotime limits as
-#' the segment under consideration. Markers that are upregulated in a segment compared
-#' to either any of its siblings (if \code{must.beat.all.sibs=FALSE}) or compared
-#' to each of its siblings (if \code{must.beat.all.sibs=TRUE}) become putative
-#' markers.
-#' 
-#' 
-#' @param object An URD object
-#' @param pseudotime (Character) Name of pseudotime to use
-#' @param tips (Character vector) The tip of the trajectory to find differential expression for (either as tip number or name)
-#' @param log.effect.size (Numeric) Minimum fold-change difference in expression to be considered differential (default, \code{log(2)} is 2-fold change)
-#' @param min.auc (Numeric) Minimum area under the curve for being considered differential
-#' @param frac.must.express (Numeric) Fraction of cells of interest that must express the gene to consider it differential.
-#' @param frac.min.diff (Numeric) Minimum difference in fraction of cells expressing a gene to consider it differential.
-#' @param genes.use (Character vector) Which genes to test for differential expression (default \code{NULL} is all genes)
-#' @param root (Character) Which segment of the tree (by number) to use as the root for differential express (default \code{NULL} will autodetect, but this can be useful if you do not want to traverse up the entire tree)
-#' @param only.return.global (Logical) Genes must also pass an overall in-trajectory vs. out-of-trajectory test across all cells in the data to be considered differential (default, \code{FALSE})
-#' @param must.beat.sibs (Numeric) At multi-furcated branchpoints, independent comparisons are made to each sibling. For a gene to be considered differential it must be a marker against this proportion of its sibling branches. (1 means it must be a marker against all other branches, 0 means it must be a marker against a single other branch.)
-#' @param report.stats (Logical) Should information be returned about all of the comparisons? (nGene, nTrans, pseudotime, n.cells) If \code{TRUE}, this function returns a list instead of a data.frame
-#' 
-#' @return a data.frame of gene expression results if \code{report.stats=F} or a list with entries \code{diff.exp} and \code{stats} if \code{report.stats=T}.
-#' 
-#' @export
-aucprTestAlongTreeOld <- function(object, pseudotime, tips, log.effect.size=0.25, min.auc=0.1, frac.must.express=0.1, frac.min.diff=0.1, genes.use=NULL, root=NULL, only.return.global=F, must.beat.sibs=0.5, report.stats=F) {
-  # Translate provided tip names into numbers if needed
-  tips <- translateSegmentNames(object, tips)
-  
-  # Initialize
-  current.tip <- tips
-  tip.list <- c()
-  markers <- list()
-  anti.markers <- list()
-  cells.1.all <- c()
-  cells.2.all <- c()
-  stats <- data.frame(stringsAsFactors=F)
-  
-  # Loop through tree, collecting two sets of cells -- one on the trajectory from
-  # population of interest to tip, and one pseudotime matched on sibling segments.
-  while(length(current.tip) > 0) {
-    # Find parent
-    parent.to.tip <- segParent(object, current.tip)
-    # Find other side(s) of branchpoints
-    opposing.tips <- segSiblings(object, current.tip, include.self = F)
-    # Compare each opposing branch separately.
-    for (opposing.tip in opposing.tips) {
-      segs.to.consider <- c(opposing.tip, segChildrenAll(object, opposing.tip))
-      if (length(segs.to.consider) > 0) {
-        tip.list <- c(tip.list, current.tip)
-        # Get cells from both branches
-        cells.1 <- unique(unlist(object@tree$cells.in.segment[current.tip]))
-        cells.2 <- unique(unlist(object@tree$cells.in.segment[segs.to.consider]))
-        # Limit cell populations to the same pseudotime range
-        pt.limits <- object@tree$segment.pseudotime.limits[current.tip,]
-        cells.2 <- cells.2[which(object@pseudotime[cells.2,pseudotime] >= as.numeric(pt.limits[1]) & object@pseudotime[cells.2,pseudotime] <= as.numeric(pt.limits[2]))]
-        # Add cells to the list keeping track of the globally compared cells
-        cells.1.all <- c(cells.1.all, cells.1)
-        cells.2.all <- c(cells.2.all, cells.2)
-        # If keeping track of stats, add information to the data.frame
-        if (report.stats) {
-          n.1 <- length(cells.1)
-          n.2 <- length(cells.2)
-          pt.1.mean <- mean(object@pseudotime[cells.1, pseudotime])
-          pt.2.mean <- mean(object@pseudotime[cells.2, pseudotime])
-          genes.1.mean <- mean(object@meta[cells.1, "n.Genes"])
-          genes.2.mean <- mean(object@meta[cells.2, "n.Genes"])
-          trans.1.mean <- mean(object@meta[cells.1, "n.Trans"])
-          trans.2.mean <- mean(object@meta[cells.2, "n.Trans"])
-          pt.1.median <- median(object@pseudotime[cells.1, pseudotime])
-          pt.2.median <- median(object@pseudotime[cells.2, pseudotime])
-          genes.1.median <- median(object@meta[cells.1, "n.Genes"])
-          genes.2.median <- median(object@meta[cells.2, "n.Genes"])
-          trans.1.median <- median(object@meta[cells.1, "n.Trans"])
-          trans.2.median <- median(object@meta[cells.2, "n.Trans"])
-          stats <- rbind(stats, c(n.1, n.2, pt.1.mean, pt.2.mean, pt.1.median, pt.2.median, genes.1.mean, genes.2.mean, genes.1.median, genes.2.median, trans.1.mean, trans.2.mean, trans.1.median, trans.2.median))
-        }
-        # Test for markers of these cells with AUCPR test
-        these.markers <- markersAUCPR(object=object, cells.1=cells.1, cells.2=cells.2, genes.use=genes.use, effect.size=log.effect.size, frac.must.express=frac.must.express, frac.min.diff=frac.min.diff)
-        # Since AUCPR is not symmetric, must test explicitly for markers of the other branch ("anti-marker")
-        these.anti.markers <- markersAUCPR(object=object, cells.1=cells.2, cells.2=cells.1, genes.use=genes.use, effect.size=log.effect.size, frac.must.express=frac.must.express, frac.min.diff=frac.min.diff)
-        # Limit markers to those that pass the minimum AUC and are positive markers of their respective branch
-        markers[[(length(markers)+1)]] <- these.markers[these.markers$AUCPR >= min.auc & these.markers$exp.fc > 0,]
-        anti.markers[[(length(anti.markers)+1)]] <- these.anti.markers[these.anti.markers$AUCPR >= min.auc & these.anti.markers$exp.fc > 0,]
-        names(markers)[length(markers)] <- paste0(current.tip, "-", opposing.tip)
-        names(anti.markers)[length(anti.markers)] <- paste0(current.tip, "-", opposing.tip)
-      }
-    }
-    # Move upwards one branch
-    current.tip <- parent.to.tip
-  }
-  
-  # If a marker is negatively enriched in a *downstream* segment in the tree (i.e. is an anti-marker), then remove it as a marker.
-  depleted.by.segment <- lapply(unique(tip.list), function(tip) {
-    unique(unlist(lapply(anti.markers[0:(min(which(tip.list == tip))-1)], function(markers.downstream) {
-      rownames(markers.downstream)
-    })))
-  })
-  names(depleted.by.segment) <- unique(tip.list)
-  
-  markers.2 <- lapply(1:length(tip.list), function(x) {
-    tm <- markers[[x]]
-    tm[setdiff(rownames(tm), depleted.by.segment[[tip.list[x]]]),]
-  })
-  names(markers.2) <- names(markers)
-  
-  # If user provides a root, get rid of the markers from it and earlier segments.
-  if (!is.null(root) && root %in% tip.list) {
-    keep.markers.until <- which(tip.list == root)-1
-    markers.2 <- markers.2[1:keep.markers.until]
-    tip.list <- tip.list[1:keep.markers.until]
-  }
-  
-  # Now, determine the remaining markers
-  # if (must.beat.all.sibs) {
-  #   markers.remain <- unique(unlist(lapply(unique(tip.list), function(tip) {
-  #     Reduce(intersect, lapply(markers.2[which(tip.list == tip)], function(m) rownames(m)))
-  #   })))
-  # } else {
-  #   markers.remain <- unique(unlist(lapply(markers.2, function(m) rownames(m))))
-  # }
-  
-  # Now, determine how many siblings each marker beats and curate them.
-  markers.3 <- markers.2
-  for (vs in unique(tip.list)) {
-    # Figure out which comparisons were for a group of sibs
-    sibs.use <- which(tip.list==vs)
-    # How many times was each marker found?
-    sib.table <- table(unlist(lapply(markers.2[sibs.use], rownames)))
-    # Which markers were found enough times?
-    markers.keep <- names(which(sib.table >= (length(sibs.use) * must.beat.sibs)))
-    # Curate individual tables
-    for (this.sib in sibs.use) {
-      markers.3[[this.sib]] <- markers.3[[this.sib]][intersect(rownames(markers.3[[this.sib]]), markers.keep),]
-    }
-  }
-  markers.remain <- unique(unlist(lapply(markers.3, rownames)))
-  
-  # Summarize data by calculating across _all_ cells considered, and also max (by log.effect) in any branch.
-  if (only.return.global) {
-    markers.summary <- markersAUCPR(object=object, cells.1=cells.1.all, cells.2=cells.2.all, genes.use=markers.remain, frac.must.express = frac.must.express, effect.size=log.effect.size, frac.min.diff=frac.min.diff)
-    markers.summary <- markers.summary[markers.summary$AUCPR >= min.auc,]
-  } else {
-    markers.summary <- markersAUCPR(object=object, cells.1=cells.1.all, cells.2=cells.2.all, genes.use=markers.remain, frac.must.express = 0, effect.size=0, frac.min.diff=0)
-  }
-  names(markers.summary) <- c("AUCPR.all", "expfc.all", "posFrac_lineage", "posFrac_rest", "nTrans_lineage", "nTrans_rest")
-  markers.max <- lapply(rownames(markers.summary), function(marker) {
-    id <- which.max(unlist(lapply(markers.3, function(x) x[marker,"AUCPR"])))
-    to.return <- markers.3[[id]][marker,]
-    names(to.return) <- c("AUCPR_maxBranch", "expfc.maxBranch", "posFrac_maxBranch", "posFrac_opposingBranch", "nTrans_maxbranch", "nTrans_opposingBranch")
-    return(to.return)  
-  })
-  markers.max <- do.call(what = "rbind", markers.max)
-  markers.all <- cbind(markers.summary, markers.max)
-  
-  if (report.stats) {
-    names(stats) <- c("n.1", "n.2", "pt.1.mean", "pt.2.mean", "pt.1.median", "pt.2.median", "genes.1.mean", "genes.2.mean", "genes.1.median", "genes.2.median", "trans.1.mean", "trans.2.mean", "trans.1.median", "trans.2.median")
-    return(list(
-      diff.exp=markers.all,
-      stats=stats
-    ))
-  } else {
-    return(markers.all)
-  }
-}
-
-# Try and adapt this for the precision-recall curve.
-
-#' Test for differential gene expression along tree using binomial test
-#' 
-#' This test performs differential expression testing along URD's recovered tree
-#' structure using a binomial expression test (see: \code{\link{markersBinom}}).
+#' structure using the area under a precision-recall curve (see: \code{\link{markersAUCPR}})
+#' to determine how good individual genes are as markers of a lineage.
 #' 
 #' It starts from the segment provided in \code{tips} and compares it to each of
 #' its siblings (and their descendants) matched to the same pseudotime limits as
@@ -764,21 +591,45 @@ aucprTestByFactor <- function(object, cells.1, cells.2, label, groups, log.effec
       markers.pass <- markers[markers$AUCPR >= thresh.mod & markers$exp.fc > 0,]
       markers.by.grouping.pass[[n]][[c]] <- markers.pass
     }
+    
     # Determine which markers beat all cells.2
     markers.by.grouping.allcells2[[n]] <- Reduce(intersect, lapply(markers.by.grouping.pass[[n]], rownames))
   }
 
     # Determine markers that mark the required number of groups
-      
-  
+    marker.table <- table(unlist(markers.by.grouping.allcells2))
+    markers.enough.groups <- names(which(marker.table >= min.groups.to.mark))
+    
     # Assemble differential expression summary to return
-      
-      
-      
+    markers.for.report <- unlist(markers.by.grouping.raw, recursive = F)
+    mr.names <- paste0(rep(paste0("G", 1:length(groups)), each=length(cells.2)), rep(paste0("-C", 1:length(cells.2)), length(groups)))
+    best.comparison <- rep(NA, length(markers.enough.groups))
+    names(best.comparison) <- markers.enough.groups
+    marker.report <- lapply(markers.enough.groups, function(m) {
+      best.aucpr <- which.max(unlist(lapply(markers.for.report, function(g) g[m,'AUCPR'])))
+      best.comparison[m] <<- mr.names[best.aucpr]
+      return(markers.for.report[[best.aucpr]][m,])
     })
-  })
-  
-  # Determine AUCPR threshold 
+    marker.report <- do.call("rbind", marker.report)
+    names(marker.report) <- c("AUCPR_best", "exp.fc_best", "posFrac_1", "posFrac_2", "nTrans_1", "nTrans_2")
+    marker.report$comparison_best <- best.comparison
+    marker.report$groups_marked <- marker.table[rownames(marker.report)]
+    marker.report <- marker.report[order(marker.report$groups_marked, marker.report$AUCPR_best, decreasing = T),]
+
+    # Return values
+    if (!report.debug) {
+      return(marker.report)
+    } else {
+      return(list(
+        diff.exp=marker.report,
+        by.grouping.raw=markers.by.grouping.raw,
+        by.grouping.passthresh=markers.by.grouping.pass,
+        by.grouping.allcells2=markers.by.grouping.allcells2,
+        by.grouping.aucrandom=thresh.by.grouping,
+        by.grouping.aucthresh=thresh.mod.by.grouping,
+        groups.marked=marker.table
+      ))
+    }
 }
 
 #' Precision-Recall AUC threshold

@@ -2,7 +2,7 @@
 % Please edit documentation in R/diff-exp.R
 \name{aucprTestAlongTree}
 \alias{aucprTestAlongTree}
-\title{Test for differential gene expression along tree using binomial test}
+\title{Test for differential gene expression along tree using precision-recall test}
 \usage{
 aucprTestAlongTree(object, pseudotime, tips, log.effect.size = 0.25,
   auc.factor = 1, max.auc.threshold = 1, frac.must.express = 0.1,
@@ -48,7 +48,8 @@ a data.frame of gene expression results if \code{report.debug=F} or a list with 
 }
 \description{
 This test performs differential expression testing along URD's recovered tree
-structure using a binomial expression test (see: \code{\link{markersBinom}}).
+structure using the area under a precision-recall curve (see: \code{\link{markersAUCPR}})
+to determine how good individual genes are as markers of a lineage.
 }
 \details{
 It starts from the segment provided in \code{tips} and compares it to each of
