@@ -6,7 +6,8 @@
 \usage{
 plotTreeForce(object, label, label.type = "search", view = "default",
   alpha = 0.8, alpha.fade = 0.1, size = 5, size.fade = 3,
-  title = NULL, label.tips = (!is.null(object@tree$segment.names) |
+  title = NULL, title.cex = 3, title.line = 0,
+  label.tips = (!is.null(object@tree$segment.names) |
   !is.null(object@tree$segment.names.short)),
   use.short.names = !is.null(object@tree$segment.names.short),
   seg.show = NULL, cells.show = NULL, fade.below = (2/9),
@@ -31,6 +32,10 @@ plotTreeForce(object, label, label.type = "search", view = "default",
 \item{size.fade}{(Numeric) DOESN'T WORK.}
 
 \item{title}{(Character) Title to add to the plot. Unfortunately, this provides rather ugly titles -- they are well positioned automatically for quick iteration, but not suitable for final figures.}
+
+\item{title.cex}{(Numeric) Adjust the title font size}
+
+\item{title.line}{(Numeric) Adjust the position of the title. Positive numbers move the title upward.}
 
 \item{label.tips}{(Logical) Should text identifying the tips of the tree be placed in the force directed layout? Defaults to TRUE if \code{@tree$segment.names} has been set.}
 
