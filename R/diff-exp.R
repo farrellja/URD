@@ -606,7 +606,13 @@ aucprTestByFactor <- function(object, cells.1, cells.2, label, groups, log.effec
     best.comparison <- rep(NA, length(markers.enough.groups))
     names(best.comparison) <- markers.enough.groups
     marker.report <- lapply(markers.enough.groups, function(m) {
-      best.aucpr <- which.max(unlist(lapply(markers.for.report, function(g) g[m,'AUCPR'])))
+      best.aucpr <- which.max(unlist(lapply(markers.for.report, function(g) {
+        if (m %in% rownames(g)) {
+          g[rownames(g)==m,'AUCPR']
+        } else {
+          NA
+        }
+      })))
       best.comparison[m] <<- mr.names[best.aucpr]
       return(markers.for.report[[best.aucpr]][m,])
     })
