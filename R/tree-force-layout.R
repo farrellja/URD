@@ -216,27 +216,6 @@ plotTreeForce2D <- function(object, label=NULL, label.type="search", title=label
   return(gg)
 }
 
-plot.tree.force.3d <- function(object, label=NULL, label.type="search", show.points=T, point.alpha=1, point.size=1, show.neighbors=F, neighbors.max=10000) {
-  gg.data <- object@tree$walks.force.layout.3d
-  if (!is.null(label)) color.data <- data.for.plot(object = object, name = label, type = label.type, as.color = T, as.discrete.list=T, cells.use = rownames(gg.data))
-  gg.data$expression <- color.data$data
-  open3d()
-  points3d(x=gg.data$x, y=gg.data$y, z=gg.data$z, col=gg.data$expression, alpha=point.alpha)
-  
-  
-  if (show.neighbors) {
-    edge.data <- object@tree$walks.force.edges
-    if (dim(edge.data)[1] > neighbors.max) edge.data <- edge.data[sample(1:dim(edge.data)[1], neighbors.max, replace=F),]
-    edge.data[,c("x1","y1")] <- gg.data[edge.data$V1,c("x","y")]
-    edge.data[,c("x2","y2")] <- gg.data[edge.data$V2,c("x","y")]
-    if (show.points) gg <- gg + geom_segment(data=edge.data, aes(x=x1, y=y1, xend=x2, yend=y2), color='black', alpha=0.02)
-    if (!show.points) gg <- gg + geom_segment(data=edge.data, aes(x=x1, y=y1, xend=x2, yend=y2, color=weight), alpha=0.04)
-  }
-  if (show.points) gg <- gg + geom_point(data=gg.data, aes(x=x, y=y, color=expression), alpha=point.alpha) 
-  if (!color.data$discrete) gg <- gg + scale_color_gradientn(colors = colrs)
-  return(gg)
-}
-
 #' Plot force-directed layout of tree
 #' 
 #' @param object An URD object
@@ -248,6 +227,8 @@ plot.tree.force.3d <- function(object, label=NULL, label.type="search", show.poi
 #' @param size (Numeric) Size of points in the plot
 #' @param size.fade (Numeric) DOESN'T WORK.
 #' @param title (Character) Title to add to the plot. Unfortunately, this provides rather ugly titles -- they are well positioned automatically for quick iteration, but not suitable for final figures.
+#' @param title.cex (Numeric) Adjust the title font size
+#' @param title.line (Numeric) Adjust the position of the title. Positive numbers move the title upward.
 #' @param label.tips (Logical) Should text identifying the tips of the tree be placed in the force directed layout? Defaults to TRUE if \code{@@tree$segment.names} has been set.
 #' @param use.short.names (Logical) Should short names from \code{@@tree$segment.names.short} be used? Defaults to TRUE if those values have been set.
 #' @param seg.show (Character vector) Segments of the tree to put on the plot (Default \code{NULL} is all segments)
@@ -262,7 +243,7 @@ plot.tree.force.3d <- function(object, label=NULL, label.type="search", show.poi
 #' @return Nothing. Produces a plot using the \code{rgl} package, displayed in an X11 window.
 #' 
 #' @export
-plotTreeForce <- function(object, label, label.type="search", view="default", alpha=0.8, alpha.fade=0.1, size=5, size.fade=3, title=NULL, label.tips=(!is.null(object@tree$segment.names) | !is.null(object@tree$segment.names.short)), use.short.names=!is.null(object@tree$segment.names.short), seg.show=NULL, cells.show=NULL, fade.below=(2/9), density.alpha=T, label.spacing=5, text.cex=0.8, colors=NULL, discrete.colors=NULL) {
+plotTreeForce <- function(object, label, label.type="search", view="default", alpha=0.8, alpha.fade=0.1, size=5, size.fade=3, title=NULL, title.cex=3, title.line=0, label.tips=(!is.null(object@tree$segment.names) | !is.null(object@tree$segment.names.short)), use.short.names=!is.null(object@tree$segment.names.short), seg.show=NULL, cells.show=NULL, fade.below=(2/9), density.alpha=T, label.spacing=5, text.cex=0.8, colors=NULL, discrete.colors=NULL) {
 
   if (requireNamespace("rgl", quietly = TRUE)) {
     
@@ -315,15 +296,6 @@ plotTreeForce <- function(object, label, label.type="search", view="default", al
       open3d()
     }
     
-    # Determine which cells should have alpha reduced
-    #if (!is.null(seg.show) & is.null(cells.show)) {
-    #  segs.show <- segChildrenAll(object, seg.show, include.self=T)
-    #  cells.show <- rownames(gg.data)[which(gg.data$segment %in% segs.show)]
-    #}
-    #if (!is.null(cells.show)) {
-    #  gg.data[!(rownames(gg.data) %in% cells.show), "alpha"] <- alpha.fade
-    #}
-    
     # Adjust transparency for local density
     if (density.alpha) {
       dr <- range(object@tree$walks.force.layout$n.dist)
@@ -346,7 +318,10 @@ plotTreeForce <- function(object, label, label.type="search", view="default", al
     points3d(x=gg.data$x, y=gg.data$y, z=gg.data$telescope.pt, col=gg.data$expression, alpha=gg.data$alpha, size=size)
     
     # Add title to plot
-    if (!is.null(title)) bgplot3d({plot.new(); title(main=title, line=3)})
+    if (!is.null(title)) {
+      Sys.sleep(0.1)
+      bgplot3d({plot.new(); title(main=title, line=title.line, cex.main=title.cex)})
+    }
     
     # Add labels to tips
     if (label.tips) {
