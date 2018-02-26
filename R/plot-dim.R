@@ -22,6 +22,7 @@
 #' @param plot.title (Character) Title of the plot
 #' @param legend (Logical) Show a legend?
 #' @param legend.title (Character) Should the legend be titled?
+#' @param legend.point.size (Numeric) How big should points be in the legend?
 #' @param label.clusters (Logical) Label centroids of a discrete label?
 #' @param cells (Character vector) Cells to show on the plot (Default \code{NULL} is all cells.)
 #' @param x.lim (Numeric) Limits of x-axis (NULL autodetects)
@@ -31,7 +32,7 @@
 #' @return A ggplot2 object
 #' 
 #' @export
-plotDim <- function(object, label, label.type="search", reduction.use=c("tsne", "pca", "dm"), dim.x=1, dim.y=2, colors=NULL, discrete.colors=NULL, point.size=1, alpha=1, point.shapes=F, plot.title=label, legend=T, legend.title="", label.clusters=F, cells=NULL, x.lim=NULL, y.lim=NULL, na.rm=F) {
+plotDim <- function(object, label, label.type="search", reduction.use=c("tsne", "pca", "dm"), dim.x=1, dim.y=2, colors=NULL, discrete.colors=NULL, point.size=1, alpha=1, point.shapes=F, plot.title=label, legend=T, legend.title="", legend.point.size=3*point.size, label.clusters=F, cells=NULL, x.lim=NULL, y.lim=NULL, na.rm=F) {
   
   # Get the data to plot
   if (length(reduction.use) > 1) reduction.use <- reduction.use[1]
@@ -113,9 +114,12 @@ plotDim <- function(object, label, label.type="search", reduction.use=c("tsne", 
     # Add labels
     this.plot <- this.plot + geom_label(data=k.centers, aes_string(x=dim.x, y=dim.y, label="Group.1"), color="black", alpha=0.6, show.legend = F)
   }
-  # Remove legend if desired
   if (!legend) {
+    # Remove legend if desired
     this.plot <- this.plot + guides(color=FALSE, shape=FALSE)
+  } else {
+    # Otherwise, make the legend points bigger
+    this.plot <- this.plot + guides(color=guide_legend(override.aes(list(size=legend.point.size))))
   }
   # Add limits if desired
   if (!is.null(x.lim)) this.plot <- this.plot + xlim(x.lim[1],x.lim[2])

@@ -7,8 +7,9 @@
 plotDim(object, label, label.type = "search", reduction.use = c("tsne",
   "pca", "dm"), dim.x = 1, dim.y = 2, colors = NULL,
   discrete.colors = NULL, point.size = 1, alpha = 1, point.shapes = F,
-  plot.title = label, legend = T, legend.title = "", label.clusters = F,
-  cells = NULL, x.lim = NULL, y.lim = NULL, na.rm = F)
+  plot.title = label, legend = T, legend.title = "",
+  legend.point.size = 3 * point.size, label.clusters = F, cells = NULL,
+  x.lim = NULL, y.lim = NULL, na.rm = F)
 }
 \arguments{
 \item{object}{An URD object}
@@ -38,6 +39,8 @@ plotDim(object, label, label.type = "search", reduction.use = c("tsne",
 \item{legend}{(Logical) Show a legend?}
 
 \item{legend.title}{(Character) Should the legend be titled?}
+
+\item{legend.point.size}{(Numeric) How big should points be in the legend?}
 
 \item{label.clusters}{(Logical) Label centroids of a discrete label?}
 
