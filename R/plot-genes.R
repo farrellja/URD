@@ -95,6 +95,9 @@ plotViolin <- function(object, labels.plot, clustering, clusters.use=NULL, legen
 #' @param ylim (Numeric vector) Y-axis limits (Default \code{NULL} lets ggplot2 automatically decide.)
 #' @param density.background (Logical) Should 
 #' @param density.color (Character) Darkest color of the density scale
+#' @param density.bandwidth (Numeric) The kernel bandwidth used in calculating the density background is multiplied by this factor.
+#' @param density.bins (Numeric) Number of bins to use for 2D kernel estimation.
+#' @param density.exclude.origin (Logical) Whether values with expression (0,0) should be excluded from the density calculation. (The number of non-expressing cells can often overwhelm the density calculation and make it useless if the genes plotted are specific to a particular lineage and \code{cells} is not used to restrict the cells on the plot.)
 #' @param xlab (Character) X-axis label
 #' @param ylab (Character) Y-axis label
 #' @param colorlab (Character) Color guide label
@@ -102,7 +105,7 @@ plotViolin <- function(object, labels.plot, clustering, clusters.use=NULL, legen
 #' 
 #' @export
 
-plotScatter <- function(object, label.x, label.y, label.color=NULL, label.x.type="search", label.y.type="search", label.color.type="search", cells=NULL, point.size=1, point.alpha=1, xlim=NULL, ylim=NULL, density.background=T, density.color="#888888", xlab=label.x, ylab=label.y, colorlab=label.color, title="", legend=T) {
+plotScatter <- function(object, label.x, label.y, label.color=NULL, label.x.type="search", label.y.type="search", label.color.type="search", cells=NULL, point.size=1, point.alpha=1, xlim=NULL, ylim=NULL, density.background=T, density.color="#888888", density.bandwidth=1, density.bins=128, density.exclude.origin=T, xlab=label.x, ylab=label.y, colorlab=label.color, title="", legend=T) {
   # Get data for plot
   x <- data.for.plot(object, label=label.x, label.type=label.x.type, as.discrete.list=T, cells.use=cells)
   y <- data.for.plot(object, label=label.y, label.type=label.y.type, as.discrete.list=T, cells.use=cells)
@@ -128,11 +131,16 @@ plotScatter <- function(object, label.x, label.y, label.color=NULL, label.x.type
   
   # Add density
   if (density.background) {
+    if (density.exclude.origin) {
+      gg.density <- gg.data[gg.data$x > 0 | gg.data$y > 0,]
+    } else {
+      gg.density <- gg.data
+    }
     # Auto-estimate bandwidth to use, lifted from graphics::smoothScater
-    bandwidth <- diff(apply(gg.data[,1:2], 2, stats::quantile, probs = c(0.05, 0.95), na.rm = TRUE, names = FALSE))/25
+    bandwidth <- diff(apply(gg.density[,1:2], 2, stats::quantile, probs = c(0.05, 0.95), na.rm = TRUE, names = FALSE))/30*density.bandwidth
     bandwidth[bandwidth == 0] <- 1
     # Do 2D kernel-density estimate
-    kde <- KernSmooth::bkde2D(gg.data[,1:2], bandwidth=bandwidth, gridsize=c(128,128))
+    kde <- KernSmooth::bkde2D(gg.density[,1:2], bandwidth=bandwidth, gridsize=c(density.bins,density.bins))
     # Transform into gg-ready data.frame
     rownames(kde$fhat) <- kde$x1
     colnames(kde$fhat) <- kde$x2

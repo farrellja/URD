@@ -8,7 +8,8 @@ plotScatter(object, label.x, label.y, label.color = NULL,
   label.x.type = "search", label.y.type = "search",
   label.color.type = "search", cells = NULL, point.size = 1,
   point.alpha = 1, xlim = NULL, ylim = NULL, density.background = T,
-  density.color = "#888888", xlab = label.x, ylab = label.y,
+  density.color = "#888888", density.bandwidth = 1, density.bins = 128,
+  density.exclude.origin = T, xlab = label.x, ylab = label.y,
   colorlab = label.color, title = "", legend = T)
 }
 \arguments{
@@ -39,6 +40,12 @@ plotScatter(object, label.x, label.y, label.color = NULL,
 \item{density.background}{(Logical) Should}
 
 \item{density.color}{(Character) Darkest color of the density scale}
+
+\item{density.bandwidth}{(Numeric) The kernel bandwidth used in calculating the density background is multiplied by this factor.}
+
+\item{density.bins}{(Numeric) Number of bins to use for 2D kernel estimation.}
+
+\item{density.exclude.origin}{(Logical) Whether values with expression (0,0) should be excluded from the density calculation. (The number of non-expressing cells can often overwhelm the density calculation and make it useless if the genes plotted are specific to a particular lineage and \code{cells} is not used to restrict the cells on the plot.)}
 
 \item{xlab}{(Character) X-axis label}
 
