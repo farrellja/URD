@@ -36,7 +36,7 @@ plotDot <- function(object, genes, clustering, clusters.use=NULL, min.exp=.05, m
   gg.data <- gg.data[which(gg.data$Prop.Exp >= min.exp),]
   
   # Go ahead and ggplot
-  the.plot <- ggplot(data=gg.data, aes(x=Cluster, y=Gene, color=Mean, size=Prop.Exp)) + geom_point() + scale_color_gradientn(colours = defaultURDContinuousColors()) + ggtitle(title)
+  the.plot <- ggplot(data=gg.data, aes(x=Cluster, y=Gene, color=Mean, size=Prop.Exp)) + geom_point() + scale_color_gradientn(colours = defaultURDContinuousColors()) + ggtitle(title) + scale_y_discrete(limits=rev(genes))
   if (!is.null(clusters.use)) the.plot <- the.plot + scale_x_discrete(limits=clusters.use)
   return(the.plot)
 }
@@ -70,7 +70,7 @@ plotViolin <- function(object, labels.plot, clustering, clusters.use=NULL, legen
   data.plot.melt <- melt(data.plot, id.vars = c("Cell", "Cluster"))
   data.plot.melt$Cluster <- factor(data.plot.melt$Cluster, levels=cluster.names, ordered=T)
   if (free.axes) {free="free"} else {free="fixed"}
-  the.plot <- ggplot(data.plot.melt, aes(x=Cluster, y=value, fill=Cluster)) + geom_violin() + facet_wrap(~variable, scales=free) + geom_jitter(size=0.5) + ylab("Expression (log2)")
+  the.plot <- ggplot(data.plot.melt, aes(x=Cluster, y=value, fill=Cluster)) + geom_violin() + facet_wrap(~variable, scales=free) + geom_jitter(size=0.5) + ylab("Expression (log2)") + theme_bw()
   if (!legend) the.plot <- the.plot + guides(fill=F)
   return(the.plot)
 }
