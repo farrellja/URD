@@ -117,9 +117,9 @@ plotDim <- function(object, label, label.type="search", reduction.use=c("tsne", 
   if (!legend) {
     # Remove legend if desired
     this.plot <- this.plot + guides(color=FALSE, shape=FALSE)
-  } else {
-    # Otherwise, make the legend points bigger
-    this.plot <- this.plot + guides(color=guide_legend(override.aes(list(size=legend.point.size))))
+  } else if (sig.score[[1]]) {
+    # Otherwise, make the legend points bigger if coloring by a discrete value
+    this.plot <- this.plot + guides(color=guide_legend(override.aes = list(size=legend.point.size)))
   }
   # Add limits if desired
   if (!is.null(x.lim)) this.plot <- this.plot + xlim(x.lim[1],x.lim[2])
