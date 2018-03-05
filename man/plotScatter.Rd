@@ -20,11 +20,11 @@ plotScatter(object, label.x, label.y, label.color = NULL,
 
 \item{label.color}{(Character) Value to plot as point color}
 
-\item{label.x.type}{(Character)}
+\item{label.x.type}{(Character) Where to look for the label.x; Default is "search" which looks in order: "meta", "group", "sig", "gene", "pseudotime", "pc", "diff.data"}
 
-\item{label.y.type}{(Character)}
+\item{label.y.type}{(Character) Where to look for the label.y; Default is "search" which looks in order: "meta", "group", "sig", "gene", "pseudotime", "pc", "diff.data"}
 
-\item{label.color.type}{(Character)}
+\item{label.color.type}{(Character) Where to look for the label.color; Default is "search" which looks in order: "meta", "group", "sig", "gene", "pseudotime", "pc", "diff.data"}
 
 \item{cells}{(Character vector) Names of cells to include in the plot (Default, \code{NULL} is all cells.)}
 

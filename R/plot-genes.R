@@ -84,9 +84,9 @@ plotViolin <- function(object, labels.plot, clustering, clusters.use=NULL, legen
 #' @param label.x (Character) Value to plot on the x-axis
 #' @param label.y (Character) Value to plot on the y-axis
 #' @param label.color (Character) Value to plot as point color
-#' @param label.x.type (Character)
-#' @param label.y.type (Character)
-#' @param label.color.type (Character)
+#' @param label.x.type (Character) Where to look for the label.x; Default is "search" which looks in order: "meta", "group", "sig", "gene", "pseudotime", "pc", "diff.data"
+#' @param label.y.type (Character) Where to look for the label.y; Default is "search" which looks in order: "meta", "group", "sig", "gene", "pseudotime", "pc", "diff.data"
+#' @param label.color.type (Character) Where to look for the label.color; Default is "search" which looks in order: "meta", "group", "sig", "gene", "pseudotime", "pc", "diff.data"
 #' @param cells (Character vector) Names of cells to include in the plot (Default, \code{NULL} is all cells.)
 #' @param point.size (Numeric) Adjust size of points on the plot
 #' @param point.alpha (Numeric) Adjust transparency of points on the plot
@@ -99,6 +99,8 @@ plotViolin <- function(object, labels.plot, clustering, clusters.use=NULL, legen
 #' @param ylab (Character) Y-axis label
 #' @param colorlab (Character) Color guide label
 #' @param legend (Logical) Display a legend
+#' 
+#' @export
 
 plotScatter <- function(object, label.x, label.y, label.color=NULL, label.x.type="search", label.y.type="search", label.color.type="search", cells=NULL, point.size=1, point.alpha=1, xlim=NULL, ylim=NULL, density.background=T, density.color="#888888", xlab=label.x, ylab=label.y, colorlab=label.color, title="", legend=T) {
   # Get data for plot
