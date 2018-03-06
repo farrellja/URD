@@ -19,3 +19,11 @@ Character vector of cell names
 \description{
 Return names of cells in a given cluster
 }
+\examples{
+# Get members of cluster 15 from Louvain-10 clustering
+cellsInCluster(object, clustering="Louvain=10", cluster="15")
+
+# Get members of segments 29, 32, and 79 from reconstructed tree
+cellsInCluster(object, clustering="segment", cluster=c("29","32","79"))
+
+}

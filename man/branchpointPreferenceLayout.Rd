@@ -2,13 +2,15 @@
 % Please edit documentation in R/branchpointPlot.R
 \name{branchpointPreferenceLayout}
 \alias{branchpointPreferenceLayout}
-\title{Branchpoint Preference Layout}
+\title{Generate Branchpoint Preference Layout}
 \usage{
 branchpointPreferenceLayout(object, pseudotime, lineages.1, lineages.2,
   parent.of.lineages, opposite.parent, min.visit = 0)
 }
 \arguments{
 \item{object}{An URD object}
+
+\item{pseudotime}{(Character) Pseudotime to use (i.e. a column name of \code{@pseudotime})}
 
 \item{lineages.1}{(Character) Segment(s) for the left side of the branchpoint}
 
@@ -21,8 +23,26 @@ branchpointPreferenceLayout(object, pseudotime, lineages.1, lineages.2,
 \item{min.visit}{(Numeric) Minimum visitation frequency to appear in the layout}
 }
 \value{
-A branchpoint layout that can be used as input to \code{\link{plotBranchpointByGene}}
+A branchpoint layout that can be used as input to \code{\link{plotBranchpoint}}
 }
 \description{
-Branchpoint Preference Layout
+This generates a preference layout for a single branchpoint. In it, cells are
+laid out along the y-axis according to pseudotime, and along the x-axis according
+to preference, which is related to the ratio of their visits from the two segments
+under consideration. (Preference is the difference in the visit frequency by
+random walks from the two segments, divided by the sum of the visits from both
+segments.) This preference layout is used as input to \code{\link{plotBranchpoint}}.
+}
+\examples{
+# Visualize tree with segments labeled
+plotTree(object, label.segments=T)
+# Notochord is segment 32, prechordal plate is segment 29, their 
+# parent axial mesoderm is segment 79, and the axial mesoderm's 
+# siblings are segments 72 and 78.
+
+# Generate axial mesoderm branchpoint layout
+np.layout <- branchpointPreferenceLayout(object, pseudotime = "pseudotime", 
+lineages.1 = "29", lineages.2 = "32", parent.of.lineages = "79", 
+opposite.parent = c("72","78"), min.visit = 1)
+
 }

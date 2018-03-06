@@ -19,3 +19,7 @@ A data.frame with mean gene expression per cluster in rows, and clusters as colu
 \description{
 Cluster centroids in gene expression space
 }
+\examples{
+cc <- clusterCentroids(object, "Louvain-15", genes.use=object@var.genes)
+
+}

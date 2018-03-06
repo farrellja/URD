@@ -26,13 +26,23 @@ clusterDE(object, clustering, genes.dist = object@var.genes,
 \item{verbose}{(Logical) Report on progress}
 }
 \value{
-A list with:
-$n.de: a data frame describing each pair of clusters tested and the number of differentially expressed genes between them
-$genes: a list of data frames for each pair of clusters with the differential gene expression test results
+A list with entries:
+\itemize{
+\item{$n.de:} a data frame describing each pair of clusters tested and the number of differentially expressed genes between them
+\item{$genes:} a list of data frames for each pair of clusters with the differential gene expression test results
+}
 }
 \description{
 Calculates the differentially expressed genes between each cluster and its
 nearest cluster (as determined by centroids in gene expression space). This
 can be used to fuse nearby clusters that don't have significant gene expression
-differences between them.
+differences between them. This function uses the binomial differential expression
+test (see \link{markersBinom}.)
+}
+\examples{
+# Test all genes for differential expression again each cluster's nearest 
+# cluster (by centroid distance in variable gene expression space)
+cde <- clusterDE(object, clustering="Louvain-15", genes.dist=object@var.genes, 
+effect.size=log(2), p.thresh=0.01, frac.must.express=0.1, genes.de=NULL, verbose=T)
+
 }

@@ -35,3 +35,10 @@ resultant clustering is stored as a column in the slot \code{group.ids}. The
 number of detected clusters is sensitive to the nearest neighbor parameter,
 and several should be investigated.
 }
+\examples{
+# Try several different nearest neighbor parameters
+# Output will be stored as Infomap-10, Infomap-15, ... in object.6s.mnn@group.ids
+object.6s.mnn <- graphClustering(object.6s.mnn, num.nn = c(10,15,20,30,40), 
+method="Infomap", do.jaccard = T)
+
+}

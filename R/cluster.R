@@ -8,6 +8,10 @@
 #' number of detected clusters is sensitive to the nearest neighbor parameter,
 #' and several should be investigated.
 #' 
+#' @importFrom RANN nn2
+#' @importFrom reshape2 melt
+#' @importFrom igraph cluster_louvain cluster_infomap graph.data.frame
+#' 
 #' @param object An URD object
 #' @param dim.use (Character) Calculate on principal components (\code{pca}) or diffusion components (\code{dm})
 #' @param cells.use (Character vector) Which cells to include in the clustering (default is NULL, which uses all cells)
@@ -16,11 +20,13 @@
 #' @param do.jaccard (Logical) Weight edges in the k-nn graph according to their Jaccard overlap?
 #' @param group.id (Character) What name should the clustering be given? (Default is Method-NN i.e. Louvain-30 if using 30 nearest neighbors)
 #' 
-#' @importFrom RANN nn2
-#' @importFrom reshape2 melt
-#' @importFrom igraph cluster_louvain cluster_infomap graph.data.frame
-#' 
 #' @return An URD object with cluster identities saved in \code{{@@group.ids}} in the column named \code{group.id}.
+#' 
+#' @examples
+#' # Try several different nearest neighbor parameters
+#' # Output will be stored as Infomap-10, Infomap-15, ... in object.6s.mnn@group.ids
+#' object.6s.mnn <- graphClustering(object.6s.mnn, num.nn = c(10,15,20,30,40), 
+#' method="Infomap", do.jaccard = T)
 #' 
 #' @export
 graphClustering <- function(object, dim.use=c("pca","dm"), cells.use=NULL, which.dims=which(object@pca.sig), num.nn=30, do.jaccard=TRUE, method="Louvain", group.id=NULL) {
@@ -98,6 +104,13 @@ graphClustering <- function(object, dim.use=c("pca","dm"), cells.use=NULL, which
 #' 
 #' @return Character vector of cell names
 #' 
+#' @examples 
+#' # Get members of cluster 15 from Louvain-10 clustering
+#' cellsInCluster(object, clustering="Louvain=10", cluster="15")
+#' 
+#' # Get members of segments 29, 32, and 79 from reconstructed tree
+#' cellsInCluster(object, clustering="segment", cluster=c("29","32","79"))
+#' 
 #' @export
 cellsInCluster <- function(object, clustering, cluster) {
   rownames(object@group.ids)[which(object@group.ids[,clustering] %in% cluster)]
@@ -110,6 +123,9 @@ cellsInCluster <- function(object, clustering, cluster) {
 #' @param genes.use (Character vector) Genes to use for calculating distance (default: variable genes, NULL is all genes)
 #' 
 #' @return A data.frame with mean gene expression per cluster in rows, and clusters as columns.
+#' 
+#' @examples 
+#' cc <- clusterCentroids(object, "Louvain-15", genes.use=object@var.genes)
 #' 
 #' @export
 clusterCentroids <- function(object, clustering, genes.use=object@var.genes) {
@@ -136,7 +152,8 @@ clusterCentroids <- function(object, clustering, genes.use=object@var.genes) {
 #' Calculates the differentially expressed genes between each cluster and its
 #' nearest cluster (as determined by centroids in gene expression space). This
 #' can be used to fuse nearby clusters that don't have significant gene expression
-#' differences between them.
+#' differences between them. This function uses the binomial differential expression
+#' test (see \link{markersBinom}.)
 #'
 #' @param object An URD object
 #' @param clustering (Character) Name of a clustering (i.e. a column in \code{@@group.ids})
@@ -147,9 +164,17 @@ clusterCentroids <- function(object, clustering, genes.use=object@var.genes) {
 #' @param genes.de (Character vector) Genes to consider for differential expression (default: NULL is all genes)
 #' @param verbose (Logical) Report on progress
 #' 
-#' @return A list with:
-#' $n.de: a data frame describing each pair of clusters tested and the number of differentially expressed genes between them
-#' $genes: a list of data frames for each pair of clusters with the differential gene expression test results
+#' @return A list with entries:
+#' \itemize{
+#' \item{$n.de:} a data frame describing each pair of clusters tested and the number of differentially expressed genes between them
+#' \item{$genes:} a list of data frames for each pair of clusters with the differential gene expression test results
+#' }
+#' 
+#' @examples
+#' # Test all genes for differential expression again each cluster's nearest 
+#' # cluster (by centroid distance in variable gene expression space)
+#' cde <- clusterDE(object, clustering="Louvain-15", genes.dist=object@var.genes, 
+#' effect.size=log(2), p.thresh=0.01, frac.must.express=0.1, genes.de=NULL, verbose=T)
 #' 
 #' @export
 clusterDE <- function(object, clustering, genes.dist=object@var.genes, effect.size=log(2), p.thresh=0.01, frac.must.express=0.1, genes.de=NULL, verbose=T) {
