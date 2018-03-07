@@ -38,3 +38,6 @@ markersBinom(object, pseudotime, clust.1 = NULL, clust.2 = NULL,
 \description{
 Test for differential gene expression in two populations using a binomial test
 }
+\references{
+Shekhar et al., 2016, Cell 166, 1308–1323
+}

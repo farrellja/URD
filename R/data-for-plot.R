@@ -1,11 +1,14 @@
 #' Retrieve data for plotting
 #' 
 #' This retrieves data to annotate points on various plots and returns either
-#' the data, or the data transformed into colors for plotting.
+#' the data, or the data transformed into colors for plotting. This function is
+#' called by most of URD's plotting routines.
 #' 
-#' By default, it searches
-#' for a label in the following order: metadata, group IDs, gene signatures, gene
-#' expression, pseudotime, principal components, simulated diffusion results.
+#' By default, it searches for a label in the following order:
+#' metadata (\code{"meta"}), group IDs (\code{"group"}), gene signatures (\code{"sig"}), 
+#' gene expression (\code{"gene"}), unnormalized gene expression counts (\code{"counts"}),
+#' pseudotime (\code{"pseudotime"}), principal components (\code{"pca"}), 
+#' simulated diffusion results (\code{"diff.data"}).
 #' However, data can be requested from a particular source by setting \code{label.type}. 
 #' This can be used to get log-transformed but unnormalized expression data from
 #' \code{count.data} by setting \code{label.type="counts"}.
@@ -14,12 +17,12 @@
 #' 
 #' @param object An URD object
 #' @param label (Character) The label of the data to search for
-#' @param label.type (Character) Where to look for the data. Default is "search" which looks in order: "meta", "group", "sig", "gene", "pseudotime", "pc", "diff.data"
+#' @param label.type (Character) Where to look for the data. Default is "search" which looks in order: "meta", "group", "sig", "gene", "counts", "pseudotime", "pca", "diff.data"
 #' @param cells.use (Character vector) Which cells to return information for (default is NULL, which returns all cells)
-#' @param as.color (Logical) Return hex color values instead of the raw data?
-#' @param as.single.color (Logical) Return on a scale from 0-1 as a "single color" to feed into \code{rgb()} for more complex plots.
-#' @param as.discrete.list (Logical) If TRUE, returns a list 
-#' @param continuous.colors (Character vector) Colors to use to produce a continuous color scale (used if data is continuous)
+#' @param as.color (Logical) Return hex color values instead of the raw data
+#' @param as.single.color (Logical) Return on a scale from 0-1 as a "single color" to feed into \code{rgb()} for more complex color generation.
+#' @param as.discrete.list (Logical) If TRUE, returns a list (see below).
+#' @param continuous.colors (Character vector) Colors to use to produce a continuous color scale (used if data is continuous) and \code{as.color=T}.
 #' @param colors.use (Character vector) Colors to use for discrete data (default is NULL, which will use palette) 
 #' @param palette (Function) A palette (see \code{\link[grDevices]{Palettes}}) to use to generate colors for discrete data
 #' @return The value returned depends on the flags set. A vector is returned if \code{as.discrete.list=FALSE} or a list is returned if \code{as.discrete.list=TRUE} (see below). The data is returned directly if \code{as.color=F} and \code{as.single.color=F}, or it is returned as color values to plot directly if either are \code{TRUE}.
@@ -31,13 +34,13 @@
 #'   \item{$range}{(Numeric Vector) If data is continuous, the range of the data, otherwise NULL.}
 #' }
 #' @export
-data.for.plot <- function(object, label, label.type=c("search", "meta", "group", "sig", "gene", "counts", "pseudotime", "pc", "diff.data"), cells.use=NULL, as.color=F, as.single.color=F, as.discrete.list=F, continuous.colors=NULL, colors.use=NULL) {
+data.for.plot <- function(object, label, label.type=c("search", "meta", "group", "sig", "gene", "counts", "pseudotime", "pca", "diff.data"), cells.use=NULL, as.color=F, as.single.color=F, as.discrete.list=F, continuous.colors=NULL, colors.use=NULL) {
   
   # Default URD colors
   if (is.null(continuous.colors)) continuous.colors <- defaultURDContinuousColors()
   
   # Search order:
-  # meta, group.ids, signatures, genes (logupx), genes (counts), pseudotime, PC, diff.data
+  # meta, group.ids, signatures, genes (logupx), genes (counts), pseudotime, PCA, diff.data
   
   # Case insensitive matching
   label.type <- tolower(label.type[1])
@@ -85,7 +88,7 @@ data.for.plot <- function(object, label, label.type=c("search", "meta", "group",
   }
   
   # Check PC
-  else if (label.type=="pc" | (label.type=="search" & label %in% colnames(object@pca.scores))) {
+  else if (label.type=="pca" | (label.type=="search" & label %in% colnames(object@pca.scores))) {
     if (is.null(cells.use)) cells.use <- rownames(object@pca.scores)
     data <- object@pca.scores[cells.use, label]
     discrete <- F

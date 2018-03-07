@@ -187,7 +187,7 @@ floodPseudotimeProcess <- function(object, floods, floods.name="flood", max.frac
 #' which indicates that they have a high likelihood of being tips.
 #' 
 #' In large data sets, it can be slow to calculate the distance between cells, 
-#' and may be worth calculating in advance with \link{\code{cellDistByExpression}}
+#' and may be worth calculating in advance with \code{\link{cellDistByExpression}}
 #' so that multiple parameters for \code{nn.dist.range} can be explored without
 #' needing to recalculate.
 #' 

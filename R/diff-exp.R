@@ -16,6 +16,9 @@
 #' 
 #' @return (data.frame)
 #' 
+#' @references 
+#' Shekhar et al., 2016, Cell 166, 1308–1323
+#' 
 #' @export
 markersBinom <- function(object, pseudotime, clust.1=NULL,clust.2=NULL,cells.1=NULL,cells.2=NULL,clustering=NULL,effect.size=log(2),p.thresh=.01,frac.must.express=0.1,genes.use=NULL) {
             if (is.null(genes.use)) genes.use <- rownames(object@logupx.data)

@@ -12,8 +12,13 @@ importDM(object, dm, cell.names = NULL)
 \item{dm}{A DiffusionMap object produced by destiny's \code{\link[destiny]{DiffusionMap}}.}
 }
 \value{
-An URD object
+An URD object with the diffusion map stored in \code{@dm}.
 }
 \description{
-Import a pre-calculated diffusion map
+If destiny is run separately (such as on a cluster to vary parameters), this
+allows quick addition of destiny's output to an URD object.
+}
+\examples{
+object <- importDM(object, dm.8)
+
 }

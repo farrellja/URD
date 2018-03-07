@@ -5,7 +5,7 @@
 \title{Retrieve data for plotting}
 \usage{
 data.for.plot(object, label, label.type = c("search", "meta", "group", "sig",
-  "gene", "counts", "pseudotime", "pc", "diff.data"), cells.use = NULL,
+  "gene", "counts", "pseudotime", "pca", "diff.data"), cells.use = NULL,
   as.color = F, as.single.color = F, as.discrete.list = F,
   continuous.colors = NULL, colors.use = NULL)
 }
@@ -14,17 +14,17 @@ data.for.plot(object, label, label.type = c("search", "meta", "group", "sig",
 
 \item{label}{(Character) The label of the data to search for}
 
-\item{label.type}{(Character) Where to look for the data. Default is "search" which looks in order: "meta", "group", "sig", "gene", "pseudotime", "pc", "diff.data"}
+\item{label.type}{(Character) Where to look for the data. Default is "search" which looks in order: "meta", "group", "sig", "gene", "counts", "pseudotime", "pca", "diff.data"}
 
 \item{cells.use}{(Character vector) Which cells to return information for (default is NULL, which returns all cells)}
 
-\item{as.color}{(Logical) Return hex color values instead of the raw data?}
+\item{as.color}{(Logical) Return hex color values instead of the raw data}
 
-\item{as.single.color}{(Logical) Return on a scale from 0-1 as a "single color" to feed into \code{rgb()} for more complex plots.}
+\item{as.single.color}{(Logical) Return on a scale from 0-1 as a "single color" to feed into \code{rgb()} for more complex color generation.}
 
-\item{as.discrete.list}{(Logical) If TRUE, returns a list}
+\item{as.discrete.list}{(Logical) If TRUE, returns a list (see below).}
 
-\item{continuous.colors}{(Character vector) Colors to use to produce a continuous color scale (used if data is continuous)}
+\item{continuous.colors}{(Character vector) Colors to use to produce a continuous color scale (used if data is continuous) and \code{as.color=T}.}
 
 \item{colors.use}{(Character vector) Colors to use for discrete data (default is NULL, which will use palette)}
 
@@ -35,12 +35,15 @@ The value returned depends on the flags set. A vector is returned if \code{as.di
 }
 \description{
 This retrieves data to annotate points on various plots and returns either
-the data, or the data transformed into colors for plotting.
+the data, or the data transformed into colors for plotting. This function is
+called by most of URD's plotting routines.
 }
 \details{
-By default, it searches
-for a label in the following order: metadata, group IDs, gene signatures, gene
-expression, pseudotime, principal components, simulated diffusion results.
+By default, it searches for a label in the following order:
+metadata (\code{"meta"}), group IDs (\code{"group"}), gene signatures (\code{"sig"}), 
+gene expression (\code{"gene"}), unnormalized gene expression counts (\code{"counts"}),
+pseudotime (\code{"pseudotime"}), principal components (\code{"pca"}), 
+simulated diffusion results (\code{"diff.data"}).
 However, data can be requested from a particular source by setting \code{label.type}. 
 This can be used to get log-transformed but unnormalized expression data from
 \code{count.data} by setting \code{label.type="counts"}.

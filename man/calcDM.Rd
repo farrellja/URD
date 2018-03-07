@@ -17,7 +17,7 @@ calcDM(object, genes.use = object@var.genes, cells.use = NULL, knn = NULL,
 
 \item{knn}{(Numeric) Number of nearest neighbors to use (NULL takes a guess)}
 
-\item{sigma.use}{(NULL, numeric, or "local") Kernel width to use for the diffusion map (NULL uses destiny's global auto-detection procedure)}
+\item{sigma.use}{(NULL, numeric, or "local") Kernel width to use for the diffusion map (NULL uses destiny's global auto-detection procedure, and "local" determines a sigma for each cell based on the distance to its nearest neighbors.)}
 
 \item{n_local}{(Numeric) If \code{sigma.use="local"}, the distance to the n-local(th) nearest neighbors are used for determining the kernel width for each cell.}
 
@@ -29,6 +29,30 @@ calcDM(object, genes.use = object@var.genes, cells.use = NULL, knn = NULL,
 
 \item{verbose}{(Logical) Report determined values for auto-detected parameters?}
 }
+\value{
+An URD object with the diffusion map stored in \code{@dm}.
+}
 \description{
-Calculate a diffusion map
+URD uses the R package destiny to calculate a diffusion map.
+}
+\details{
+The diffusion map
+is stored in the \code{@dm} slot of the URD object, and the transition probabilities
+(\code{@dm@transitions}) are used extensively downstream in URD's pipeline.
+Important parameters to vary while choosing a diffusion map to use are the number
+of nearest neighbors considered (the square root of the number of cells
+is a good starting point, or \code{NULL} will trigger destiny to try to determine
+a good starting point), and the sigma of the Gaussian used to transform cells'
+distance.
+}
+\examples{
+# Allow destiny to determine most parameters on its own
+object <- calcDM(object, knn=NULL, sigma.use=NULL)
+
+# Refine the diffusion map by adjusting parameters manually
+object <- calcDM(object, knn = 200, sigma.use = 8)
+
+}
+\seealso{
+\link[destiny]{DiffusionMap}
 }
