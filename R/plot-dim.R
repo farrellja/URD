@@ -1,12 +1,14 @@
 #' Dimensionality Reduction Plot
 #' 
-#' Plots cells according to their coordinates in a dimensionality reduction (tSNE by default).
-#' Cells are colored according to a user set \code{label} that can range from gene expression,
-#' to metadata values, or cluster identity. See \code{\link{data.for.plot}} for more information
-#' about labels that can be chosen. Additionally, see \code{\link{plotDimDual}} to plot two
+#' Plots cells according to their coordinates in a dimensionality reduction (tSNE by default,
+#' but also PCA or diffusion map). Cells are colored according to a user set \code{label} that
+#' can range from gene expression, to metadata values, or cluster identity. See 
+#' \code{\link{data.for.plot}} for more information about labels that can be chosen. Additionally, 
+#' see \code{\link{plotDimDual}} to plot two
 #' continuous variables simultaneously, \code{\link{plotDimHighlight}} to highlight one group
 #' from a discrete label, and \code{\link{plotDimArray}} to repeat the same plot across several
-#' sets of dimensions.
+#' sets of dimensions. Additionally, \code{transitions.plot} can plot the connections from
+#' the diffusion map onto the plot additionally.
 #' 
 #' @param object An URD object
 #' @param label (Character) Data to use for coloring points (e.g. a metadata name, group ID from clustering, or a gene name)
@@ -28,11 +30,14 @@
 #' @param x.lim (Numeric) Limits of x-axis (NULL autodetects)
 #' @param y.lim (Numeric) Limits of y-axis (NULL autodetects)
 #' @param na.rm (Logical) Should points with value NA for the desired data be removed from the plot?
+#' @param transitions.plot (Numeric or NULL) Number of transition matrix connections to add to the plot. \code{NULL} will plot all connections. (WARNING: Too many connections will produce an unreadable plot that takes a long time to plot. Start with 10,000.)
+#' @param transitions.alpha (Numeric) Maximum transparency of line segments representing transitions. (They are scaled based on their transition probability).
+#' @param transitions.df (data.frame) Output from \link{edgesFromDM} (potentially further curated) to display on the plot. If provided, \code{transitions.plot} is ignored and all transitions in the provided data.frame are plotted.
 #' 
 #' @return A ggplot2 object
 #' 
 #' @export
-plotDim <- function(object, label, label.type="search", reduction.use=c("tsne", "pca", "dm"), dim.x=1, dim.y=2, colors=NULL, discrete.colors=NULL, point.size=1, alpha=1, point.shapes=F, plot.title=label, legend=T, legend.title="", legend.point.size=3*point.size, label.clusters=F, cells=NULL, x.lim=NULL, y.lim=NULL, na.rm=F) {
+plotDim <- function(object, label, label.type="search", reduction.use=c("tsne", "pca", "dm"), dim.x=1, dim.y=2, colors=NULL, discrete.colors=NULL, point.size=1, alpha=1, point.shapes=F, plot.title=label, legend=T, legend.title="", legend.point.size=3*point.size, label.clusters=F, cells=NULL, x.lim=NULL, y.lim=NULL, na.rm=F, transitions.plot=0, transitions.alpha=0.5, transitions.df=NULL) {
   
   # Get the data to plot
   if (length(reduction.use) > 1) reduction.use <- reduction.use[1]
@@ -72,8 +77,24 @@ plotDim <- function(object, label, label.type="search", reduction.use=c("tsne", 
     data.plot <- data.plot[cells,]
   }
   
+  # Get transitions if desired
+  if (is.null(transitions.plot) | transitions.plot > 0 | !is.null(transitions.df)) {
+    # If transitions aren't provided, get edge list
+    if (is.null(transitions.df)) transitions.df <- edgesFromDM(object, cells=rownames(data.plot), edges.return=transitions.plot)
+    # Add coordinates
+    transitions.df$x1 <- data.plot[transitions.df$from, dim.x]
+    transitions.df$x2 <- data.plot[transitions.df$to, dim.x]
+    transitions.df$y1 <- data.plot[transitions.df$from, dim.y]
+    transitions.df$y2 <- data.plot[transitions.df$to, dim.y]
+    # Normalize alpha
+    transitions.df$alpha <- transitions.df$weight / max(transitions.df$weight) * transitions.alpha
+  }
+  
   # Start the plot
   this.plot <- ggplot(data=data.plot, aes_string(x=dim.x, y=dim.y))
+  
+  # Add the transitions if desired
+  if (!is.null(transitions.df)) this.plot <- this.plot + geom_segment(inherit.aes=F, data=transitions.df, aes(x=x1, y=y1, xend=x2, yend=y2, alpha=alpha))
   
   # Add the points (color based on whether or not label is discrete)
   if (sig.score[[1]]) {
@@ -122,6 +143,7 @@ plotDim <- function(object, label, label.type="search", reduction.use=c("tsne", 
     this.plot <- this.plot + guides(color=guide_legend(override.aes = list(size=legend.point.size)))
   }
   # Add limits if desired
+  this.plot <- this.plot + guides(alpha=F)
   if (!is.null(x.lim)) this.plot <- this.plot + xlim(x.lim[1],x.lim[2])
   if (!is.null(y.lim)) this.plot <- this.plot + ylim(y.lim[1],y.lim[2])
   return(this.plot)

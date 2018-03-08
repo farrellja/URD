@@ -126,26 +126,33 @@ calcDM <- function(object, genes.use=object@var.genes, cells.use=NULL, knn=NULL,
 #' map in an URD object. Used by some plotting functions to show the
 #' connectivity of the network if desired.
 #'
-#' @importFrom igraph graph_from_adjacency_matrix as_data_frame
+#' @importFrom igraph graph_from_adjacency_matrix as_data_frame V induced_subgraph
 #' 
 #' @param object An URD object
+#' @param cells (Character vector) Cells to calculate edges between (default \code{NULL} uses all cells in diffusion map.)
 #' @param edges.return (Numeric) Number of edges to return (default \code{NULL} returns all edges.)
 #' 
 #' @return A data.frame with columns from (cell name), to (cell name), and weight (transition probability)
 #' 
 #' @examples 
-#' edges <- edgesFromDM(object, 100000)
+#' edges <- edgesFromDM(object, cells=NULL, edges.return=100000)
 #' 
 #' @export
-edgesFromDM <- function(object, edges.return=NULL) {
+edgesFromDM <- function(object, cells=NULL, edges.return=NULL) {
   # Create igraph representation from transition matrix
   ig <- graph_from_adjacency_matrix(object@dm@transitions, weighted=T, mode="undirected")
+  
+  # Subset if only some cells are provided
+  if (!is.null(cells)) {
+    v.keep <- which(names(V(ig)) %in% cells)
+    ig <- induced_subgraph(ig, vids=v.keep)
+  }
   
   # Convert igraph representation to data frame
   ig_edges <- as_data_frame(ig)
   
   # Sample number of edges at random, if desired
-  if (!is.null(edges.return)) ig_edges <- ig_edges[sample(1:nrow(ig_edges), edges.return),]
+  if (!is.null(edges.return) && (edges.return < nrow(ig_edges))) ig_edges <- ig_edges[sample(1:nrow(ig_edges), edges.return),]
   
   return(ig_edges)
 }

@@ -9,7 +9,8 @@ plotDim(object, label, label.type = "search", reduction.use = c("tsne",
   discrete.colors = NULL, point.size = 1, alpha = 1, point.shapes = F,
   plot.title = label, legend = T, legend.title = "",
   legend.point.size = 3 * point.size, label.clusters = F, cells = NULL,
-  x.lim = NULL, y.lim = NULL, na.rm = F)
+  x.lim = NULL, y.lim = NULL, na.rm = F, transitions.plot = 0,
+  transitions.alpha = 0.5, transitions.df = NULL)
 }
 \arguments{
 \item{object}{An URD object}
@@ -51,16 +52,24 @@ plotDim(object, label, label.type = "search", reduction.use = c("tsne",
 \item{y.lim}{(Numeric) Limits of y-axis (NULL autodetects)}
 
 \item{na.rm}{(Logical) Should points with value NA for the desired data be removed from the plot?}
+
+\item{transitions.plot}{(Numeric or NULL) Number of transition matrix connections to add to the plot. \code{NULL} will plot all connections. (WARNING: Too many connections will produce an unreadable plot that takes a long time to plot. Start with 10,000.)}
+
+\item{transitions.alpha}{(Numeric) Maximum transparency of line segments representing transitions. (They are scaled based on their transition probability).}
+
+\item{transitions.df}{(data.frame) Output from \link{edgesFromDM} (potentially further curated) to display on the plot. If provided, \code{transitions.plot} is ignored and all transitions in the provided data.frame are plotted.}
 }
 \value{
 A ggplot2 object
 }
 \description{
-Plots cells according to their coordinates in a dimensionality reduction (tSNE by default).
-Cells are colored according to a user set \code{label} that can range from gene expression,
-to metadata values, or cluster identity. See \code{\link{data.for.plot}} for more information
-about labels that can be chosen. Additionally, see \code{\link{plotDimDual}} to plot two
+Plots cells according to their coordinates in a dimensionality reduction (tSNE by default,
+but also PCA or diffusion map). Cells are colored according to a user set \code{label} that
+can range from gene expression, to metadata values, or cluster identity. See 
+\code{\link{data.for.plot}} for more information about labels that can be chosen. Additionally, 
+see \code{\link{plotDimDual}} to plot two
 continuous variables simultaneously, \code{\link{plotDimHighlight}} to highlight one group
 from a discrete label, and \code{\link{plotDimArray}} to repeat the same plot across several
-sets of dimensions.
+sets of dimensions. Additionally, \code{transitions.plot} can plot the connections from
+the diffusion map onto the plot additionally.
 }

@@ -4,10 +4,12 @@
 \alias{edgesFromDM}
 \title{Create an edge list from the transition matrix of the diffusion map}
 \usage{
-edgesFromDM(object, edges.return = NULL)
+edgesFromDM(object, cells = NULL, edges.return = NULL)
 }
 \arguments{
 \item{object}{An URD object}
+
+\item{cells}{(Character vector) Cells to calculate edges between (default \code{NULL} uses all cells in diffusion map.)}
 
 \item{edges.return}{(Numeric) Number of edges to return (default \code{NULL} returns all edges.)}
 }
@@ -20,6 +22,6 @@ map in an URD object. Used by some plotting functions to show the
 connectivity of the network if desired.
 }
 \examples{
-edges <- edgesFromDM(object, 100000)
+edges <- edgesFromDM(object, cells=NULL, edges.return=100000)
 
 }
