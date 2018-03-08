@@ -16,9 +16,11 @@ simulateRandomWalk(start.cells, transition.matrix, end.cells, n = 10000,
 
 \item{n}{(Numeric) Number of walks to simulate}
 
-\item{end.visits}{(Numeric)}
+\item{end.visits}{(Numeric) Number of visits to end.cells to do before stopping}
 
-\item{verbose}{(Logical)}
+\item{verbose.freq}{(Numeric) Print a progress update, every \code{verbose.freq} walks. If 0, no progress updates are reported.}
+
+\item{max.steps}{(Numeric) Maximum number of steps to take before aborting the walk, making the assumption that the walk has somehow gotten stuck. Returns \code{NULL} for those walks.}
 }
 \value{
 (Character vector) Names of cells visited during the random walk.

@@ -5,8 +5,8 @@
 \title{Simulate Random Walks From All Tips}
 \usage{
 simulateRandomWalksFromTips(object, tip.group.id, root.cells, transition.matrix,
-  n.per.tip = 10000, root.visits = 1, max.steps = 2 *
-  ncol(hydra.ic@logupx.data), verbose = T)
+  n.per.tip = 10000, root.visits = 1,
+  max.steps = ncol(object@logupx.data), verbose = T)
 }
 \arguments{
 \item{object}{An URD object}
@@ -23,7 +23,7 @@ simulateRandomWalksFromTips(object, tip.group.id, root.cells, transition.matrix,
 
 \item{verbose}{(Logical) Whether to report on progress}
 
-\item{max.visits}{(Numeric) Abandon walks that take more steps than this, as it likely means that it has gotten stuck.}
+\item{max.visits}{(Numeric) Abandon walks that take more steps than this, as it likely means that it has gotten stuck. (Default is number of cells in the data. On large data, may want to lower this value.)}
 }
 \value{
 List (of tips) of lists (of walk paths) of character vectors

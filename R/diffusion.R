@@ -1,4 +1,3 @@
-# Estimate proper logistic parameters for a given pseudotime measure 
 #' Determine logistic parameters
 #' 
 #' @param object An URD object
@@ -40,7 +39,6 @@ pseudotimeDetermineLogistic <- function(object, pseudotime, optimal.cells.forwar
   return(list(x0=x0, k=k))
 }
 
-# Make the transition matrix non-symmetric, with an additional weighting based on the time of transition
 #' Weight transition matrix by pseudotime
 #' 
 #' @param object An URD object
@@ -81,13 +79,17 @@ pseudotimeWeightTransitionMatrix <- function(object, pseudotime, x0=NULL, k=NULL
 #' Simulate random walks
 #' 
 #' 
+#' 
 #' @param start.cells (Character vector) Cells to use as a starting pool. One is chosen at random.
 #' @param transition.matrix (Matrix or Sparse Matrix) Transition matrix 
 #' @param end.cells (Character vector)
 #' @param n (Numeric) Number of walks to simulate
-#' @param end.visits (Numeric)
-#' @param verbose (Logical)
+#' @param end.visits (Numeric) Number of visits to end.cells to do before stopping
+#' @param verbose.freq (Numeric) Print a progress update, every \code{verbose.freq} walks. If 0, no progress updates are reported.
+#' @param max.steps (Numeric) Maximum number of steps to take before aborting the walk, making the assumption that the walk has somehow gotten stuck. Returns \code{NULL} for those walks.
+#' 
 #' @return (Character vector) Names of cells visited during the random walk.
+#' 
 #' @export
 simulateRandomWalk <- function(start.cells, transition.matrix, end.cells, n=10000, end.visits=1, verbose.freq=0, max.steps=5000) {
   return(lapply(1:n, function(i) {
@@ -125,11 +127,11 @@ simulateRandomWalk <- function(start.cells, transition.matrix, end.cells, n=1000
 #' @param transition.matrix (Matrix or dgCMatrix) Biased transition matrix 
 #' @param n.per.tip (Numeric) Number of walks to do per tip
 #' @param root.visits (Numeric) Number of steps to take that visit a root.cell before stopping
-#' @param max.visits (Numeric) Abandon walks that take more steps than this, as it likely means that it has gotten stuck.
+#' @param max.visits (Numeric) Abandon walks that take more steps than this, as it likely means that it has gotten stuck. (Default is number of cells in the data. On large data, may want to lower this value.)
 #' @param verbose (Logical) Whether to report on progress
 #' @return List (of tips) of lists (of walk paths) of character vectors
 #' @export
-simulateRandomWalksFromTips <- function(object, tip.group.id, root.cells, transition.matrix, n.per.tip=10000, root.visits=1, max.steps=2*ncol(hydra.ic@logupx.data), verbose=T) {
+simulateRandomWalksFromTips <- function(object, tip.group.id, root.cells, transition.matrix, n.per.tip=10000, root.visits=1, max.steps=ncol(object@logupx.data), verbose=T) {
   # Get all tips from that id
   all.tips <- sort(setdiff(as.character(unique(object@group.ids[,tip.group.id])), NA))
   n.tips <- length(all.tips)
