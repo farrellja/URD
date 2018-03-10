@@ -45,7 +45,7 @@ batchComBat <- function(object, batch.column, adjustment.columns=NULL, reference
     
     # Run ComBat
     if (verbose) print(paste0(Sys.time(), ": Starting ComBat."))
-    batch.data <- as.matrix(ComBat(dat=as.matrix(object@logupx.data[genes.use,]), batch=object@meta[colnames(object@logupx.data), batch.column], mod=model.matrix, prior.plots=prior.plots, par.prior=parametric.prior, ref.batch=reference.batch))
+    batch.data <- as.matrix(sva::ComBat(dat=as.matrix(object@logupx.data[genes.use,]), batch=object@meta[colnames(object@logupx.data), batch.column], mod=model.matrix, prior.plots=prior.plots, par.prior=parametric.prior, ref.batch=reference.batch))
     
     # Crop extreme values occasionally produced by Combat
     if (verbose) print(paste0(Sys.time(), ": Correcting extreme values and re-sparsifying matrix."))
