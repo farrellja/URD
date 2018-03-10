@@ -1,6 +1,7 @@
 #' Build Tree
 #' 
 #' @importFrom stats weighted.mean
+#' @importFrom gridExtra grid.arrange
 #' 
 #' @param object An URD object
 #' @param pseudotime (Character) Pseudotime to use for building tree
@@ -54,6 +55,10 @@ buildTree <- function(object, pseudotime, tips.use=NULL, divergence.method=c("ks
   while(length(tips) >= 2) {
     
     # Find the oldest pseudotime breakpoint, and thereby which branches to join at which pseudotime
+    # If every breakpoint has received NA, set them to 0 to close up the top of the tree.
+    if (all(is.na(object@tree$segment.divergence$pseudotime.breakpoint))) {
+      object@tree$segment.divergence$pseudotime.breakpoint <- 0
+    }
     fuse.id <- which.max(object@tree$segment.divergence$pseudotime.breakpoint)
     seg.1 <- object@tree$segment.divergence[fuse.id, "seg.1"]
     seg.2 <- object@tree$segment.divergence[fuse.id, "seg.2"]
