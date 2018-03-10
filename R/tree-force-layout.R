@@ -286,14 +286,14 @@ plotTreeForce <- function(object, label, label.type="search", view="default", al
     
     # Open 3D view
     if (!is.null(view)) {
-      open3d(
+      rgl::open3d(
         zoom=view$rgl.setting$zoom, 
         scale=view$rgl.setting$scale, 
         userMatrix=view$rgl.setting$userMatrix, 
         windowRect=view$rgl.setting$windowRect
       )
     } else {
-      open3d()
+      rgl::open3d()
     }
     
     # Adjust transparency for local density
@@ -315,7 +315,7 @@ plotTreeForce <- function(object, label, label.type="search", view="default", al
     }
     
     # Add the points to the plot
-    points3d(x=gg.data$x, y=gg.data$y, z=gg.data$telescope.pt, col=gg.data$expression, alpha=gg.data$alpha, size=size)
+    rgl::points3d(x=gg.data$x, y=gg.data$y, z=gg.data$telescope.pt, col=gg.data$expression, alpha=gg.data$alpha, size=size)
     
     # Add title to plot
     if (!is.null(title)) {
