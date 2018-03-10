@@ -25,7 +25,6 @@ dsCutoffPlot <- function(gz.in, n.cells=NULL, main="", xmax=5000) {
 #' because it takes some time to read in this data, so many plots can be tried
 #' with only having to read the data once.)
 #' 
-#' @importFrom rhdf5 h5read
 #' @importFrom stats aggregate
 #' 
 #' @param molecule.info.path (Character) Path to the molecule_info.h5 file output by 10X.
@@ -34,46 +33,53 @@ dsCutoffPlot <- function(gz.in, n.cells=NULL, main="", xmax=5000) {
 #' and "total_reads", which is the sum of the 3 previous columns.
 #' @export
 txReadsPerCell <- function(molecule.info.path) {
-  # Read in the relevant info from the stupid HDF5 file
-  mi <- data.frame(
-    barcode=h5read(file=molecule.info.path, name="barcode", bit64conversion='bit64'),
-    reads=h5read(file=molecule.info.path, name="reads"),
-    unmapped_reads=h5read(file=molecule.info.path, name="unmapped_reads"),
-    nonconf_mapped_reads=h5read(file=molecule.info.path, name="nonconf_mapped_reads"),
-    stringsAsFactors=F
-  )
-  # Aggregate by barcode
-  mi.agg <- aggregate(mi[,2:4], by=list(mi[,1]), FUN=sum)
-  mi.agg$total_reads <- apply(mi.agg[,2:4], 1, sum)
-  # Sort by total reads
-  mi.agg <- mi.agg[order(mi.agg$total_reads, decreasing = T),]
-  rm(mi)
-  shh <- gc(verbose = F)
-  names(mi.agg) <- c("barcode", "reads", "unmapped_reads", "nonconf_mapped_reads", "total_reads")
-  # Convert 10X cell barcodes to strings
-  mi.agg$barcode <- txBarcodesIntegerToChar(mi.agg$barcode)
-  # Return
-  return(mi.agg)
+  if (requireNamespace("rhdf5", quietly=T) && requireNamespace("bit64", quietly=T)) {
+  
+    # Read in the relevant info from the stupid HDF5 file
+    mi <- data.frame(
+      barcode=rhdf5::h5read(file=molecule.info.path, name="barcode", bit64conversion='bit64'),
+      reads=rhdf5::h5read(file=molecule.info.path, name="reads"),
+      unmapped_reads=rhdf5::h5read(file=molecule.info.path, name="unmapped_reads"),
+      nonconf_mapped_reads=rhdf5::h5read(file=molecule.info.path, name="nonconf_mapped_reads"),
+      stringsAsFactors=F
+    )
+    # Aggregate by barcode
+    mi.agg <- aggregate(mi[,2:4], by=list(mi[,1]), FUN=sum)
+    mi.agg$total_reads <- apply(mi.agg[,2:4], 1, sum)
+    # Sort by total reads
+    mi.agg <- mi.agg[order(mi.agg$total_reads, decreasing = T),]
+    rm(mi)
+    shh <- gc(verbose = F)
+    names(mi.agg) <- c("barcode", "reads", "unmapped_reads", "nonconf_mapped_reads", "total_reads")
+    # Convert 10X cell barcodes to strings
+    mi.agg$barcode <- txBarcodesIntegerToChar(mi.agg$barcode)
+    # Return
+    return(mi.agg)
+  } else {
+    stop("Packages bit64 from CRAN and rhdf5 from bioConductor are required for this function. To install:\ninstall.packages('bit64')\nsource('https://bioconductor.org/biocLite.R')\nbiocLite('sva')\n")
+  }
 }
 
 #' Convert 10X Integer-stored barcodes to character ones for subsetting matrices
 #' 
 #' Are you kidding me with this? How much space does this save, guys?
 #' 
-#' @importFrom bit64 as.bitstring
-#' 
 #' @param x (Integer64 vector) 10X cell barcodes, stored as 64-bit integers, as is molecule_info.h5
 #' 
 #' @return (Character vector) 10X cell barcodes, as DNA base characters
 txBarcodesIntegerToChar <- function (x) {
-  binary.code <- c("A","C","G","T")
-  names(binary.code) <- c("00", "01", "10", "11")
-  binary.barcodes <- bit64::as.bitstring(x)
-  character.barcodes <- unlist(lapply(binary.barcodes, function(bb) {
-    bb.chunk <- substring(bb, seq(1,nchar(bb),2), seq(2,nchar(bb),2))[17:32]
-    return(paste0(binary.code[bb.chunk], collapse=""))
-  }))
-  return(character.barcodes)
+  if (requireNamespace("bit64", quietly=T)) {
+    binary.code <- c("A","C","G","T")
+    names(binary.code) <- c("00", "01", "10", "11")
+    binary.barcodes <- bit64::as.bitstring(x)
+    character.barcodes <- unlist(lapply(binary.barcodes, function(bb) {
+      bb.chunk <- substring(bb, seq(1,nchar(bb),2), seq(2,nchar(bb),2))[17:32]
+      return(paste0(binary.code[bb.chunk], collapse=""))
+    }))
+    return(character.barcodes)
+  } else {
+    stop("Package bit64 is required for this function. To install:\ninstall.packages('bit64')\n")
+  }
 }
 
 #' Plot Cumulative Distribution of Reads per Cell Barcode

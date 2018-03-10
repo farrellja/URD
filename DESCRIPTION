@@ -8,7 +8,6 @@ Depends:
 	ggplot2,
 	Matrix
 Imports:
-	bit64,
 	data.table,
 	destiny,
 	gdata,
@@ -23,15 +22,15 @@ Imports:
 	RANN,
 	RColorBrewer,
 	reshape2,
-	rgl,
-	rhdf5,
 	Rtsne,
 	scales,
 	stats,
-	sva,
 	utils
 Suggests:
-	Seurat
+	bit64,
+	rgl,
+	rhdf5,
+	sva
 License: What license is it under?
 Encoding: UTF-8
 LazyData: true
