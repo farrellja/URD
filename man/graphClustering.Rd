@@ -6,7 +6,7 @@
 \usage{
 graphClustering(object, dim.use = c("pca", "dm"), cells.use = NULL,
   which.dims = which(object@pca.sig), num.nn = 30, do.jaccard = TRUE,
-  method = "Louvain", group.id = NULL)
+  method = "Louvain", group.id = method)
 }
 \arguments{
 \item{object}{An URD object}
@@ -17,11 +17,11 @@ graphClustering(object, dim.use = c("pca", "dm"), cells.use = NULL,
 
 \item{which.dims}{(Numeric vector) Which PCs (or diffusion components) to use. Defaults to the significant PCs. (The default will probably work with diffusion components, though it is non-sensical in that case.)}
 
-\item{num.nn}{(Numeric) How many nearest-neighbors to use in the k-nn graph}
+\item{num.nn}{(Numeric or numeric vector) How many nearest-neighbors to use in the k-nn graph. (If multiple values are provided, multiple clusterings are calculated.)}
 
 \item{do.jaccard}{(Logical) Weight edges in the k-nn graph according to their Jaccard overlap?}
 
-\item{group.id}{(Character) What name should the clustering be given? (Default is Method-NN i.e. Louvain-30 if using 30 nearest neighbors)}
+\item{group.id}{(Character) Prefix to use for clustering name (Default is method). If more than one value is provided to \code{num.nn}, then "-NN" (where NN is the number of nearest neighbors) is appended.}
 }
 \value{
 An URD object with cluster identities saved in \code{{@group.ids}} in the column named \code{group.id}.
@@ -40,5 +40,9 @@ and several should be investigated.
 # Output will be stored as Infomap-10, Infomap-15, ... in object.6s.mnn@group.ids
 object.6s.mnn <- graphClustering(object.6s.mnn, num.nn = c(10,15,20,30,40), 
 method="Infomap", do.jaccard = T)
+
+# Cluster on the diffusion map instead of PCA
+# Output will be stored as Louvain-DM-10, Louvain-DM-20, Louvain-DM-30, etc.
+object <- graphClustering(object, dim.use="dm", num.nn = c(10,20,30,40), method="Louvain", do.jaccard=T, group.id="Louvain-DM")
 
 }

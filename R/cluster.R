@@ -16,9 +16,9 @@
 #' @param dim.use (Character) Calculate on principal components (\code{pca}) or diffusion components (\code{dm})
 #' @param cells.use (Character vector) Which cells to include in the clustering (default is NULL, which uses all cells)
 #' @param which.dims (Numeric vector) Which PCs (or diffusion components) to use. Defaults to the significant PCs. (The default will probably work with diffusion components, though it is non-sensical in that case.)
-#' @param num.nn (Numeric) How many nearest-neighbors to use in the k-nn graph
+#' @param num.nn (Numeric or numeric vector) How many nearest-neighbors to use in the k-nn graph. (If multiple values are provided, multiple clusterings are calculated.)
 #' @param do.jaccard (Logical) Weight edges in the k-nn graph according to their Jaccard overlap?
-#' @param group.id (Character) What name should the clustering be given? (Default is Method-NN i.e. Louvain-30 if using 30 nearest neighbors)
+#' @param group.id (Character) Prefix to use for clustering name (Default is method). If more than one value is provided to \code{num.nn}, then "-NN" (where NN is the number of nearest neighbors) is appended.
 #' 
 #' @return An URD object with cluster identities saved in \code{{@@group.ids}} in the column named \code{group.id}.
 #' 
@@ -28,8 +28,12 @@
 #' object.6s.mnn <- graphClustering(object.6s.mnn, num.nn = c(10,15,20,30,40), 
 #' method="Infomap", do.jaccard = T)
 #' 
+#' # Cluster on the diffusion map instead of PCA
+#' # Output will be stored as Louvain-DM-10, Louvain-DM-20, Louvain-DM-30, etc.
+#' object <- graphClustering(object, dim.use="dm", num.nn = c(10,20,30,40), method="Louvain", do.jaccard=T, group.id="Louvain-DM")
+#' 
 #' @export
-graphClustering <- function(object, dim.use=c("pca","dm"), cells.use=NULL, which.dims=which(object@pca.sig), num.nn=30, do.jaccard=TRUE, method="Louvain", group.id=NULL) {
+graphClustering <- function(object, dim.use=c("pca","dm"), cells.use=NULL, which.dims=which(object@pca.sig), num.nn=30, do.jaccard=TRUE, method="Louvain", group.id=method) {
   if (length(dim.use) > 1) dim.use <- dim.use[1]
   if (dim.use=="pca") {
     # Get proper PCA data to use
@@ -89,7 +93,6 @@ graphClustering <- function(object, dim.use=c("pca","dm"), cells.use=NULL, which
     object@meta[names(clust.assign),"clust"]=clust.assign
     object@group=clust.assign; names(object@group)=names(clust.assign);               
     
-    if (is.null(group.id)) group.id <- method
     if (length(num.nn) > 1) { this.group.id <- paste0(group.id, "-", this.nn) } else { this.group.id <- group.id }
     object@group.ids[names(clust.assign),this.group.id] <- as.character(clust.assign)
   }
