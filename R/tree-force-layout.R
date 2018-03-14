@@ -320,7 +320,7 @@ plotTreeForce <- function(object, label, label.type="search", view="default", al
     # Add title to plot
     if (!is.null(title)) {
       Sys.sleep(0.1)
-      bgplot3d({plot.new(); title(main=title, line=title.line, cex.main=title.cex)})
+      rgl::bgplot3d({plot.new(); title(main=title, line=title.line, cex.main=title.cex)})
     }
     
     # Add labels to tips
@@ -349,7 +349,7 @@ plotTreeForce <- function(object, label, label.type="search", view="default", al
       })))
       
       # Add the text
-      text3d(x=tip.labels$x, y=tip.labels$y, z=tip.labels$z, text=tip.labels$label, adj=0.5, cex=text.cex)
+      rgl::text3d(x=tip.labels$x, y=tip.labels$y, z=tip.labels$z, text=tip.labels$label, adj=0.5, cex=text.cex)
     }
   } else {
     stop("Package rgl is required for this function. To install: install.packages('rgl')\n")
