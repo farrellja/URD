@@ -3,10 +3,6 @@
 #' @importClassesFrom destiny DiffusionMap
 NULL
 
-# How do I fix this?
-#Warning message:
-#  undefined slot classes in definition of "URD": count.data(class "dgCMatrix"), logupx.data(class "dgCMatrix"), dm(class "DiffusionMap") 
-
 #' URD class
 #' 
 #' @importClassesFrom destiny DiffusionMap
@@ -27,13 +23,10 @@ URD <- methods::setClass("URD", slots = c(
   tsne.y="data.frame", 
   cell.names="vector", 
   gene.sig.z="data.frame", 
-  #gene.sig.p="data.frame",
   dm=c("DiffusionMap",NULL), 
   var.genes="vector", 
   knn="list",
   plot.3d="list",
-  #sparse.pca.obj="list", 
-  #gene.sig.raw="data.frame",
   diff.data="data.frame", 
   pseudotime="data.frame",
   pseudotime.stability="list", 
