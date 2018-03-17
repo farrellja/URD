@@ -31,7 +31,7 @@ plotTreeForce(object, label, label.type = "search", view = "default",
 
 \item{size.fade}{(Numeric) DOESN'T WORK.}
 
-\item{title}{(Character) Title to add to the plot. Unfortunately, this provides rather ugly titles -- they are well positioned automatically for quick iteration, but not suitable for final figures.}
+\item{title}{(Character) Title to add to the plot. (This is sensitive to resizing the window after plotting, but if a view is stored, the window will be resized before the title is added, so it will be acceptable resolution for figures.)}
 
 \item{title.cex}{(Numeric) Adjust the title font size}
 

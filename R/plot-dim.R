@@ -6,9 +6,9 @@
 #' \code{\link{data.for.plot}} for more information about labels that can be chosen. Additionally, 
 #' see \code{\link{plotDimDual}} to plot two
 #' continuous variables simultaneously, \code{\link{plotDimHighlight}} to highlight one group
-#' from a discrete label, and \code{\link{plotDimArray}} to repeat the same plot across several
-#' sets of dimensions. Additionally, \code{transitions.plot} can plot the connections from
-#' the diffusion map onto the plot additionally.
+#' from a discrete label, \code{\link{plotDimArray}} to repeat the same plot across several
+#' sets of dimensions, and \code{\link{plotDim3D}} to plot in three dimensions.. Additionally, 
+#' \code{transitions.plot} can plot the connections from the diffusion map onto the plot.
 #' 
 #' @param object An URD object
 #' @param label (Character) Data to use for coloring points (e.g. a metadata name, group ID from clustering, or a gene name)
@@ -29,6 +29,7 @@
 #' @param cells (Character vector) Cells to show on the plot (Default \code{NULL} is all cells.)
 #' @param x.lim (Numeric) Limits of x-axis (NULL autodetects)
 #' @param y.lim (Numeric) Limits of y-axis (NULL autodetects)
+#' @param color.lim (Numeric) Limits of the point color scale (NULL autodetects)
 #' @param na.rm (Logical) Should points with value NA for the desired data be removed from the plot?
 #' @param transitions.plot (Numeric or NULL) Number of transition matrix connections to add to the plot. \code{NULL} will plot all connections. (WARNING: Too many connections will produce an unreadable plot that takes a long time to plot. Start with 10,000.)
 #' @param transitions.alpha (Numeric) Maximum transparency of line segments representing transitions. (They are scaled based on their transition probability).
@@ -37,7 +38,7 @@
 #' @return A ggplot2 object
 #' 
 #' @export
-plotDim <- function(object, label, label.type="search", reduction.use=c("tsne", "pca", "dm"), dim.x=1, dim.y=2, colors=NULL, discrete.colors=NULL, point.size=1, alpha=1, point.shapes=F, plot.title=label, legend=T, legend.title="", legend.point.size=3*point.size, label.clusters=F, cells=NULL, x.lim=NULL, y.lim=NULL, na.rm=F, transitions.plot=0, transitions.alpha=0.5, transitions.df=NULL) {
+plotDim <- function(object, label, label.type="search", reduction.use=c("tsne", "pca", "dm"), dim.x=1, dim.y=2, colors=NULL, discrete.colors=NULL, point.size=1, alpha=1, point.shapes=F, plot.title=label, legend=T, legend.title="", legend.point.size=3*point.size, label.clusters=F, cells=NULL, x.lim=NULL, y.lim=NULL, color.lim=NULL, na.rm=F, transitions.plot=0, transitions.alpha=0.5, transitions.df=NULL) {
   
   # Get the data to plot
   if (length(reduction.use) > 1) reduction.use <- reduction.use[1]
@@ -78,7 +79,7 @@ plotDim <- function(object, label, label.type="search", reduction.use=c("tsne", 
   }
   
   # Get transitions if desired
-  if (is.null(transitions.plot) | transitions.plot > 0 | !is.null(transitions.df)) {
+  if (is.null(transitions.plot) || transitions.plot > 0 || !is.null(transitions.df)) {
     # If transitions aren't provided, get edge list
     if (is.null(transitions.df)) transitions.df <- edgesFromDM(object, cells=rownames(data.plot), edges.return=transitions.plot)
     # Add coordinates
@@ -113,7 +114,7 @@ plotDim <- function(object, label, label.type="search", reduction.use=c("tsne", 
     # Continuous
     if (is.null(colors)) colors <- defaultURDContinuousColors()
     this.plot <- this.plot + geom_point(aes(color=SIG), size=point.size) + 
-      scale_color_gradientn(colors=colors)
+      scale_color_gradientn(colors=colors, limits=color.lim)
   }
   
   # Label/title things appropriately

@@ -226,7 +226,7 @@ plotTreeForce2D <- function(object, label=NULL, label.type="search", title=label
 #' @param alpha.fade (Numeric) Minimum transparency of points
 #' @param size (Numeric) Size of points in the plot
 #' @param size.fade (Numeric) DOESN'T WORK.
-#' @param title (Character) Title to add to the plot. Unfortunately, this provides rather ugly titles -- they are well positioned automatically for quick iteration, but not suitable for final figures.
+#' @param title (Character) Title to add to the plot. (This is sensitive to resizing the window after plotting, but if a view is stored, the window will be resized before the title is added, so it will be acceptable resolution for figures.)
 #' @param title.cex (Numeric) Adjust the title font size
 #' @param title.line (Numeric) Adjust the position of the title. Positive numbers move the title upward.
 #' @param label.tips (Logical) Should text identifying the tips of the tree be placed in the force directed layout? Defaults to TRUE if \code{@@tree$segment.names} has been set.

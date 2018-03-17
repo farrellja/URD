@@ -9,8 +9,8 @@ plotDim(object, label, label.type = "search", reduction.use = c("tsne",
   discrete.colors = NULL, point.size = 1, alpha = 1, point.shapes = F,
   plot.title = label, legend = T, legend.title = "",
   legend.point.size = 3 * point.size, label.clusters = F, cells = NULL,
-  x.lim = NULL, y.lim = NULL, na.rm = F, transitions.plot = 0,
-  transitions.alpha = 0.5, transitions.df = NULL)
+  x.lim = NULL, y.lim = NULL, color.lim = NULL, na.rm = F,
+  transitions.plot = 0, transitions.alpha = 0.5, transitions.df = NULL)
 }
 \arguments{
 \item{object}{An URD object}
@@ -51,6 +51,8 @@ plotDim(object, label, label.type = "search", reduction.use = c("tsne",
 
 \item{y.lim}{(Numeric) Limits of y-axis (NULL autodetects)}
 
+\item{color.lim}{(Numeric) Limits of the point color scale (NULL autodetects)}
+
 \item{na.rm}{(Logical) Should points with value NA for the desired data be removed from the plot?}
 
 \item{transitions.plot}{(Numeric or NULL) Number of transition matrix connections to add to the plot. \code{NULL} will plot all connections. (WARNING: Too many connections will produce an unreadable plot that takes a long time to plot. Start with 10,000.)}
@@ -69,7 +71,7 @@ can range from gene expression, to metadata values, or cluster identity. See
 \code{\link{data.for.plot}} for more information about labels that can be chosen. Additionally, 
 see \code{\link{plotDimDual}} to plot two
 continuous variables simultaneously, \code{\link{plotDimHighlight}} to highlight one group
-from a discrete label, and \code{\link{plotDimArray}} to repeat the same plot across several
-sets of dimensions. Additionally, \code{transitions.plot} can plot the connections from
-the diffusion map onto the plot additionally.
+from a discrete label, \code{\link{plotDimArray}} to repeat the same plot across several
+sets of dimensions, and \code{\link{plotDim3D}} to plot in three dimensions.. Additionally, 
+\code{transitions.plot} can plot the connections from the diffusion map onto the plot.
 }
