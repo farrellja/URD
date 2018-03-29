@@ -132,7 +132,7 @@ plotDim3D <- function(object, label, label.type="search", reduction.use=c("dm", 
     }
     
     # Add a brief pause to ensure that rendering is complete before moving on to next function.
-    Sys.sleep(0.1)
+    Sys.sleep(0.3)
     
   } else {
     stop("Package rgl is required for this function. To install: install.packages('rgl')\n")
