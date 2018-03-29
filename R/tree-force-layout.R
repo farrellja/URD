@@ -243,7 +243,7 @@ plotTreeForce2D <- function(object, label=NULL, label.type="search", title=label
 #' @return Nothing. Produces a plot using the \code{rgl} package, displayed in an X11 window.
 #' 
 #' @export
-plotTreeForce <- function(object, label, label.type="search", view="default", alpha=0.8, alpha.fade=0.1, size=5, size.fade=3, title=NULL, title.cex=3, title.line=0, label.tips=(!is.null(object@tree$segment.names) | !is.null(object@tree$segment.names.short)), use.short.names=!is.null(object@tree$segment.names.short), seg.show=NULL, cells.show=NULL, fade.below=(2/9), density.alpha=T, label.spacing=5, text.cex=0.8, colors=NULL, discrete.colors=NULL) {
+plotTreeForceOriginal <- function(object, label, label.type="search", view="default", alpha=0.8, alpha.fade=0.1, size=5, size.fade=3, title=NULL, title.cex=3, title.line=0, label.tips=(!is.null(object@tree$segment.names) | !is.null(object@tree$segment.names.short)), use.short.names=!is.null(object@tree$segment.names.short), seg.show=NULL, cells.show=NULL, fade.below=(2/9), density.alpha=T, label.spacing=5, text.cex=0.8, colors=NULL, discrete.colors=NULL) {
 
   if (requireNamespace("rgl", quietly = TRUE)) {
     
@@ -351,6 +351,153 @@ plotTreeForce <- function(object, label, label.type="search", view="default", al
       # Add the text
       rgl::text3d(x=tip.labels$x, y=tip.labels$y, z=tip.labels$z, text=tip.labels$label, adj=0.5, cex=text.cex)
     }
+    
+    # Add a brief pause to ensure that rendering completes before moving on to next function.
+    Sys.sleep(0.1)
+  } else {
+    stop("Package rgl is required for this function. To install: install.packages('rgl')\n")
+  }
+}
+
+#' Plot force-directed layout of tree
+#' 
+#' @param object An URD object
+#' @param label (Character)
+#' @param label.type (Character)
+#' @param view (Character) Can 
+#' @param alpha (Numeric) Maximum transparency of points
+#' @param alpha.fade (Numeric) Minimum transparency of points
+#' @param size (Numeric) Size of points in the plot
+#' @param size.fade (Numeric) DOESN'T WORK.
+#' @param title (Character) Title to add to the plot. (This is sensitive to resizing the window after plotting, but if a view is stored, the window will be resized before the title is added, so it will be acceptable resolution for figures.)
+#' @param title.cex (Numeric) Adjust the title font size
+#' @param title.line (Numeric) Adjust the position of the title. Positive numbers move the title upward.
+#' @param label.tips (Logical) Should text identifying the tips of the tree be placed in the force directed layout? Defaults to TRUE if \code{@@tree$segment.names} has been set.
+#' @param use.short.names (Logical) Should short names from \code{@@tree$segment.names.short} be used? Defaults to TRUE if those values have been set.
+#' @param seg.show (Character vector) Segments of the tree to put on the plot (Default \code{NULL} is all segments)
+#' @param cells.show (Character vector) Cells of the tree to show (Default \code{NULL} is all cells)
+#' @param fade.below (Numeric)
+#' @param density.alpha (Logical) 
+#' @param label.spacing (Numeric)
+#' @param text.cex (Numeric) Size of the label text
+#' @param colors (Character vector)
+#' @param discrete.colors (Character vector)
+#' 
+#' @return Nothing. Produces a plot using the \code{rgl} package, displayed in an X11 window.
+#' 
+#' @export
+plotTreeForce <- function(object, label, label.type="search", view="default", alpha=0.8, alpha.fade=0.1, size=5, size.fade=3, title=NULL, title.cex=3, title.line=0, label.tips=(!is.null(object@tree$segment.names) | !is.null(object@tree$segment.names.short)), use.short.names=!is.null(object@tree$segment.names.short), seg.show=NULL, cells.show=NULL, fade.below=(2/9), density.alpha=T, label.spacing=5, text.cex=0.8, colors=NULL, discrete.colors=NULL) {
+  
+  if (requireNamespace("rgl", quietly = TRUE)) {
+    
+    # Figure out which view to use
+    if (!is.null(view)) {
+      if (view=="default") {
+        if ("force.view.default" %in% names(object@tree)) view <- object@tree$force.view.default
+        else view <- NULL
+      }
+      view <- object@tree$force.view.list[[view]]
+    }
+    
+    # Get default colors
+    if (is.null(colors)) colors <- defaultURDContinuousColors()
+    
+    # Get layout data and expression data
+    gg.data <- object@tree$walks.force.layout
+    gg.data$segment <- object@diff.data[rownames(gg.data),"segment"]
+    if (!is.null(label)) {
+      color.data <- data.for.plot(object = object, label = label, label.type = label.type, as.color = T, as.discrete.list=T, cells.use = rownames(gg.data), continuous.colors=colors, colors.use = discrete.colors)
+      gg.data$expression <- color.data$data
+    }
+    gg.data$alpha <- alpha
+    gg.data$size <- size
+    
+    # Focus on expression
+    # For this, grey out any thing below focus, set alpha low for those, and increase progressively until 2*focus.
+    if (fade.below > 0 & !color.data$discrete) {
+      # Get the actual expression data
+      expression.data <- data.for.plot(object=object, label=label, label.type=label.type, as.color=F, cells.use=rownames(gg.data))
+      # Figure out ranges
+      expression.range <- range(expression.data)
+      fade.range <- diff(expression.range) * fade.below + expression.range[1]
+      # Adjust gg.data
+      fade <- (fade.range-expression.data+expression.range[1])/fade.range
+      fade[fade < 0] <- 0
+      gg.data$alpha <- alpha - ((alpha-alpha.fade) * fade)
+      gg.data$size <- size - ((size-size.fade) * fade)
+    }
+    
+    # Open 3D view
+    if (!is.null(view)) {
+      rgl::open3d(
+        zoom=view$rgl.setting$zoom, 
+        scale=view$rgl.setting$scale, 
+        userMatrix=view$rgl.setting$userMatrix, 
+        windowRect=view$rgl.setting$windowRect
+      )
+    } else {
+      rgl::open3d()
+    }
+    
+    # Adjust transparency for local density
+    if (density.alpha) {
+      dr <- range(object@tree$walks.force.layout$n.dist)
+      n.dist <- object@tree$walks.force.layout$n.dist / dr[2]
+      density.adj <- sqrt(n.dist)
+      density.adj <- density.adj / median(density.adj)
+      gg.data$alpha <- gg.data$alpha * density.adj
+    }
+    
+    # Exclude 
+    if (!is.null(seg.show) & is.null(cells.show)) {
+      segs.show <- segChildrenAll(object, seg.show, include.self=T)
+      cells.show <- rownames(gg.data)[which(gg.data$segment %in% segs.show)]
+    }
+    if (!is.null(cells.show)) {
+      cells.hide <- setdiff(rownames(gg.data), cells.show)
+      gg.data[cells.hide,"alpha"] <- 0
+    }
+    
+    # Add the points to the plot
+    rgl::points3d(x=gg.data$x, y=gg.data$y, z=gg.data$telescope.pt, col=gg.data$expression, alpha=gg.data$alpha, size=size)
+    
+    # Add title to plot
+    if (!is.null(title)) {
+      Sys.sleep(0.1)
+      rgl::bgplot3d({plot.new(); title(main=title, line=title.line, cex.main=title.cex)})
+    }
+    
+    # Add labels to tips
+    if (label.tips) {
+      
+      # Grab the final tips
+      tip.labels <- data.frame(
+        tip=unique(setdiff(object@tree$segment.joins$child, object@tree$segment.joins$parent)),
+        stringsAsFactors=F, row.names=unique(setdiff(object@tree$segment.joins$child, object@tree$segment.joins$parent))
+      )
+      
+      # Figure out the actual label for each tip
+      tip.labels$label <- unlist(lapply(tip.labels$tip, function(tip) {
+        if (use.short.names) object@tree$segment.names.short[tip] else object@tree$segment.names[tip]
+      }))
+      
+      # Figure out the location for each label by projecting out the vector at the end of each tip
+      tip.labels[,c("x","y","z")] <- t(as.data.frame(lapply(tip.labels$tip, function(tip) {
+        #cells.in.tip <- rownames(object@diff.data)[which(object@diff.data[rownames(object@tree$walks.force.layout),"segment"] == tip)]
+        cells.in.tip <- rownames(gg.data)[gg.data$segment == tip]
+        cell.pt.order <- cells.in.tip[order(object@tree$pseudotime[cells.in.tip], decreasing = T)]
+        tip.vec <- as.numeric(apply(gg.data[c(cell.pt.order[1],cell.pt.order[5]),c("x","y","telescope.pt")], 2, diff))
+        s <- sqrt(label.spacing^2/(tip.vec[1]^2+tip.vec[2]^2+tip.vec[3]^2))
+        tip.vec <- s*tip.vec
+        return(apply(rbind(as.numeric(gg.data[cell.pt.order[1],c("x","y","telescope.pt")]), tip.vec), 2, sum))
+      })))
+      
+      # Add the text
+      rgl::text3d(x=tip.labels$x, y=tip.labels$y, z=tip.labels$z, text=tip.labels$label, adj=0.5, cex=text.cex)
+    }
+    
+    # Add a brief pause to ensure that rendering completes before moving on to next function.
+    Sys.sleep(0.1)
   } else {
     stop("Package rgl is required for this function. To install: install.packages('rgl')\n")
   }

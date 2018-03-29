@@ -29,12 +29,13 @@
 #' @param ylab (Character) Label for y-axis (if \code{bounding.box=T})
 #' @param zlab (Character) Label for z-axis (if \code{bounding.box=T})
 #' @param continuous.colors (Character vector) Vector of colors to use if data is continuous
+#' @param continuous.color.limits (Numeric vector, length 2) Limits of data for color scale. Data outside these limits will be squished. \code{NULL} uses the original range of the data.
 #' @param discrete.colors (Character vector) Vector of colors to use if data is discrete
 #'
 #' @return Returns nothing, but produces an output through rgl.
 #' 
 #' @export
-plotDim3D <- function(object, label, label.type="search", reduction.use=c("dm", "pca"), view=NULL, dim.1=NULL, dim.2=NULL, dim.3=NULL, w.1=NULL, w.2=NULL, w.3=NULL, cells=NULL, alpha=0.2, size=4, title=NULL, title.cex=3, title.line=0, bounding.box=T, xlab=NULL, ylab=NULL, zlab=NULL, continuous.colors=NULL, discrete.colors=NULL) {
+plotDim3D <- function(object, label, label.type="search", reduction.use=c("dm", "pca"), view=NULL, dim.1=NULL, dim.2=NULL, dim.3=NULL, w.1=NULL, w.2=NULL, w.3=NULL, cells=NULL, alpha=0.2, size=4, title=NULL, title.cex=3, title.line=0, bounding.box=T, xlab=NULL, ylab=NULL, zlab=NULL, continuous.colors=NULL, continuous.color.limits=NULL, discrete.colors=NULL) {
   
   if (requireNamespace("rgl", quietly = TRUE)) {
   
@@ -94,7 +95,7 @@ plotDim3D <- function(object, label, label.type="search", reduction.use=c("dm", 
     
     # Get label data
     if (!is.null(label)) {
-      color.data <- data.for.plot(object = object, label = label, label.type = label.type, as.color = T, as.discrete.list=T, cells.use = cells, continuous.colors=continuous.colors, colors.use = discrete.colors)
+      color.data <- data.for.plot(object = object, label = label, label.type = label.type, as.color = T, as.discrete.list=T, cells.use = cells, continuous.colors=continuous.colors, colors.use = discrete.colors, continuous.color.limits = continuous.color.limits)
       data.plot$color <- color.data$data
     } else {
       data.plot$color <- "#000000"
@@ -119,9 +120,9 @@ plotDim3D <- function(object, label, label.type="search", reduction.use=c("dm", 
     
     # Add the plot
     if (bounding.box) {
-      rgl::plot3d(x=data.plot[,"d1"], y=data.plot[,"d2"], z=data.plot[,"d3"], col=data.plot[,"color"], xlab=xlab, ylab=ylab, zlab=zlab, alpha=alpha, size=size)
+      rgl::plot3d(x=data.plot[,"d1"], y=data.plot[,"d2"], z=data.plot[,"d3"], col=data.plot[,"color"], xlab=xlab, ylab=ylab, zlab=zlab, alpha=alpha, size=size, axes=T)
     } else {
-      rgl::points3d(x=data.plot[,"d1"], y=data.plot[,"d2"], z=data.plot[,"d3"], col=data.plot[,"color"], alpha=alpha, size=size)
+      rgl::plot3d(x=data.plot[,"d1"], y=data.plot[,"d2"], z=data.plot[,"d3"], col=data.plot[,"color"], xlab="", ylab="", zlab="", alpha=alpha, size=size, axes=F)
     }
     
     # Add title if desired
@@ -129,6 +130,10 @@ plotDim3D <- function(object, label, label.type="search", reduction.use=c("dm", 
       Sys.sleep(0.1)
       rgl::bgplot3d({plot.new(); title(main=title, line=title.line, cex.main=title.cex)})
     }
+    
+    # Add a brief pause to ensure that rendering is complete before moving on to next function.
+    Sys.sleep(0.1)
+    
   } else {
     stop("Package rgl is required for this function. To install: install.packages('rgl')\n")
   }

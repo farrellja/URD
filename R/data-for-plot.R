@@ -13,7 +13,7 @@
 #' This can be used to get log-transformed but unnormalized expression data from
 #' \code{count.data} by setting \code{label.type="counts"}.
 #' 
-#' @importFrom scales cscale gradient_n_pal hue_pal
+#' @importFrom scales cscale gradient_n_pal hue_pal squish
 #' 
 #' @param object An URD object
 #' @param label (Character) The label of the data to search for
@@ -23,6 +23,7 @@
 #' @param as.single.color (Logical) Return on a scale from 0-1 as a "single color" to feed into \code{rgb()} for more complex color generation.
 #' @param as.discrete.list (Logical) If TRUE, returns a list (see below).
 #' @param continuous.colors (Character vector) Colors to use to produce a continuous color scale (used if data is continuous) and \code{as.color=T}.
+#' @param continuous.color.limits (Numeric vector, length 2) Limits to use for scaling continuous color data. Data outside the range is squished into range. If \code{NULL}, uses the range of the data.
 #' @param colors.use (Character vector) Colors to use for discrete data (default is NULL, which will use palette) 
 #' @param palette (Function) A palette (see \code{\link[grDevices]{Palettes}}) to use to generate colors for discrete data
 #' @return The value returned depends on the flags set. A vector is returned if \code{as.discrete.list=FALSE} or a list is returned if \code{as.discrete.list=TRUE} (see below). The data is returned directly if \code{as.color=F} and \code{as.single.color=F}, or it is returned as color values to plot directly if either are \code{TRUE}.
@@ -34,7 +35,7 @@
 #'   \item{$range}{(Numeric Vector) If data is continuous, the range of the data, otherwise NULL.}
 #' }
 #' @export
-data.for.plot <- function(object, label, label.type=c("search", "meta", "group", "sig", "gene", "counts", "pseudotime", "pca", "diff.data"), cells.use=NULL, as.color=F, as.single.color=F, as.discrete.list=F, continuous.colors=NULL, colors.use=NULL) {
+data.for.plot <- function(object, label, label.type=c("search", "meta", "group", "sig", "gene", "counts", "pseudotime", "pca", "diff.data"), cells.use=NULL, as.color=F, as.single.color=F, as.discrete.list=F, continuous.colors=NULL, continuous.color.limits=NULL, colors.use=NULL) {
   
   # Default URD colors
   if (is.null(continuous.colors)) continuous.colors <- defaultURDContinuousColors()
@@ -121,7 +122,6 @@ data.for.plot <- function(object, label, label.type=c("search", "meta", "group",
   if (as.color || as.single.color) {
     if (discrete) {
       data.to.color <- as.factor(data)
-      #if (is.null(colors.use)) colors <- palette(n = length(levels(data.to.color))) else colors <- colors.use
       if (is.null(colors.use)) colors <- scales::hue_pal()(length(levels(data.to.color))) else colors <- colors.use
       names(colors) <- levels(data.to.color)
       legend <- colors
@@ -129,7 +129,8 @@ data.for.plot <- function(object, label, label.type=c("search", "meta", "group",
     } else {
       data.range <- range(data)
       if (!as.single.color) {
-        data <- cscale(as.numeric(data), gradient_n_pal(continuous.colors))
+        if (is.null(continuous.color.limits)) continuous.color.limits <- range(as.numeric(data))
+        data <- cscale(squish(as.numeric(data), range=continuous.color.limits), gradient_n_pal(continuous.colors))
       } else {
         data <- (data - data.range[1]) / data.range[2]
       }

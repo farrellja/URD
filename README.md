@@ -1,8 +1,3 @@
----
-output:
-  pdf_document: default
-  html_document: default
----
 # Installing URD
 
 ## 1. Install an X11 window client
@@ -28,11 +23,9 @@ From terminal, run:
 
 ## 4. Install and attach the *devtools* package
 
-*devtools* is required to compile and install URD, since it's currently a local source package.
+*devtools* is required to compile and install URD, since it's distributed through GitHub.
 
 ```install.packages("devtools")```
-     
-```library(devtools)```
      
 ## 5. Install required Bioconductor packages
 
@@ -40,7 +33,11 @@ Because these packages are deposited in Bioconductor and not CRAN, they must be 
 
 ```source("https://bioconductor.org/biocLite.R")```
 
-```biocLite(c('Biobase', 'S4Vectors', 'AnnotationDbi', 'destiny', 'sva', 'rhdf5', 'scran'))```
+```biocLite(c('Biobase', 'S4Vectors', 'AnnotationDbi', 'destiny')```
+
+Optionally, additional packages that are required for specific functions can be installed.
+
+```biocLite(c('sva', 'rhdf5', 'scran'))```
 
 If installing on a cluster, where you do not have write permissions to the main R libraries (for instance, if you receive errors like "ERROR: no permission to install to directory", you may need to specify a library location, such as:
 
@@ -50,7 +47,8 @@ If installing on a cluster, where you do not have write permissions to the main 
 
 You may have to update the path to reflect where URD lives on your computer.
 
-```install("~/Dropbox/URD")```
+```library(devtools)```
+```install_github(repo="farrellja/URD")
      
 ## 7. Report inevitable problems to Jeff
 
