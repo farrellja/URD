@@ -181,11 +181,13 @@ plotDim <- function(object, label, label.type="search", reduction.use=c("tsne", 
 #' @param label.clusters (Logical) Label centroids of a discrete label?
 #' @param x.lim (Numeric) Limits of x-axis (NULL autodetects)
 #' @param y.lim (Numeric) Limits of y-axis (NULL autodetects)
+#' @param na.rm (Logical) If \code{TRUE}, points with an NA value for either label are displayed as transparent grey. If \code{FALSE}, they are removed from the plot.
+#' @param na.alpha (Numeric) If \code{na.rm=FALSE}, thae alpha value that should be used for NA points
 #' 
 #' @return A ggplot2 object
 #' 
 #' @export
-plotDimDual <- function(object, label.red, label.green, label.red.type="search", label.green.type="search", reduction.use=c("tsne", "pca", "dm"), dim.x=1, dim.y=2, point.size=1, alpha=1, plot.title="", legend=T, legend.size=1/5.5, legend.offset.x=0, legend.offset.y=0, label.clusters=F, x.lim=NULL, y.lim=NULL) {
+plotDimDual <- function(object, label.red, label.green, label.red.type="search", label.green.type="search", reduction.use=c("tsne", "pca", "dm"), dim.x=1, dim.y=2, point.size=1, alpha=1, plot.title="", legend=T, legend.size=1/5.5, legend.offset.x=0, legend.offset.y=0, label.clusters=F, x.lim=NULL, y.lim=NULL, na.rm=F, na.alpha=0.4 * alpha) {
   
   # Get the data to plot
   if (length(reduction.use) > 1) reduction.use <- reduction.use[1]
@@ -218,17 +220,28 @@ plotDimDual <- function(object, label.red, label.green, label.red.type="search",
   data.plot$gene.green <- plot.green[[2]][rownames(data.plot)]
   
   # Scale gene expression and generate colors
-  gene.red.max <- quantile(data.plot$gene.red[data.plot$gene.red > 0], prob=0.975)
-  gene.green.max <- quantile(data.plot$gene.green[data.plot$gene.green > 0], prob=0.975)
+  gene.red.max <- quantile(data.plot$gene.red[data.plot$gene.red > 0], prob=0.975, na.rm=T)
+  gene.green.max <- quantile(data.plot$gene.green[data.plot$gene.green > 0], prob=0.975, na.rm=T)
   data.plot$gene.red.scaled <- squish(rescale(data.plot$gene.red, from=c(0,gene.red.max)), c(0,1))
   data.plot$gene.green.scaled <- squish(rescale(data.plot$gene.green, from=c(0,gene.green.max)), c(0,1))
-  data.plot$color.plot <- rgb(data.plot$gene.red.scaled, data.plot$gene.green.scaled, 0)
+  cc <- which(complete.cases(data.plot))
+  data.plot[cc,"color.plot"] <- rgb(data.plot[cc,"gene.red.scaled"], data.plot[cc,"gene.green.scaled"], 0)
+  
+  # Add alpha
+  data.plot$alpha <- alpha
+  
+  # Deal with NAs.
+  if (!na.rm) {
+    noncc <- setdiff(1:nrow(data.plot), cc)
+    data.plot[noncc, "color.plot"] <- "#CECECE"
+    data.plot[noncc, "alpha"] <- na.alpha
+  }
   
   # Do the plot
   this.plot <- ggplot()
   
   # Add gene signature points
-  this.plot <- this.plot + geom_point(data=data.plot, aes_string(x=dim.x, y=dim.y), color=data.plot$color.plot, size=point.size, alpha=alpha) + guides(color=FALSE)
+  this.plot <- this.plot + geom_point(data=data.plot, aes_string(x=dim.x, y=dim.y), color=data.plot$color.plot, size=point.size, alpha=data.plot$alpha) + guides(color=FALSE)
   
   # Label/title things appropriately
   this.plot <- this.plot + labs(title=plot.title)
