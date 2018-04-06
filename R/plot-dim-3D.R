@@ -127,13 +127,12 @@ plotDim3D <- function(object, label, label.type="search", reduction.use=c("dm", 
     
     # Add title if desired
     if (!is.null(title)) {
-      Sys.sleep(0.1)
+      # Brief pause to make sure window has resized 
+      Sys.sleep(0.2)
       rgl::bgplot3d({plot.new(); title(main=title, line=title.line, cex.main=title.cex)})
     }
-    
-    # Add a brief pause to ensure that rendering is complete before moving on to next function.
-    Sys.sleep(0.3)
-    
+    # Brief pause to give function time to finish before moving on
+    Sys.sleep(0.2)
   } else {
     stop("Package rgl is required for this function. To install: install.packages('rgl')\n")
   }
