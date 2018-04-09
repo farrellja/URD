@@ -8,7 +8,8 @@ plotDimDual(object, label.red, label.green, label.red.type = "search",
   label.green.type = "search", reduction.use = c("tsne", "pca", "dm"),
   dim.x = 1, dim.y = 2, point.size = 1, alpha = 1, plot.title = "",
   legend = T, legend.size = 1/5.5, legend.offset.x = 0,
-  legend.offset.y = 0, label.clusters = F, x.lim = NULL, y.lim = NULL)
+  legend.offset.y = 0, label.clusters = F, x.lim = NULL, y.lim = NULL,
+  na.rm = F, na.alpha = 0.4 * alpha)
 }
 \arguments{
 \item{object}{An URD object}
@@ -46,6 +47,10 @@ plotDimDual(object, label.red, label.green, label.red.type = "search",
 \item{x.lim}{(Numeric) Limits of x-axis (NULL autodetects)}
 
 \item{y.lim}{(Numeric) Limits of y-axis (NULL autodetects)}
+
+\item{na.rm}{(Logical) If \code{TRUE}, points with an NA value for either label are displayed as transparent grey. If \code{FALSE}, they are removed from the plot.}
+
+\item{na.alpha}{(Numeric) If \code{na.rm=FALSE}, thae alpha value that should be used for NA points}
 
 \item{colors}{(Character vector) Colors to use to generate a gradient scale to color continuous data}
 

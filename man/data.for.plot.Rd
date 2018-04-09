@@ -7,7 +7,8 @@
 data.for.plot(object, label, label.type = c("search", "meta", "group", "sig",
   "gene", "counts", "pseudotime", "pca", "diff.data"), cells.use = NULL,
   as.color = F, as.single.color = F, as.discrete.list = F,
-  continuous.colors = NULL, colors.use = NULL)
+  continuous.colors = NULL, continuous.color.limits = NULL,
+  colors.use = NULL)
 }
 \arguments{
 \item{object}{An URD object}
@@ -25,6 +26,8 @@ data.for.plot(object, label, label.type = c("search", "meta", "group", "sig",
 \item{as.discrete.list}{(Logical) If TRUE, returns a list (see below).}
 
 \item{continuous.colors}{(Character vector) Colors to use to produce a continuous color scale (used if data is continuous) and \code{as.color=T}.}
+
+\item{continuous.color.limits}{(Numeric vector, length 2) Limits to use for scaling continuous color data. Data outside the range is squished into range. If \code{NULL}, uses the range of the data.}
 
 \item{colors.use}{(Character vector) Colors to use for discrete data (default is NULL, which will use palette)}
 

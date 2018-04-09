@@ -9,7 +9,8 @@ plotDim3D(object, label, label.type = "search", reduction.use = c("dm",
   w.1 = NULL, w.2 = NULL, w.3 = NULL, cells = NULL, alpha = 0.2,
   size = 4, title = NULL, title.cex = 3, title.line = 0,
   bounding.box = T, xlab = NULL, ylab = NULL, zlab = NULL,
-  continuous.colors = NULL, discrete.colors = NULL)
+  continuous.colors = NULL, continuous.color.limits = NULL,
+  discrete.colors = NULL)
 }
 \arguments{
 \item{object}{An URD object}
@@ -55,6 +56,8 @@ plotDim3D(object, label, label.type = "search", reduction.use = c("dm",
 \item{zlab}{(Character) Label for z-axis (if \code{bounding.box=T})}
 
 \item{continuous.colors}{(Character vector) Vector of colors to use if data is continuous}
+
+\item{continuous.color.limits}{(Numeric vector, length 2) Limits of data for color scale. Data outside these limits will be squished. \code{NULL} uses the original range of the data.}
 
 \item{discrete.colors}{(Character vector) Vector of colors to use if data is discrete}
 }
