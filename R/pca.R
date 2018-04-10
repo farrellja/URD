@@ -74,17 +74,22 @@ calcPCA <- function(object, genes.use=object@var.genes, pcs.store=NULL, store.th
 #' @param M (Numeric) Number of rows in input data
 #' @param N (Numeric) Number of columns in input data
 #' @param pca.sdev (Numeric vector) Standard deviations for each principal component
+#' @param factor (Numeric) Factor to multiply eigenvalue null upper bound before determining significance.
 #' @param do.print (Logical) Whether to report the results
 #' @return Logical vector of whether each PC is significant.
 #' 
 #' @export
-pcaMarchenkoPastur <- function(M, N, pca.sdev, do.print=T) {
+pcaMarchenkoPastur <- function(M, N, pca.sdev, factor=1, do.print=T) {
   pca.eigenvalue <- (pca.sdev)^2
   marchenko.pastur.max <- (1+sqrt(M/N))^2
-  pca.sig <- pca.eigenvalue > marchenko.pastur.max
+  pca.sig <- pca.eigenvalue > (marchenko.pastur.max * factor)
   if (do.print) {
     print(paste("Marchenko-Pastur eigenvalue null upper bound:", marchenko.pastur.max))
-    print(paste(length(which(pca.eigenvalue > marchenko.pastur.max)), "PCs have larger eigenvalues."))
+    if (factor != 1) {
+      print(paste(length(which(pca.sig)), "PCs have eigenvalues larger than", factor, "times null upper bound."))
+    } else {
+      print(paste(length(which(pca.eigenvalue > marchenko.pastur.max)), "PCs have larger eigenvalues."))
+    }
   }
   return(pca.sig)
 }

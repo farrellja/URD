@@ -4,7 +4,7 @@
 \alias{pcaMarchenkoPastur}
 \title{Marchenko-Pastur Significant PCs}
 \usage{
-pcaMarchenkoPastur(M, N, pca.sdev, do.print = T)
+pcaMarchenkoPastur(M, N, pca.sdev, factor = 1, do.print = T)
 }
 \arguments{
 \item{M}{(Numeric) Number of rows in input data}
@@ -12,6 +12,8 @@ pcaMarchenkoPastur(M, N, pca.sdev, do.print = T)
 \item{N}{(Numeric) Number of columns in input data}
 
 \item{pca.sdev}{(Numeric vector) Standard deviations for each principal component}
+
+\item{factor}{(Numeric) Factor to multiply eigenvalue null upper bound before determining significance.}
 
 \item{do.print}{(Logical) Whether to report the results}
 }
