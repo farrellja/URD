@@ -2,10 +2,19 @@
 % Please edit documentation in R/tree-plots.R
 \name{output.uniform}
 \alias{output.uniform}
-\title{Is Output Uniform?}
+\title{Is Vector Uniform?}
 \usage{
 output.uniform(x, na.rm = F)
 }
-\description{
-Is Output Uniform?
+\arguments{
+\item{x}{(Vector) Values to check for uniformity}
+
+\item{na.rm}{(Logical) Should NA be considered a value or excluded from the comparison?}
 }
+\value{
+Either \code{NA} if the vector is not uniform, or the unique value (as character) otherwise.
+}
+\description{
+Determine whether all elements of a vector are the same
+}
+\keyword{internal}
