@@ -13,6 +13,7 @@
 #' @param visit.threshold (Numeric) Cells are considered potential members for segments/tips from which random walks visited them 
 #' at least this fraction of their maximum visitation from a single tip
 #' @param save.breakpoint.plots (Path) Path to save plots summarizing (default is NULL, which does not save plots as they are somewhat slow)
+#' @param save.all.breakpoint.info (Logical) Should all information about breakpoints be stored in the object for use in diagnostic plots? (Can add several hundred MB to object size.)
 #' @param p.thresh (Numeric) p-value threshold to use in determining whether visitation is significantly different from pairs of tips
 #' @param min.cells.per.segment (Numeric) Segments with fewer assigned cells weill be collapsed during tree construction
 #' @param min.pseudotime.per.segment (Numeric) Segments shorter than this in pseudotime will be collapsed during tree construction
@@ -22,7 +23,7 @@
 #' @param verbose (Logical) Report on progress?
 #' @return An URD object with an URD-recovered tree structure stored in \code{@@tree}
 #' @export
-buildTree <- function(object, pseudotime, tips.use=NULL, divergence.method=c("ks", "preference"), weighted.fusion=T, use.only.original.tips=T, cells.per.pseudotime.bin=80, bins.per.pseudotime.window=5, minimum.visits=10, visit.threshold=0.7, save.breakpoint.plots=NULL, p.thresh=.01, min.cells.per.segment=1, min.pseudotime.per.segment=.01, dendro.node.size=100, dendro.cell.jitter=0.15, dendro.cell.dist.to.tree=0.05, verbose=T) {
+buildTree <- function(object, pseudotime, tips.use=NULL, divergence.method=c("ks", "preference"), weighted.fusion=T, use.only.original.tips=T, cells.per.pseudotime.bin=80, bins.per.pseudotime.window=5, minimum.visits=10, visit.threshold=0.7, save.breakpoint.plots=NULL, save.all.breakpoint.info=F, p.thresh=.01, min.cells.per.segment=1, min.pseudotime.per.segment=.01, dendro.node.size=100, dendro.cell.jitter=0.15, dendro.cell.dist.to.tree=0.05, verbose=T) {
   # Check divergence.method parameter
   if (length(divergence.method) > 1) divergence.method <- divergence.method[1]
   if (!(divergence.method %in% c("ks", "preference"))) stop("Divergence method must be 'ks' or 'preference'.")
@@ -51,6 +52,11 @@ buildTree <- function(object, pseudotime, tips.use=NULL, divergence.method=c("ks
   )
   # Calculate segment pseudotime divergence, WITHOUT cache in case this function is being re-run
   object <- allSegmentDivergenceByPseudotime(object, pseudotime=pseudotime, divergence.method=divergence.method, segments=tips, pseudotime.cuts=cells.per.pseudotime.bin, window.size=bins.per.pseudotime.window, minimum.visits=minimum.visits, visit.threshold=visit.threshold, p.thresh=p.thresh, breakpoint.decision.plots=save.breakpoint.plots, cache=F, verbose=verbose)
+  # If storing all pseudotime breakpoint info, keep track of it.
+  if (save.all.breakpoint.info) {
+    all.pseudotime.breakpoint.details <- object@tree$pseudotime.breakpoint.details
+    ptbreak.stored <- names(all.pseudotime.breakpoint.details)
+  }
   # Loop through until everything has joined into a single root.
   while(length(tips) >= 2) {
     
@@ -103,12 +109,21 @@ buildTree <- function(object, pseudotime, tips.use=NULL, divergence.method=c("ks
     
     # Update the divergence data
     if (length(tips) >= 2) {
-      object <- allSegmentDivergenceByPseudotime(object, pseudotime=pseudotime, segments=tips, pseudotime.cuts=cells.per.pseudotime.bin, window.size=bins.per.pseudotime.window, minimum.visits=minimum.visits, visit.threshold=visit.threshold, p.thresh=p.thresh, breakpoint.decision.plots=save.breakpoint.plots, cache=T, verbose=verbose)
+      object <- allSegmentDivergenceByPseudotime(object, pseudotime=pseudotime, divergence.method=divergence.method, segments=tips, pseudotime.cuts=cells.per.pseudotime.bin, window.size=bins.per.pseudotime.window, minimum.visits=minimum.visits, visit.threshold=visit.threshold, p.thresh=p.thresh, breakpoint.decision.plots=save.breakpoint.plots, cache=T, verbose=verbose)
+      # If storing all pseudotime breakpoint info, add the new breakpoint info.
+      if (save.all.breakpoint.info) {
+        new.breakpoints <- setdiff(names(object@tree$pseudotime.breakpoint.details), ptbreak.stored)
+        all.pseudotime.breakpoint.details <- unlist(list(all.pseudotime.breakpoint.details, object@tree$pseudotime.breakpoint.details[new.breakpoints]), recursive = F)
+        ptbreak.stored <- c(ptbreak.stored, new.breakpoints)
+      }
     }
     
     # Prepare for next join
     seg.add <- as.character(as.numeric(seg.add) + 1)
   }
+  
+  # If storing all breakpoints place them in the tree.
+  object@tree$pseudotime.breakpoint.details <- all.pseudotime.breakpoint.details
   
   # Determine complete list of all segments
   object@tree$segments <- as.character(sort(as.numeric(unique(unlist(object@tree$segment.joins[,c("child.1", "child.2", "parent")])))))

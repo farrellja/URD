@@ -8,7 +8,8 @@ visitDivergenceByPseudotime(object, pseudotime, segment.1, segment.2,
   cells.in.segments = NULL, cells.segment.1 = NULL,
   cells.segment.2 = NULL, divergence.method = c("ks", "preference"),
   pseudotime.cuts = 80, window.size = 5, pseudotime.min = NULL,
-  pseudotime.max = NULL, p.thresh = 0.01, verbose = T)
+  pseudotime.max = NULL, p.thresh = 0.01, pref.thresh = 0.5,
+  verbose = T)
 }
 \arguments{
 \item{object}{An URD object}
@@ -36,6 +37,8 @@ visitDivergenceByPseudotime(object, pseudotime, segment.1, segment.2,
 \item{pseudotime.max}{(Numeric) Maximum pseudotime of cells to compare}
 
 \item{p.thresh}{(Numeric) p-value threshold to use in determining whether visitation is significantly different from pairs of tips}
+
+\item{pref.thresh}{(Numeric) Maximum mean preference within a window to be considered 'different' if \code{divergence.method=="preference"}}
 }
 \value{
 (List) Number of cells considered ("cells.considered"), the determined pseudotime breakpoint ("breakpoint"), and the

@@ -37,11 +37,12 @@ putativeCellsInSegment <- function(object, segments, minimum.visits, visit.thres
 #' @param visit.threshold (Numeric) Cells are considered potential members for segments/tips from which random walks visited them 
 #' at least this fraction of their maximum visitation from a single tip
 #' @param p.thresh (Numeric) p-value threshold to use in determining whether visitation is significantly different from pairs of tips
+#' @param pref.thresh (Numeric) Maximum mean preference within a window to be considered 'different' if \code{divergence.method=="preference"}
 #' @param breakpoint.decision.plots (Path) Path to save plots summarizing (default is NULL, which does not save plots as they are somewhat slow)
 #' @param cache (Logical) Used cached values? This will check \code{object@@tree$segment.divergence} and only calculate values for new segments.
 #' @param verbose (Logical) Report on progress?
 #' @return SOMETHING!
-allSegmentDivergenceByPseudotime <- function(object, pseudotime, segments, divergence.method=c("ks","preference"), pseudotime.cuts=80, window.size=5, minimum.visits=10, visit.threshold=0.7, p.thresh=.01, breakpoint.decision.plots=NULL, cache=T, verbose=F) {
+allSegmentDivergenceByPseudotime <- function(object, pseudotime, segments, divergence.method=c("ks","preference"), pseudotime.cuts=80, window.size=5, minimum.visits=10, visit.threshold=0.7, p.thresh=.01, pref.thresh=0.5, breakpoint.decision.plots=NULL, cache=T, verbose=F) {
   if (length(divergence.method) > 1) divergence.method=divergence.method[1]
   if (!(divergence.method %in% c("ks", "preference"))) stop("Divergence method must be 'ks' or 'preference'.")
   # Make sure this is properly used as names, not indices
@@ -72,6 +73,7 @@ allSegmentDivergenceByPseudotime <- function(object, pseudotime, segments, diver
     if (verbose) print(paste0("Calculating divergence between ", segment.overlaps[overlap, "seg.1"], " and ", segment.overlaps[overlap, "seg.2"], " (Pseudotime ", round(trim.before, digits=3), " to ", round(trim.after, digits=3), ")"))
     return(visitDivergenceByPseudotime(object, pseudotime, segment.1 = segment.overlaps[overlap, "seg.1"], segment.2=segment.overlaps[overlap, "seg.2"], cells.in.segments = cells.in.segments, pseudotime.cuts = pseudotime.cuts, pseudotime.min = trim.before, pseudotime.max = trim.after, window.size = window.size, p.thresh = p.thresh, divergence.method = divergence.method, verbose=verbose))
   })
+  names(pseudotime.divergences) <- apply(segment.overlaps, 1, function(x) paste0(x[1], "-", x[2]))
   # Extract pseudotime breakpoints
   segment.overlaps$pseudotime.breakpoint <- unlist(lapply(pseudotime.divergences, function(x) x$breakpoint))
   # If this was a cache job, then add in the cached data.
@@ -86,8 +88,8 @@ allSegmentDivergenceByPseudotime <- function(object, pseudotime, segments, diver
       this.decision <- pseudotime.divergences[[x]]
       this.decision$details$y <- 0
       this.decision$details$y1 <- 1
-      gg <- ggplot(data=this.decision$details, aes(xmin=min.pseudotime, xmax=max.pseudotime, ymin=y, ymax=y1, fill=different)) + geom_rect(alpha=0.25) + guides(fill=F) + labs(y=paste0(segment.overlaps[x,"seg.1"], " vs. ", segment.overlaps[x,"seg.2"])) + theme_bw() + theme(axis.line=element_blank(), axis.text.x=element_blank(), axis.text.y=element_blank(), axis.ticks=element_blank(), axis.title.x=element_blank()) + scale_x_continuous(expand=c(0,0), limits=c(0,1)) + scale_y_continuous(expand=c(0,0), limits=c(0,1))
-      if (!is.na(this.decision$breakpoint)) gg <- gg + geom_vline(aes(xintercept=this.decision$breakpoint), color='white', lty=2)
+      gg <- ggplot(data=this.decision$details, aes(xmin=min.pseudotime, xmax=max.pseudotime, ymin=y, ymax=y1, fill=different)) + geom_rect(alpha=0.25) + guides(fill=F) + labs(y=paste0(segment.overlaps[x,"seg.1"], " vs. ", segment.overlaps[x,"seg.2"])) + theme_bw() + theme(axis.line=element_blank(), axis.text.x=element_blank(), axis.text.y=element_blank(), axis.ticks=element_blank(), axis.title.x=element_blank()) + scale_x_continuous(expand=c(0,0), limits=c(0,1)) + scale_y_continuous(expand=c(0,0), limits=c(0,1)) + scale_fill_manual(values=c("TRUE"="cyan3", "FALSE"="red"))
+      if (!is.na(this.decision$breakpoint)) gg <- gg + geom_vline(aes(xintercept=max(this.decision$breakpoint, 0.0025)), color='orange', lty=2, lwd=0.8)
       return(gg)
     })
     pdf(file=paste0(breakpoint.decision.plots, "-", dim(segment.overlaps)[1], ".pdf"), width=3, height=(0.75*dim(segment.overlaps)[1]))
@@ -117,9 +119,10 @@ allSegmentDivergenceByPseudotime <- function(object, pseudotime, segments, diver
 #' @param pseudotime.min (Numeric) Minimum pseudotime of cells to compare
 #' @param pseudotime.max (Numeric) Maximum pseudotime of cells to compare
 #' @param p.thresh (Numeric) p-value threshold to use in determining whether visitation is significantly different from pairs of tips
+#' @param pref.thresh (Numeric) Maximum mean preference within a window to be considered 'different' if \code{divergence.method=="preference"}
 #' @return (List) Number of cells considered ("cells.considered"), the determined pseudotime breakpoint ("breakpoint"), and the
 #' details of the calculation for each window ("details"), which is a data.frame: Rows are pseudotime windows, columns are KS-test p-value adjusted for multiple hypotheses ("p"), pseudotime of cells in the window ("mean.pseudotime", "min.pseudotime", "max.pseudotime"), number of cells considered from each segment ("cells.visited.seg1", "cells.visited.seg2"), and whether the window passed the p-value threshold for significance ("different")
-visitDivergenceByPseudotime <- function(object, pseudotime, segment.1, segment.2, cells.in.segments=NULL, cells.segment.1=NULL, cells.segment.2=NULL, divergence.method=c("ks","preference"), pseudotime.cuts=80, window.size=5, pseudotime.min=NULL, pseudotime.max=NULL, p.thresh=.01, verbose=T) {
+visitDivergenceByPseudotime <- function(object, pseudotime, segment.1, segment.2, cells.in.segments=NULL, cells.segment.1=NULL, cells.segment.2=NULL, divergence.method=c("ks","preference"), pseudotime.cuts=80, window.size=5, pseudotime.min=NULL, pseudotime.max=NULL, p.thresh=.01, pref.thresh=0.5, verbose=T) {
   # If method left as default, cull down.
   if (length(divergence.method) > 1) divergence.method <- divergence.method[1]
   # Make sure that cells.to.operate on are provided.
@@ -143,25 +146,37 @@ visitDivergenceByPseudotime <- function(object, pseudotime, segment.1, segment.2
   visit.data$pseudotime.group <- rep(1:n.pseudotime.groups, diff(round((dim(visit.data)[1]/n.pseudotime.groups)*0:n.pseudotime.groups)))
   # Turn groups into windows, based on window.size
   pseudotime.windows <- embed(1:n.pseudotime.groups, dimension=min(window.size,length(unique(visit.data$pseudotime.group))))
+  # Convert pseudotime windows to cell lists
+  cells.in.windows <- lapply(1:nrow(pseudotime.windows), function(window) {
+    groups <- as.vector(as.numeric(pseudotime.windows[window,]))
+    cells <- rownames(visit.data)[which(visit.data$pseudotime.group %in% groups)]
+    return(cells)
+  })
   
   # Calculate divergence
   if (divergence.method=="ks") {
+    # Calculate divergence by KS test in each window
     div.pseudotime <- divergenceKSVisitation(visit.data=visit.data, pseudotime.windows=pseudotime.windows, cells.segment.1=cells.segment.1, cells.segment.2=cells.segment.2)
+    # Multiple hypothesis correction because ran several tests
+    div.pseudotime$p <- p.adjust(div.pseudotime$p, method="holm")
+    # Determine whether the visit distributions are 'different' in each pseudotime window by p-value
+    div.pseudotime$different <- div.pseudotime$p <= p.thresh
   } else if (divergence.method=="preference") {
-    div.pseudotime <- divergenceBimodPreference(visit.data=visit.data, pseudotime.windows=pseudotime.windows, cells.segment.1=cells.segment.1, cells.segment.2=cells.segment.2)
+    # Calculate divergence by dip test on preference in each window
+    div.pseudotime <- divergencePreferenceDip(visit.data=visit.data, cells.in.windows=cells.in.windows, cells.segment.1=cells.segment.1, cells.segment.2=cells.segment.2)
+    # Multiple hypothesis correction because ran several tests
+    div.pseudotime$p <- p.adjust(div.pseudotime$p, method="holm")
+    # Determine whether the the visit distributions are 'different': must have significant p-value for bimodality OR be unimodal, but with mean preference far from 0. (Sometimes can get a unimodal distribution, but it's not near 0, so should not fuse there)
+    div.pseudotime$different <- div.pseudotime$p <= p.thresh | div.pseudotime$mean.preference > pref.thresh
   } else {
     stop("Preference must be either 'ks' or 'preference'.")
   }
-  # Multiple hypothesis correction because ran several tests
-  div.pseudotime$p <- p.adjust(div.pseudotime$p, method="holm")
-  # Determine whether the visit distributions are 'different' in each pseudotime window by p-value
-  div.pseudotime$different <- div.pseudotime$p <= p.thresh
   
   # Determine pseudotime breakpoint
   pt.break <- pseudotimeBreakpointByStretch(div.pseudotime, segment.1, segment.2, visit.data, pseudotime.windows, verbose=verbose)
   
   # Return it
-  to.return <- list(cells.considered=length(cells.to.use), breakpoint=pt.break, details=div.pseudotime)
+  to.return <- list(cells.considered=length(cells.to.use), breakpoint=pt.break, cells.in.windows=cells.in.windows, details=div.pseudotime)
   return(to.return)
 }
 
@@ -259,10 +274,51 @@ divergenceBimodPreference <- function(visit.data, pseudotime.windows, cells.segm
   return(div.pseudotime)
 }
 
+#' Calculate visitation divergence based on bimodality of visitation preference
+#' 
+#' Calculates the preference of each cell for the two tips, tests for unimodality using Hartigan's dip test, and
+#' if unimodal, tests the mean to make sure that it's 
+#' 
+#' @importFrom diptest dip.test
+#' 
+#' @param visit.data (data.frame) Rows are cells, columns are: "segment.1" and "segment.2" (visitation frequency from random walks
+#' initiated in segment 1 and 2), "pseudotime" (the pseudotime of each cell), and "pseudotime.group" (the number of the pseudotime
+#' bin each cell belongs to)
+#' @param cells.in.windows (List) List of character vectors, giving names of cells in each pseudotime window.
+#' @param cells.segment.1 (Character vector) Cells in segment 1
+#' @param cells.segment.2 (Character vector) Cells in segment 2
+#' @return (data.frame) Rows are pseudotime windows, columns are a numeric representation of whether (0 or 1) ("p"), pseudotime of cells in the window ("mean.pseudotime", "min.pseudotime", "max.pseudotime"), and number of cells considered from each segment ("cells.visited.seg1", "cells.visited.seg2")
+divergencePreferenceDip <- function(visit.data, cells.in.windows, cells.segment.1, cells.segment.2) {
+  
+  # Calculate visitation preference for each cell in visit.data
+  visit.data$preference <- apply(visit.data, 1, function(x) preference(x[1], x[2], signed=T))
+  
+  # Cycle through pseudotime moving windows to build div.pseudotime data frame
+  div.pseudotime <- as.data.frame(t(as.data.frame(lapply(cells.in.windows, function(cells.in.pt.group) {
+    # Calculate mean pseudotime of this window
+    mean.pt <- mean(visit.data[cells.in.pt.group, "pseudotime"])
+    min.pt <- min(visit.data[cells.in.pt.group, "pseudotime"])
+    max.pt <- max(visit.data[cells.in.pt.group, "pseudotime"])
+    # Cells in each segment
+    cells.seg1.pt.group <- length(intersect(cells.segment.1, cells.in.pt.group))
+    cells.seg2.pt.group <- length(intersect(cells.segment.2, cells.in.pt.group))
+    # Test for unimodality with Hartigan's diptest
+    dip <- dip.test(visit.data[cells.in.pt.group,"preference"])
+    p <- dip$p.value
+    # Determine mean of preference
+    mean.pref <- mean(abs(visit.data[cells.in.pt.group,"preference"]), na.rm=T)
+    return(c(mean.pt, min.pt, max.pt, cells.seg1.pt.group, cells.seg2.pt.group, p, mean.pref))
+  }))))
+  colnames(div.pseudotime) <- c("mean.pseudotime", "min.pseudotime", "max.pseudotime", "cells.visited.seg1", "cells.visited.seg2", "p.value", "mean.preference")
+  rownames(div.pseudotime) <- NULL
+  
+  return(div.pseudotime)
+}
+
 #' Find Pseudotime Breakpoint
 #' 
 #' 
-pseudotimeBreakpointByStretch <- function(div.pseudotime, segment.1, segment.2, visit.data, pseudotime.windows, verbose=T) {
+pseudotimeBreakpointByStretchV1 <- function(div.pseudotime, segment.1, segment.2, visit.data, pseudotime.windows, verbose=T) {
   # Find the longest stretches of all-different and all-not-significantly-different pseudotime windows, and find the area in between
   pt.rle <- rle(div.pseudotime$different)
   pt.rle <- data.frame(lengths=pt.rle$lengths,
@@ -287,6 +343,57 @@ pseudotimeBreakpointByStretch <- function(div.pseudotime, segment.1, segment.2, 
     groups.to.use.for.pt.break <- names(windows.to.use.for.pt.break)[windows.to.use.for.pt.break == 2]
     pt.break <- mean(visit.data[visit.data$pseudotime.group %in% groups.to.use.for.pt.break, "pseudotime"])
   }
+  # Divergence fluctuates back and forth between being significant, so find longest stretch
+  #   of significantly different & not-significantly-different
+  else {
+    pt.rle <- pt.rle[order(pt.rle$lengths, decreasing = T),]
+    true.starts <- pt.rle[min(which(pt.rle$values)), "start"]
+    false.ends <- pt.rle[min(which(!pt.rle$values)), "end"]
+    # If true and false appear in wrong order, then just warn that there's no sensical branchpoint and don't calculate one.
+    if (false.ends > true.starts) {
+      if (verbose) warning(paste("No obvious breakpoint between", segment.1, "and", segment.2, ". Longest stretch of difference is upstream of longest stretch of non-different.\n"))
+      groups.to.use.for.pt.break <- NULL
+      pt.break <- NA
+    } else {
+      # Use only those pseudotime breaks that appear in all windows in the uncertain region
+      uncertain.breaks <- table(unlist(pseudotime.windows[(false.ends+1):(true.starts-1),]))
+      groups.to.use.for.pt.break <- names(uncertain.breaks)[uncertain.breaks == max(uncertain.breaks)]
+      pt.break <- mean(visit.data[visit.data$pseudotime.group %in% groups.to.use.for.pt.break, "pseudotime"])
+    }
+  }
+  return(pt.break)
+}
+
+pseudotimeBreakpointByStretch <- function(div.pseudotime, segment.1, segment.2, visit.data, pseudotime.windows, verbose=T) {
+  # Find the longest stretches of all-different and all-not-significantly-different pseudotime windows, and find the area in between
+  pt.rle <- rle(div.pseudotime$different)
+  pt.rle <- data.frame(lengths=pt.rle$lengths,
+                       values=pt.rle$values)
+  pt.rle$end <- cumsum(pt.rle$lengths)
+  pt.rle$start <- head(c(0,pt.rle$end) + 1, -1)
+  # If the two populations are never significantly different, set the breakpoint to the end -- these populations will fuse immediately.
+  if (nrow(pt.rle) == 1 && pt.rle[1,"values"] == FALSE) {
+    if (verbose) message(paste("Difference between", segment.1, "and", segment.2, "always FALSE -- setting breakpoint to end."))
+    pt.break <- tail(div.pseudotime, 1)$max.pseudotime
+  }
+  # If the two populations are always significantly different, set the breakpoint to the very beginning -- these populations were different at the root, so they should "connect" at the very root.
+  else if (nrow(pt.rle) == 1 && pt.rle[1,"values"] == TRUE) {
+    if (verbose) message(paste("Difference between", segment.1, "and", segment.2, "always TRUE -- setting breakpoint to beginning."))
+    pt.break <- min(div.pseudotime$min.pseudotime)
+  }
+  # If you have two stretches: not-different (FALSE) then different (TRUE), assign pseudotime as the boundary between the two windows.
+  else if (nrow(pt.rle) == 2 && pt.rle[1,"values"] == FALSE) {
+    windows.to.use.for.pt.break <- table(unlist(pseudotime.windows[c(pt.rle[1,"end"], pt.rle[2,"start"]),]))
+    groups.to.use.for.pt.break <- names(windows.to.use.for.pt.break)[windows.to.use.for.pt.break == 2]
+    pt.break <- mean(visit.data[visit.data$pseudotime.group %in% groups.to.use.for.pt.break, "pseudotime"])
+  } 
+  # If you have two stretches: different (TRUE) then not-different (FALSE), which doesn't make any biological sense, assign as NA.
+  else if (nrow(pt.rle) == 2 && pt.rle[1,"values"] == TRUE) {
+    if (verbose) message(paste("No obvious breakpoint between", segment.1, "and", segment.2, ". Longest stretch of difference is upstream of longest stretch of non-different."))
+    groups.to.use.for.pt.break <- NULL
+    pt.break <- NA
+  }
+    
   # Divergence fluctuates back and forth between being significant, so find longest stretch
   #   of significantly different & not-significantly-different
   else {

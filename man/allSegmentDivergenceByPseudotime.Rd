@@ -7,8 +7,8 @@
 allSegmentDivergenceByPseudotime(object, pseudotime, segments,
   divergence.method = c("ks", "preference"), pseudotime.cuts = 80,
   window.size = 5, minimum.visits = 10, visit.threshold = 0.7,
-  p.thresh = 0.01, breakpoint.decision.plots = NULL, cache = T,
-  verbose = F)
+  p.thresh = 0.01, pref.thresh = 0.5, breakpoint.decision.plots = NULL,
+  cache = T, verbose = F)
 }
 \arguments{
 \item{object}{An URD object}
@@ -29,6 +29,8 @@ allSegmentDivergenceByPseudotime(object, pseudotime, segments,
 at least this fraction of their maximum visitation from a single tip}
 
 \item{p.thresh}{(Numeric) p-value threshold to use in determining whether visitation is significantly different from pairs of tips}
+
+\item{pref.thresh}{(Numeric) Maximum mean preference within a window to be considered 'different' if \code{divergence.method=="preference"}}
 
 \item{breakpoint.decision.plots}{(Path) Path to save plots summarizing (default is NULL, which does not save plots as they are somewhat slow)}
 

@@ -8,10 +8,10 @@ buildTree(object, pseudotime, tips.use = NULL, divergence.method = c("ks",
   "preference"), weighted.fusion = T, use.only.original.tips = T,
   cells.per.pseudotime.bin = 80, bins.per.pseudotime.window = 5,
   minimum.visits = 10, visit.threshold = 0.7,
-  save.breakpoint.plots = NULL, p.thresh = 0.01,
-  min.cells.per.segment = 1, min.pseudotime.per.segment = 0.01,
-  dendro.node.size = 100, dendro.cell.jitter = 0.15,
-  dendro.cell.dist.to.tree = 0.05, verbose = T)
+  save.breakpoint.plots = NULL, save.all.breakpoint.info = F,
+  p.thresh = 0.01, min.cells.per.segment = 1,
+  min.pseudotime.per.segment = 0.01, dendro.node.size = 100,
+  dendro.cell.jitter = 0.15, dendro.cell.dist.to.tree = 0.05, verbose = T)
 }
 \arguments{
 \item{object}{An URD object}
@@ -32,6 +32,8 @@ buildTree(object, pseudotime, tips.use = NULL, divergence.method = c("ks",
 at least this fraction of their maximum visitation from a single tip}
 
 \item{save.breakpoint.plots}{(Path) Path to save plots summarizing (default is NULL, which does not save plots as they are somewhat slow)}
+
+\item{save.all.breakpoint.info}{(Logical) Should all information about breakpoints be stored in the object for use in diagnostic plots? (Can add several hundred MB to object size.)}
 
 \item{p.thresh}{(Numeric) p-value threshold to use in determining whether visitation is significantly different from pairs of tips}
 
