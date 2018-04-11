@@ -5,8 +5,8 @@
 \title{Plot force-directed layout of tree}
 \usage{
 plotTreeForce(object, label, label.type = "search", view = "default",
-  alpha = 0.8, alpha.fade = 0.1, size = 5, size.fade = 3,
-  title = NULL, title.cex = 3, title.line = 0,
+  alpha = 0.8, alpha.fade = 0.1, size = 5, title = NULL,
+  title.cex = 3, title.line = 0,
   label.tips = (!is.null(object@tree$segment.names) |
   !is.null(object@tree$segment.names.short)),
   use.short.names = !is.null(object@tree$segment.names.short),
@@ -17,19 +17,17 @@ plotTreeForce(object, label, label.type = "search", view = "default",
 \arguments{
 \item{object}{An URD object}
 
-\item{label}{(Character)}
+\item{label}{(Character) Data to use for coloring tree (see \link{data.for.plot})}
 
-\item{label.type}{(Character)}
+\item{label.type}{(Character) Where to find data for label (default \code{"search"} auto-detects, see \link{data.for.plot})}
 
-\item{view}{(Character) Can}
+\item{view}{(Character) Name of view to use (i.e. the name of an entry in \code{@tree$force.view.list}) created by \link{plotTreeForceStore3DView}. Default is last view created.}
 
 \item{alpha}{(Numeric) Maximum transparency of points}
 
 \item{alpha.fade}{(Numeric) Minimum transparency of points}
 
 \item{size}{(Numeric) Size of points in the plot}
-
-\item{size.fade}{(Numeric) DOESN'T WORK.}
 
 \item{title}{(Character) Title to add to the plot. (This is sensitive to resizing the window after plotting, but if a view is stored, the window will be resized before the title is added, so it will be acceptable resolution for figures.)}
 
@@ -45,21 +43,21 @@ plotTreeForce(object, label, label.type = "search", view = "default",
 
 \item{cells.show}{(Character vector) Cells of the tree to show (Default \code{NULL} is all cells)}
 
-\item{fade.below}{(Numeric)}
+\item{fade.below}{(Numeric) If desired, transparency can be lowered for points with low expression values (thereby highlighting the portions of the tree with expression). This value is the portion of the range of expression values to fade. (The default, 2/9, fades the bottom two-ninths of the expression values.)}
 
-\item{density.alpha}{(Logical)}
+\item{density.alpha}{(Logical) Should points with short distance to nearest neighbors (i.e. in denser regions of the plot) be more transparent?}
 
-\item{label.spacing}{(Numeric)}
+\item{label.spacing}{(Numeric) How far should labels be from the detected tips}
 
 \item{text.cex}{(Numeric) Size of the label text}
 
-\item{colors}{(Character vector)}
+\item{colors}{(Character vector) Vector of colors to use if plotting continuous data}
 
-\item{discrete.colors}{(Character vector)}
+\item{discrete.colors}{(Character vector) Vector of colors to use if plotting discrete data}
 }
 \value{
 Nothing. Produces a plot using the \code{rgl} package, displayed in an X11 window.
 }
 \description{
-Plot force-directed layout of tree
+This plots data on the force-directed layout of an URD tree, gerenated by \link{\code{treeForceDirectedLayout}}.
 }
