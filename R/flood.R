@@ -217,6 +217,78 @@ tipPotential <- function(object, pseudotime, range.function=prop.nonexp, genes.u
   return(object)
 }
 
+#' Tip Potential of Clusters
+#' 
+#' Calculate likelihood that each cluster is a potential tip.
+#' 
+#' This assumes that clusters that are tips will be primarily connected to cells with younger pseudotime.
+#' Thus, this function calculates the pseudotime difference between each cell in the data and mean pseudotime
+#' of each cluster. Then, the pseudotime differences are averaged To do this,
+#' the cumulative transition probability from all cells in the cluster to all cells outside of the clusters
+#' is calculated. Then, the pseudotime difference between each cell and the mean of the cluster is calculated,
+#' and a weighted average is performed according to the cumulative transition probability. 
+#' 
+#' @importFrom stats weighted.mean
+#' 
+#' @param object An URD object
+#' @param pseudotime (Character) Pseudotime to use (i.e. a column of \code{@@pseudotime})
+#' @param clustering (Character) Clustering to use (i.e. a column of \code{@@group.ids})
+#' @param name.store (Character) Name to store this tip potential calculation under (a column of \code{@@pseudotime})
+#' 
+#' @return An URD object with a column in \code{@@pseudotime} named according to \code{name.store}.
+#' 
+#' @export
+clusterTipPotential <- function(object, pseudotime, clustering, name.store="tip.potential") {
+  # List of clusters
+  clusters <- sort(unique(object@group.ids[,clustering]))
+  # Create pseudotime entry to store tip.potential
+  object@pseudotime[,name.store] <- NA
+  # Loop through clusters
+  potentials <- unlist(lapply(clusters, function(clust) {
+    # Get cells in cluster
+    cells.in <- cellsInCluster(object, clustering, clust)
+    cells.out <- setdiff(rownames(object@dm@transitions), cells.in)
+    # Calculate combined transition probability from all cells in cluster to all cells out of cluster
+    combined.transitions <- apply(object@dm@transitions[cells.out,cells.in], 1, combine.probs)
+    # Calculate mean pseudotime of cells in cluster
+    clust.pt <- mean(object@pseudotime[cells.in, pseudotime])
+    # Calculate difference in pseudotime to all other cells
+    diff.pt <- object@pseudotime[names(combined.transitions), pseudotime] - clust.pt
+    diff.pt.binary <- diff.pt < 0
+    # Calculate weighted mean of pseudotime differences
+    wm <- weighted.mean(x=diff.pt.binary, w=combined.transitions, na.rm=T)
+    # Store tip potential
+    object@pseudotime[cells.in,name.store] <<- wm
+    return(wm)
+  }))
+}
+
+# Try correctly normalizing the transition probabilities first?
+clusterTipPotential <- function(object, pseudotime, clustering, name.store="tip.potential") {
+  # List of clusters
+  clusters <- sort(unique(object@group.ids[,clustering]))
+  # Create pseudotime entry to store tip.potential
+  object@pseudotime[,name.store] <- NA
+  # Loop through clusters
+  potentials <- unlist(lapply(clusters, function(clust) {
+    # Get cells in cluster
+    cells.in <- cellsInCluster(object, clustering, clust)
+    cells.out <- setdiff(rownames(object@dm@transitions), cells.in)
+    # Calculate combined transition probability from all cells in cluster to all cells out of cluster
+    combined.transitions <- apply(object@dm@transitions[cells.out,cells.in], 1, combine.probs)
+    # Calculate mean pseudotime of cells in cluster
+    clust.pt <- mean(object@pseudotime[cells.in, pseudotime])
+    # Calculate difference in pseudotime to all other cells
+    diff.pt <- object@pseudotime[names(combined.transitions), pseudotime] - clust.pt
+    diff.pt.binary <- diff.pt < 0
+    # Calculate weighted mean of pseudotime differences
+    wm <- weighted.mean(x=diff.pt.binary, w=combined.transitions, na.rm=T)
+    # Store tip potential
+    object@pseudotime[cells.in,name.store] <<- wm
+    return(wm)
+  }))
+}
+
 #' Calculates the distance matrix between cells given their gene expression
 #' 
 #' Calculates distance between cells in gene expression space. Can be passed to \code{\link{tipPotential}}.
