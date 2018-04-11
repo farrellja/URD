@@ -90,7 +90,9 @@ plotTree <- function(object, label=NULL, label.type="search", title=label, legen
   }
   
   # If color.tree is NULL, determine what it should be.
-  if (is.null(color.tree)) {
+  if (is.null(label)) {
+    color.tree <- FALSE
+  } else if (is.null(color.tree)) {
     if (color.discrete) color.tree <- F else color.tree <- T
   }
   
