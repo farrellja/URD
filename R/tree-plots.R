@@ -55,12 +55,12 @@ plotTree <- function(object, label=NULL, label.type="search", title=label, legen
   if (plot.tree && !is.null(label)) {
     if (!color.discrete) {
       # Mean expression per node
-      node.data <- aggregate(color.data$value, by=list(color.data$node), FUN="mean.of.logs")
+      node.data <- aggregate(color.data$value, by=list(color.data$node), FUN=mean.of.logs)
       rownames(node.data) <- node.data$Group.1
       node.data$n <- unlist(lapply(object@tree$cells.in.nodes, length))[node.data$Group.1]
     } else {
       # If uniform expression, then give that output, otherwise give NA.
-      node.data <- aggregate(color.data$value, by=list(color.data$node), FUN="output.uniform", na.rm=discrete.ignore.na)
+      node.data <- aggregate(color.data$value, by=list(color.data$node), FUN=output.uniform, na.rm=discrete.ignore.na)
       rownames(node.data) <- node.data$Group.1
       node.data$n <- unlist(lapply(object@tree$cells.in.nodes, length))[node.data$Group.1]
     }
@@ -147,8 +147,16 @@ plotTree <- function(object, label=NULL, label.type="search", title=label, legen
   return(the.plot)
 }
 
-#' Is Output Uniform?
+#' Is Vector Uniform?
 #' 
+#' Determine whether all elements of a vector are the same
+#' 
+#' @param x (Vector) Values to check for uniformity
+#' @param na.rm (Logical) Should NA be considered a value or excluded from the comparison?
+#' 
+#' @return Either \code{NA} if the vector is not uniform, or the unique value (as character) otherwise.
+#' 
+#' @keywords internal
 output.uniform <- function(x, na.rm=F) {
   y <- unique(as.character(x))
   if (na.rm) y <- setdiff(y, NA)
