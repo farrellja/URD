@@ -107,6 +107,8 @@ preference <- function(x, y, signed=F) {
   } else {
     z$p <- apply(z, 1, function(q) abs(q[1]-q[2])/(q[1]+q[2]))
   }
+  # If both x and y are 0, preference will be NA, but want to return 0.
+  z[is.na(z$p),"p"] <- 0
   return(z$p)
 }
 
