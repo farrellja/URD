@@ -2,8 +2,30 @@
 #' 
 #' @import ggplot2
 #' @importFrom stats aggregate
+#' 
+#' @param object An URD object
+#' @param label (Character) Data to use for color information, see \link{data.for.plot}
+#' @param label.type (Character) See \link{data.for.plot}
+#' @param title (Character) Title to display on the plot
+#' @param legend.title (Character) Title to display on the legend
+#' @param plot.tree (Logical) Whether to plot the dendrogram
+#' @param tree.alpha (Numeric) Transparency of dendrogram (0 is transparent, 1 is opaque)
+#' @param tree.size (Numeric) Thickness of lines of dendrogram
+#' @param plot.tree (Logical) Whether cells should be plotted with the tree
+#' @param cell.alpha (Numeric) Transparency of cells (0 is transparent, 1 is opaque)
+#' @param cell.size (Numeric) How large should cells be
+#' @param label.x (Logical) Should tips on the x-axis be labeled
+#' @param label.segments (Logical) Should segments of the dendrogram be labeled with their numbers
+#' @param discrete.ignore.na (Logical)
+#' @param color.tree (Logical) Should the dendrogram be colored according to the data? Default \code{NULL} colors the tree when plotting continuous variables, but not when plotting discrete variables.
+#' @param continuous.colors (Character vector) Colors to make color scale if plotting a continuous variable
+#' @param discrete.colors (Character vector) Colors to use if plotting a discrete variable
+#' @param hide.y.ticks (Logical) Should the pseudotime values on the y-axis be hidden?
+#' 
+#' @return A ggplot2 object
+#' 
 #' @export
-plotTree <- function(object, label=NULL, label.type="search", title=label, legend.title="", plot.tree=T, tree.alpha=1, tree.size=1, plot.cells=T, cell.alpha=0.25, cell.size=0.5, label.x=T, label.segments=F, segment.colors=NULL, discrete.ignore.na=F, color.tree=T, hide.y.ticks=T) {
+plotTree <- function(object, label=NULL, label.type="search", title=label, legend.title="", plot.tree=T, tree.alpha=1, tree.size=1, plot.cells=T, cell.alpha=0.25, cell.size=0.5, label.x=T, label.segments=F, discrete.ignore.na=F, color.tree=NULL, continuous.colors=NULL, discrete.colors=NULL, hide.y.ticks=T) {
   
   # Grab various layouts from the object
   segment.layout <- object@tree$segment.layout
@@ -26,10 +48,6 @@ plotTree <- function(object, label=NULL, label.type="search", title=label, legen
     if (length(label) > 1) stop("Cannot plot by multiple labels simultaneously.")
     color.data <- data.for.plot(object, label=label, label.type=label.type, as.color=F, as.discrete.list = T, cells.use=rownames(object@diff.data))
     color.discrete <- color.data$discrete
-    if (color.discrete && color.tree) {
-      warning("Coloring the tree with discrete variables often crashes for reasons unknown.")
-      color.tree <- F
-    }
     color.data <- data.frame(cell=names(color.data$data), value=color.data$data, node=object@diff.data[,"node"], stringsAsFactors=F)
   }
   
@@ -71,6 +89,11 @@ plotTree <- function(object, label=NULL, label.type="search", title=label, legen
     }
   }
   
+  # If color.tree is NULL, determine what it should be.
+  if (is.null(color.tree)) {
+    if (color.discrete) color.tree <- F else color.tree <- T
+  }
+  
   # Add tree to graph
   if (plot.tree) {
     if (!is.null(label) && color.tree) {
@@ -83,7 +106,19 @@ plotTree <- function(object, label=NULL, label.type="search", title=label, legen
   }
   
   # Add color
-  if (!is.null(label) && !color.discrete) the.plot <- the.plot + scale_color_gradientn(colors=defaultURDContinuousColors(with.grey=T))
+  if (!is.null(label)) {
+    if (!color.discrete) {
+      if (is.null(continuous.colors)) {
+        the.plot <- the.plot + scale_color_gradientn(colors=defaultURDContinuousColors(with.grey=T))
+      } else {
+        the.plot <- the.plot + scale_color_gradientn(colors=continuous.colors)
+      }
+    } else {
+      if (!is.null(discrete.colors)) {
+        the.plot <- the.plot + scale_color_manual(values=discrete.colors)
+      }
+    }
+  }
   
   # Label segment names along the x-axis?
   if (label.x) {
@@ -114,9 +149,8 @@ plotTree <- function(object, label=NULL, label.type="search", title=label, legen
 
 #' Is Output Uniform?
 #' 
-#' @export
 output.uniform <- function(x, na.rm=F) {
-  y <- unique(x)
+  y <- unique(as.character(x))
   if (na.rm) y <- setdiff(y, NA)
   if (length(y) == 1) return(y) else return(NA)
 }

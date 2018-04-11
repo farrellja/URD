@@ -43,6 +43,8 @@ plotDot <- function(object, genes, clustering, clusters.use=NULL, min.exp=.05, m
 
 #' Violin plot of gene expression
 #' 
+#' @importFrom reshape2 melt
+#' 
 #' @param object An URD object
 #' @param labels.plot (Character vector)
 #' @param clustering (Character) Name of clustering to use (i.e. a column name of \code{@@group.ids})
@@ -60,14 +62,14 @@ plotViolin <- function(object, labels.plot, clustering, clusters.use=NULL, legen
   }))
   names(data.plot) <- labels.plot
   data.plot$Cluster <- object@group.ids[rownames(data.plot), clustering]
-  if (!any(is.na(as.numeric(data.plot$Cluster)))) {
+  if (suppressWarnings(!any(is.na(as.numeric(as.character(data.plot$Cluster)))))) {
     cluster.names <- sort(as.numeric(unique(data.plot$Cluster)))
   } else {
-    cluster.names <- sort(unique(data.plot$Cluster))
+    cluster.names <- sort(unique(as.character(data.plot$Cluster)))
   }
   if (!is.null(clusters.use)) data.plot <- data.plot[data.plot$Cluster %in% clusters.use,]
   data.plot$Cell <- rownames(data.plot)
-  data.plot.melt <- melt(data.plot, id.vars = c("Cell", "Cluster"))
+  data.plot.melt <- reshape2::melt(data.plot, id.vars = c("Cell", "Cluster"))
   data.plot.melt$Cluster <- factor(data.plot.melt$Cluster, levels=cluster.names, ordered=T)
   if (free.axes) {free="free"} else {free="fixed"}
   the.plot <- ggplot(data.plot.melt, aes(x=Cluster, y=value, fill=Cluster)) + geom_violin() + facet_wrap(~variable, scales=free) + geom_jitter(size=0.5) + ylab("Expression (log2)") + theme_bw()

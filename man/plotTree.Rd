@@ -7,8 +7,48 @@
 plotTree(object, label = NULL, label.type = "search", title = label,
   legend.title = "", plot.tree = T, tree.alpha = 1, tree.size = 1,
   plot.cells = T, cell.alpha = 0.25, cell.size = 0.5, label.x = T,
-  label.segments = F, segment.colors = NULL, discrete.ignore.na = F,
-  color.tree = T, hide.y.ticks = T)
+  label.segments = F, discrete.ignore.na = F, color.tree = NULL,
+  continuous.colors = NULL, discrete.colors = NULL, hide.y.ticks = T)
+}
+\arguments{
+\item{object}{An URD object}
+
+\item{label}{(Character) Data to use for color information, see \link{data.for.plot}}
+
+\item{label.type}{(Character) See \link{data.for.plot}}
+
+\item{title}{(Character) Title to display on the plot}
+
+\item{legend.title}{(Character) Title to display on the legend}
+
+\item{plot.tree}{(Logical) Whether to plot the dendrogram}
+
+\item{tree.alpha}{(Numeric) Transparency of dendrogram (0 is transparent, 1 is opaque)}
+
+\item{tree.size}{(Numeric) Thickness of lines of dendrogram}
+
+\item{cell.alpha}{(Numeric) Transparency of cells (0 is transparent, 1 is opaque)}
+
+\item{cell.size}{(Numeric) How large should cells be}
+
+\item{label.x}{(Logical) Should tips on the x-axis be labeled}
+
+\item{label.segments}{(Logical) Should segments of the dendrogram be labeled with their numbers}
+
+\item{discrete.ignore.na}{(Logical)}
+
+\item{color.tree}{(Logical) Should the dendrogram be colored according to the data? Default \code{NULL} colors the tree when plotting continuous variables, but not when plotting discrete variables.}
+
+\item{continuous.colors}{(Character vector) Colors to make color scale if plotting a continuous variable}
+
+\item{discrete.colors}{(Character vector) Colors to use if plotting a discrete variable}
+
+\item{hide.y.ticks}{(Logical) Should the pseudotime values on the y-axis be hidden?}
+
+\item{plot.tree}{(Logical) Whether cells should be plotted with the tree}
+}
+\value{
+A ggplot2 object
 }
 \description{
 Plot 2D Dendrogram of URD Tree
