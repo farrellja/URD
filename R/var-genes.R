@@ -1,16 +1,33 @@
 #' Find variable genes
 #' 
+#' Single-cell RNAseq data is noisy, so we perform our analyses using only those genes that exhibit greater variability than those of similar expression levels. In theory, those genes have biological variability across cells in addition to their technical variability.
+#' 
+#' A null mathematical model is built to model the relationship between average UMI counts and  coefficient of variation (CV) across all genes, based on a negative binomial distribution that incorporates sampling noise and relative library size. Those genes that have a CV greater than the null model (threshold determined by \code{diffCV.cutoff}) are chosen as variable.
+#' 
+#' If \code{do.plot=T}, produces three plots: the first shows the relative library sizes and the gamma distribution fit to them. The second shows a histogram of each gene's CV ratio to the null for its mean expression level and the \code{diffCV.cutoff} threshold chosen. The third shows each gene's mean expression and CV, the determined null model (in pink), and whether the gene was selected as variable (green genes were variable).
+#' 
+#' @references Pandey S, Shekhar K, Regev A, and Schier AF. Comprehensive Identification and Spatial Mapping of Habenular Neuronal Types Using Single-Cell RNA-Seq. 2018. Current Biology 28(7):1052-1065. DOI: https://doi.org/10.1016/j.cub.2018.02.040
 #' 
 #' @importFrom MASS fitdistr
-#' @param object (URD object): Uses expression data from \code{object@count.data[,cells.fit]}
-#' @param cells.fit (Character Vector): Which cells to use for finding variable genes (if \code{NULL}, uses all cells.)
-#' @param set.object.var.genes (Logical): Return an object with \code{var.genes} set (if \code{TRUE}) or return a character vector of variable genes (if \code{FALSE})
-#' @param diffCV.cutoff (Numeric): Difference in coefficient of variation (CV) between null distribution & genes that will be considered variable (Difference is in log space, so this amounts to a fold-change)
-#' @param mean.min (Numeric): Genes must have this minimum mean expression to be selected (Use to eliminate noisy lowly expressed genes)
-#' @param mean.max (Numeric): Genes must have less than this maximum mean expression to be selected (Use to eliminate the high end if the null distribution fits very poorly there)
-#' @param main.use (Character): title to display for the overall three-panel plot
-#' @param do.plot (Logical): Display plots
-#' @return Either an URD object with \code{var.genes} set (if \code{set.object.var.genes=T}) or character vector of variable genes (if \code{set.object.var.genes=F})
+#' 
+#' @param object An URD object
+#' @param cells.fit (Character Vector) Cells to use for finding variable genes (if \code{NULL}, uses all cells.)
+#' @param set.object.var.genes (Logical) Return an object with \code{@@var.genes} set (if \code{TRUE}) or return a character vector of variable genes (if \code{FALSE})
+#' @param diffCV.cutoff (Numeric) Difference in coefficient of variation (CV) between null distribution & genes that will be considered variable (Difference is in log space, so this amounts to a fold-change)
+#' @param mean.min (Numeric) Genes must have this minimum mean expression to be selected (Use to eliminate noisy lowly expressed genes)
+#' @param mean.max (Numeric) Genes must have less than this maximum mean expression to be selected (Use to eliminate the high end if the null distribution fits very poorly there)
+#' @param main.use (Character) Title to display for the overall three-panel plot
+#' @param do.plot (Logical) Whether or not to display plots
+#' 
+#' @return Either an URD object with \code{@@var.genes} set (if \code{set.object.var.genes=T}) or character vector of variable genes (if \code{set.object.var.genes=F})
+#' 
+#' @examples
+#' # Find a list of cells from each stage.
+#' stages <- unique(object@meta$STAGE)
+#' cells.each.stage <- lapply(stages, function(stage) rownames(object@meta)[which(object@meta$STAGE ==                                                                                 stage)])
+#' # Compute variable genes for each stage.
+#' var.genes.by.stage <- lapply(1:length(stages), function(n) findVariableGenes(object, cells.fit = cells.each.stage[[n]], set.object.var.genes = F, diffCV.cutoff = 0.3, mean.min = 0.005, mean.max = 100, main.use = stages[[n]], do.plot = T))
+#' 
 #' @export
 
 findVariableGenes <- function(object, cells.fit=NULL, set.object.var.genes=T, diffCV.cutoff=0.5, mean.min=0.005, mean.max=100, main.use="", do.plot=T) {
@@ -57,10 +74,10 @@ findVariableGenes <- function(object, cells.fit=NULL, set.object.var.genes=T, di
   # Plot variable gene selection
   if (do.plot) {
     plot(mean_emp,cv_emp,pch=16,cex=0.5,col="black",xlab="Mean Counts",ylab="CV (counts)", log="xy", main = "Selection of Variable Genes")
-    curve(sqrt(1/x), add=TRUE, col="red", log="xy", lty=2, lwd=2)
+    #curve(sqrt(1/x), add=TRUE, col="red", log="xy", lty=2, lwd=2)
     or = order(mean_NB)
     lines(mean_NB[or], cv_NB[or], col="magenta", lwd=2)
-    points(mean_emp[pass.cutoff], cv_emp[pass.cutoff], pch=16, cex=0.5, col='blue')
+    points(mean_emp[pass.cutoff], cv_emp[pass.cutoff], pch=16, cex=0.5, col='green')
     title(main.use, outer=T)
   }
   

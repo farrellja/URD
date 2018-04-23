@@ -8,7 +8,12 @@
 #' 
 #' @param object An URD object
 #' @param cells.keep (Character vector) Names of cells to retain
+#' 
 #' @return An URD object
+#' 
+#' @examples 
+#' object <- urdSubset(object, not.outlier.cells)
+#' 
 #' @export
 urdSubset <- function(object, cells.keep) {
             # Make sure all cells are actually in the object

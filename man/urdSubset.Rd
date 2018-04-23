@@ -21,3 +21,7 @@ things. (For instance, it would make more sense to recalculate the PCA on
 the subset data, rather than keeping previous PCA scores for only a subset
 of cells.)
 }
+\examples{
+object <- urdSubset(object, not.outlier.cells)
+
+}
