@@ -13,13 +13,19 @@
 #' @param genes.use (Character Vector) Genes to use for principal components analysis (default: stored variable genes. Set NULL to use all genes.)
 #' @param pcs.store (Numeric) Number of PCs to retain (if NULL, will determine using \code{store.thresh})
 #' @param store.thresh (Numeric) If \code{pcs.store} isn't specified, stores the number of significant PCs times this number
+#' @param mp.factor (Numeric) Retain PCs than are this factor more than the estimated maximum singular value expected or random data. (This is useful in cases when there are many PCs that have standard deviations just above that expected by random, which probably represent noise and should be excluded.)
 #' @param do.print (Logical) Report determined Marchenko-Pastur values for significant PCs.
 #' @param verbose (Logical) Whether to report on progress
 #' 
-#' @return An URD object, with loading of genes into PCs in slot \code{pca.load}, PC scores for each cell in slot \code{pca.scores}, and the significance of each PC stored in slot \code{pca.sig}.
+#' @return An URD object, with loading of genes into PCs in \code{@@pca.load}, PC scores for each cell in \code{@@pca.scores}, and the significance of each PC stored in slot \code{@@pca.sig}.
+#' 
+#' @examples
+#' object <- calcPCA(object)
+#' 
+#' object <- calcPCA(object, genes.use=object@var.genes, mp.factor=1.2)
 #' 
 #' @export
-calcPCA <- function(object, genes.use=object@var.genes, pcs.store=NULL, store.thresh=2, do.print=T, verbose=T) {
+calcPCA <- function(object, genes.use=object@var.genes, pcs.store=NULL, store.thresh=2, mp.factor=1, do.print=T, verbose=T) {
             # Check whether there ARE variable genes
             if (length(genes.use) == 0) {
               warning("Variable genes have not been stored. Using all genes instead.")
@@ -44,7 +50,7 @@ calcPCA <- function(object, genes.use=object@var.genes, pcs.store=NULL, store.th
             
             # Estimate significant PCs
             if (verbose) print(paste0(Sys.time(), ": Estimating significant PCs."))
-            pca.sig <- pcaMarchenkoPastur(M=dim(data.use)[1], N=dim(data.use)[2], pca.sdev = pca.obj$sdev)
+            pca.sig <- pcaMarchenkoPastur(M=dim(data.use)[1], N=dim(data.use)[2], pca.sdev = pca.obj$sdev, factor = mp.factor)
             
             # Figure out how many PCs to store
             if (is.null(pcs.store)) {
@@ -113,4 +119,19 @@ pcTopGenes <- function(object, pcs.print=which(object@pca.sig), genes.print=20) 
   })
   names(top.loadings) <- pcs.print
   return(top.loadings)
+}
+
+#' PC Standard Deviation Plot
+#' 
+#' Plots the standard deviation of each PC and the determined significant PC cut-off.
+#' 
+#' @param object An URD object
+#' 
+#' @return Nothing - produces a plot using R standard graphics.
+#' 
+#' @export
+pcSDPlot <- function(object) {
+  pc.sig.cutoff <- max(which(object@pca.sig)) + 0.5
+  plot(y=object@pca.sdev, x=seq_along(object@pca.sdev), pch=16, xlab="PC", ylab="Standard Deviation")
+  abline(v=pc.sig.cutoff, col='red', lty=2)
 }

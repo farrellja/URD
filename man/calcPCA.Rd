@@ -5,7 +5,7 @@
 \title{Calculate principal components}
 \usage{
 calcPCA(object, genes.use = object@var.genes, pcs.store = NULL,
-  store.thresh = 2, do.print = T, verbose = T)
+  store.thresh = 2, mp.factor = 1, do.print = T, verbose = T)
 }
 \arguments{
 \item{object}{URD object}
@@ -16,12 +16,14 @@ calcPCA(object, genes.use = object@var.genes, pcs.store = NULL,
 
 \item{store.thresh}{(Numeric) If \code{pcs.store} isn't specified, stores the number of significant PCs times this number}
 
+\item{mp.factor}{(Numeric) Retain PCs than are this factor more than the estimated maximum singular value expected or random data. (This is useful in cases when there are many PCs that have standard deviations just above that expected by random, which probably represent noise and should be excluded.)}
+
 \item{do.print}{(Logical) Report determined Marchenko-Pastur values for significant PCs.}
 
 \item{verbose}{(Logical) Whether to report on progress}
 }
 \value{
-An URD object, with loading of genes into PCs in slot \code{pca.load}, PC scores for each cell in slot \code{pca.scores}, and the significance of each PC stored in slot \code{pca.sig}.
+An URD object, with loading of genes into PCs in \code{@pca.load}, PC scores for each cell in \code{@pca.scores}, and the significance of each PC stored in slot \code{@pca.sig}.
 }
 \description{
 This performs principal component analysis on centered and scaled expression data,
@@ -30,4 +32,10 @@ that are significant are estimated using the Marchenko Pastur Law (by calling
 \code{\link{pca.marchenko.pastur}}, which is stored in \code{pca.sig}. By default, 
 twice as many PCs are saved as are determined as significant, which can be adjusted
 with the \code{store.thresh} parameter.
+}
+\examples{
+object <- calcPCA(object)
+
+object <- calcPCA(object, genes.use=object@var.genes, mp.factor=1.2)
+
 }
