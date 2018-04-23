@@ -13,7 +13,7 @@ calcTsne(object, dim.use = c("pca", "dm"),
 
 \item{dim.use}{(Character) Whether to calculate the tSNE projection from PCs (\code{"pca"}) or diffusion components (\code{"dm"}). Default is from PCs.}
 
-\item{which.dims}{(Numeric vector) Which PCs (or diffusion components) to use. Defaults to the significant PCs. (The default will probably work with diffusion components, though it is non-sensical in that case.)}
+\item{which.dims}{(Numeric vector) Which PCs (or diffusion components) to use. Defaults to the significant PCs. (We don't estimate the significant diffusion components, so if using diffusion map reduction, probably should explicitly specify this.)}
 
 \item{theta}{(Numeric) Speed/accuracy trade-off for Barnes-Hut approximation of tSNE (0-1, 0 is exact tSNE, higher is less accurate, default is 0.5)}
 
@@ -24,8 +24,19 @@ calcTsne(object, dim.use = c("pca", "dm"),
 \item{perlexity}{(Numeric) Perplexity parameter for the tSNE}
 }
 \value{
-An URD object with tSNE coordinates stored in the \code{tsne.y} slot.
+An URD object with tSNE coordinates stored in the \code{@tsne.y} slot.
 }
 \description{
-Calculate tSNE projection of data
+Calculates a spectral tSNE representation of the data, based either on PCA or diffusion map reductions.
+}
+\examples{
+# Set seed to get reproducible reduction, since tSNE is stochastic.
+set.seed(18)
+
+# Calculate tSNE on PCA (the default)
+object <- calcTsne(object, perplexity = 30, theta = 0.5)
+
+# Calculate tSNE on 18 DCs from diffusion map.
+object <- calcTsne(object, dim.use="dm", which.dims=1:18, perplexity=30)
+
 }

@@ -4,7 +4,7 @@
 #' diffusion components. A k-nearest neighbor graph is computed, its edges are
 #' optionally weighted by the Jaccard overlap of cells' neighborhoods, and then
 #' a clustering is computed with either the Louvain or Infomap algorithms. The
-#' resultant clustering is stored as a column in the slot \code{group.ids}. The
+#' resultant clustering is stored as a column in the slot \code{@@group.ids}. The
 #' number of detected clusters is sensitive to the nearest neighbor parameter,
 #' and several should be investigated.
 #' 
@@ -18,9 +18,10 @@
 #' @param which.dims (Numeric vector) Which PCs (or diffusion components) to use. Defaults to the significant PCs. (The default will probably work with diffusion components, though it is non-sensical in that case.)
 #' @param num.nn (Numeric or numeric vector) How many nearest-neighbors to use in the k-nn graph. (If multiple values are provided, multiple clusterings are calculated.)
 #' @param do.jaccard (Logical) Weight edges in the k-nn graph according to their Jaccard overlap?
-#' @param group.id (Character) Prefix to use for clustering name (Default is method). If more than one value is provided to \code{num.nn}, then "-NN" (where NN is the number of nearest neighbors) is appended.
+#' @param method (Character) Clustering method to use (\code{Louvain})
+#' @param group.id (Character) Prefix to use for clustering name (Default is method). Number of nearest neighbors is appended.
 #' 
-#' @return An URD object with cluster identities saved in \code{{@@group.ids}} in the column named \code{group.id}.
+#' @return An URD object with cluster identities saved in \code{@@group.ids} in the column named \code{group.id}.
 #' 
 #' @examples
 #' # Try several different nearest neighbor parameters
@@ -33,8 +34,9 @@
 #' object <- graphClustering(object, dim.use="dm", num.nn = c(10,20,30,40), method="Louvain", do.jaccard=T, group.id="Louvain-DM")
 #' 
 #' @export
-graphClustering <- function(object, dim.use=c("pca","dm"), cells.use=NULL, which.dims=which(object@pca.sig), num.nn=30, do.jaccard=TRUE, method="Louvain", group.id=method) {
+graphClustering <- function(object, dim.use=c("pca","dm"), cells.use=NULL, which.dims=which(object@pca.sig), num.nn=30, do.jaccard=TRUE, method=c("Louvain", "Infomap"), group.id=method) {
   if (length(dim.use) > 1) dim.use <- dim.use[1]
+  if (length(method) > 1) method <- method[1]
   if (dim.use=="pca") {
     # Get proper PCA data to use
     if (is.null(cells.use)){
@@ -79,8 +81,13 @@ graphClustering <- function(object, dim.use=c("pca","dm"), cells.use=NULL, which
     edges$V2 <- rownames(data.use)[edges$V2]
     
     g <- graph.data.frame(edges, directed=F)
-    if (method=="Louvain") graph.out = cluster_louvain(g)
-    if (method=="Infomap") graph.out = cluster_infomap(g)
+    if (tolower(method)=="louvain") {
+      graph.out = cluster_louvain(g)
+    } else if (tolower(method)=="infomap") { 
+      graph.out = cluster_infomap(g)
+    } else {
+      stop("Method should be either Louvain or Infomap.")
+    }
     
     clust.assign = factor(graph.out$membership, levels=sort(unique(graph.out$membership)))
     names(clust.assign) = graph.out$names
@@ -93,7 +100,7 @@ graphClustering <- function(object, dim.use=c("pca","dm"), cells.use=NULL, which
     object@meta[names(clust.assign),"clust"]=clust.assign
     object@group=clust.assign; names(object@group)=names(clust.assign);               
     
-    if (length(num.nn) > 1) { this.group.id <- paste0(group.id, "-", this.nn) } else { this.group.id <- group.id }
+    this.group.id <- paste0(group.id, "-", this.nn)
     object@group.ids[names(clust.assign),this.group.id] <- as.character(clust.assign)
   }
   return(object) 

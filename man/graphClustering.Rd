@@ -6,7 +6,7 @@
 \usage{
 graphClustering(object, dim.use = c("pca", "dm"), cells.use = NULL,
   which.dims = which(object@pca.sig), num.nn = 30, do.jaccard = TRUE,
-  method = "Louvain", group.id = method)
+  method = c("Louvain", "Infomap"), group.id = method)
 }
 \arguments{
 \item{object}{An URD object}
@@ -21,17 +21,19 @@ graphClustering(object, dim.use = c("pca", "dm"), cells.use = NULL,
 
 \item{do.jaccard}{(Logical) Weight edges in the k-nn graph according to their Jaccard overlap?}
 
-\item{group.id}{(Character) Prefix to use for clustering name (Default is method). If more than one value is provided to \code{num.nn}, then "-NN" (where NN is the number of nearest neighbors) is appended.}
+\item{method}{(Character) Clustering method to use (\code{Louvain})}
+
+\item{group.id}{(Character) Prefix to use for clustering name (Default is method). Number of nearest neighbors is appended.}
 }
 \value{
-An URD object with cluster identities saved in \code{{@group.ids}} in the column named \code{group.id}.
+An URD object with cluster identities saved in \code{@group.ids} in the column named \code{group.id}.
 }
 \description{
 Computes a spectral graph-based clustering, either on principal components or
 diffusion components. A k-nearest neighbor graph is computed, its edges are
 optionally weighted by the Jaccard overlap of cells' neighborhoods, and then
 a clustering is computed with either the Louvain or Infomap algorithms. The
-resultant clustering is stored as a column in the slot \code{group.ids}. The
+resultant clustering is stored as a column in the slot \code{@group.ids}. The
 number of detected clusters is sensitive to the nearest neighbor parameter,
 and several should be investigated.
 }

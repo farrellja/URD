@@ -27,9 +27,9 @@ An URD object, with loading of genes into PCs in \code{@pca.load}, PC scores for
 }
 \description{
 This performs principal component analysis on centered and scaled expression data,
-which is stored in \code{pca.scores} and \code{pca.load}. Then, the principal components
+which is stored in \code{@pca.scores} and \code{@pca.load}. Then, the principal components
 that are significant are estimated using the Marchenko Pastur Law (by calling
-\code{\link{pca.marchenko.pastur}}, which is stored in \code{pca.sig}. By default, 
+\code{\link{pca.marchenko.pastur}}, which is stored in \code{@pca.sig}. By default, 
 twice as many PCs are saved as are determined as significant, which can be adjusted
 with the \code{store.thresh} parameter.
 }
