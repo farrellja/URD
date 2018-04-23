@@ -218,7 +218,7 @@ plotTreeForce2D <- function(object, label=NULL, label.type="search", title=label
 
 #' Plot force-directed layout of tree
 #' 
-#' This plots data on the force-directed layout of an URD tree, gerenated by \link{\code{treeForceDirectedLayout}}.
+#' This plots data on the force-directed layout of an URD tree, gerenated by \code{\link{treeForceDirectedLayout}}.
 #' 
 #' @param object An URD object
 #' @param label (Character) Data to use for coloring tree (see \link{data.for.plot})

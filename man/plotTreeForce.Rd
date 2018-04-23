@@ -43,7 +43,7 @@ plotTreeForce(object, label, label.type = "search", view = "default",
 
 \item{cells.show}{(Character vector) Cells of the tree to show (Default \code{NULL} is all cells)}
 
-\item{fade.below}{(Numeric) If desired, transparency can be lowered for points with low expression values (thereby highlighting the portions of the tree with expression). This value is the portion of the range of expression values to fade. (The default, 2/9, fades the bottom two-ninths of the expression values.)}
+\item{fade.below}{(Numeric) If desired, transparency can be lowered for points with low expression values (thereby highlighting the portions of the tree with expression). This value is the portion of the range of expression values to fade. (The default, 2/9, fades the bottom two-ninths of the expression values.) A fully 'faded' point will have alpha of \code{alpha.fade}.}
 
 \item{density.alpha}{(Logical) Should points with short distance to nearest neighbors (i.e. in denser regions of the plot) be more transparent?}
 
@@ -59,5 +59,5 @@ plotTreeForce(object, label, label.type = "search", view = "default",
 Nothing. Produces a plot using the \code{rgl} package, displayed in an X11 window.
 }
 \description{
-This plots data on the force-directed layout of an URD tree, gerenated by \link{\code{treeForceDirectedLayout}}.
+This plots data on the force-directed layout of an URD tree, gerenated by \code{\link{treeForceDirectedLayout}}.
 }
