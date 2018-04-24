@@ -14,7 +14,7 @@ floodPseudotimeCalc(object, start.cells, minimum.cells.flooded = 2,
 
 \item{minimum.cells.flooded}{(Numeric) Stop pseudotime calculation when fewer cells are newly visited in a given iteration, and assign remaining unvisited cells pseudotime NA.}
 
-\item{tm.flood}{(Sparse matrix) A sparse matrix of normalized transition probabilities. If unprovided (\code{NULL}), this will be calculated automatically.}
+\item{tm.flood}{(Sparse or full matrix) A sparse matrix of normalized transition probabilities. If unprovided (\code{NULL}), this will be calculated automatically.}
 
 \item{verbose.freq}{(Numeric) Report progress after this many iterations. 0 is silent.}
 }

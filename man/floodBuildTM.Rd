@@ -16,8 +16,7 @@ A sparse matrix (dgCMatrix) of normalized transition probabilities.
 }
 \description{
 This scales the transition probabilities so that maximum sum of transition
-probabilities for a cell is 1. 
-This modified matrix is used for calculating pseudotime. It requires
+probabilities for a cell is 1. This modified matrix is used for calculating pseudotime. It requires
 either the user to provide an URD object (\code{object=}) with a diffusion map
 stored in slot \code{@dm}, or a diffusion map directly (\code{dm=}).
 }

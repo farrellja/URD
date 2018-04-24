@@ -13,5 +13,19 @@ pseudotimePlotStabilityOverall(object)
 A ggplot2 object
 }
 \description{
-Plot Pseudotime Stability
+This plots the overall change in pseudotimes (across all cells), as the number
+of simulations is increased. This plot should become asymptotic if enough
+simulations have been run. The number of data points shown is determined by
+the \code{stability.div} parameter when processing floods or walks.
+}
+\details{
+This relies on the data stored in \code{@pseudotime.stability}, which is
+written by both \code{\link{floodPseudotimeProcess}} and
+\code{\link{processRandomWalksFromTips}}. Each call to either function overwrites 
+this slot, so it will display plots from the most recent time either function
+has been called.
+}
+\examples{
+pseudotimePlotStabilityOverall(object)
+
 }

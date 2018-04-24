@@ -16,7 +16,7 @@ floodPseudotime(object, root.cells, n = 20, minimum.cells.flooded = 2,
 
 \item{minimum.cells.flooded}{(Numeric) Stop pseudotime calculation when fewer cells are newly visited in a given iteration, and assign remaining unvisited cells pseudotime NA. This is designed to prevent a few poor data points from throwing off the entire pseudotime calculation.}
 
-\item{tm.flood}{(Sparse matrix) A sparse matrix of normalized transition probabilities (as returned by \code{\link{floodBuildTM}}. If unprovided (\code{NULL}), this will be calculated automatically.}
+\item{tm.flood}{(Sparse matrix or matrix) A sparse matrix of normalized transition probabilities (as returned by \code{\link{floodBuildTM}}. If unprovided (\code{NULL}), this will be calculated automatically. While it is very RAM intensive, this function runs about ten times faster if the matrix is provided as a standard (rather than sparse) matrix.)}
 
 \item{verbose}{(Logical) Report on progress?}
 
@@ -28,13 +28,29 @@ floodPseudotime(object, root.cells, n = 20, minimum.cells.flooded = 2,
 \description{
 This calculates pseudotime by performing a probabilistic breadth-first search
 of the k-nearest neighbor graph that was used to generate the diffusion map
-calculated on the data.
+calculated on the data. The results of this function should be passed to 
+\code{\link{floodPseudotimeProcess}} to convert them into pseudotime.
 }
 \details{
-A group of 'root' cells are pre-initialized as visited, an an iterative search
+A group of 'root' cells are pre-initialized as visited, and an iterative search
 of the graph is performed. The probability that a cell is newly visited is the
 cumulative transition probability from all cells that have previously been
 visited in the graph. The process continues until either the entire graph is
 visited, or fewer than \code{minimum.cells.flooded} new cells are visited in
 a given iteration.
+
+On a computing cluster, this step can be parallelized by running a smaller number
+of simulations on many computers and combining the resulting data.frames with \code{\link{cbind}}.
+}
+\examples{
+# Define the root cells as cells in HIGH stage
+root.cells <- rownames(object@meta)[object@meta$STAGE == "ZFHIGH"]
+# Do the simulation
+flood.result <- floodPseudotime(object, root.cells = root.cells, n = 10, minimum.cells.flooded = 2, verbose = T)
+# Convert to pseudotime in the URD object
+object <- floodPseudotimeProcess(object, flood.result, floods.name = "pseudotime", max.frac.NA = 0.4, pseudotime.fun = mean, stability.div = 5)
+
+# Use gobs of RAM to make it run faster
+flood.result <- floodPseudotime(object, root.cells = root.cells, n = 10, minimum.cells.flooded = 2, verbose = T, tm.flood=as.matrix(floodBuildTM(object)))
+
 }

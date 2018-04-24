@@ -1,7 +1,3 @@
-# Plot the changing pseudotime of some individual cells
-# cells.plot: (Numeric or character vector) If numeric, choose n cells at random to plot; if character vector, then plot those specific cells.
-# log.visits: (Boolean) If true, visits will be log2-transformed prior to plotting
-
 #' Plot Pseudotime Stability (Individual Cells)
 #' 
 #' @param object An URD object
@@ -19,19 +15,35 @@ pseudotimePlotStabilityCells <- function(object, cells.plot=9, log.visits=T) {
   # Get visit values for ggplot
   pseudotime.stability.melt$Visits <- object@pseudotime.stability$walks.per.cell[cbind(as.character(pseudotime.stability.melt$Cell), as.character(pseudotime.stability.melt$Walks))]
   # Do the plot
-  gg <- ggplot(pseudotime.stability.melt, aes(x=Walks, y=Pseudotime)) + facet_wrap(~Cell) + ylim(c(0,1)) + geom_line() + geom_point(aes(color=Visits)) + ggtitle("Pseudotime Stability Per Cell")
+  gg <- ggplot(pseudotime.stability.melt, aes(x=Walks, y=Pseudotime)) + facet_wrap(~Cell) + ylim(c(0,1)) + geom_line() + geom_point(aes(color=Visits)) + labs(title="Pseudotime Stability Per Cell", x="Simulations", y="Pseudotime")
   if (log.visits) {
-    gg <- gg + scale_color_gradientn(trans='log2', colors=colrs)  
+    gg <- gg + scale_color_gradientn(trans='log2', colors=defaultURDContinuousColors())  
   } else {
-    gg <- gg + scale_color_gradientn(colors=colrs)
+    gg <- gg + scale_color_gradientn(colors=defaultURDContinuousColors())
   }
   return(gg)
 }
 
 #' Plot Pseudotime Stability
 #' 
+#' This plots the overall change in pseudotimes (across all cells), as the number
+#' of simulations is increased. This plot should become asymptotic if enough
+#' simulations have been run. The number of data points shown is determined by
+#' the \code{stability.div} parameter when processing floods or walks.
+#' 
+#' This relies on the data stored in \code{@@pseudotime.stability}, which is
+#' written by both \code{\link{floodPseudotimeProcess}} and
+#' \code{\link{processRandomWalksFromTips}}. Each call to either function overwrites 
+#' this slot, so it will display plots from the most recent time either function
+#' has been called.
+#' 
 #' @param object An URD object
+#' 
 #' @return A ggplot2 object
+#' 
+#' @examples
+#' pseudotimePlotStabilityOverall(object)
+#' 
 #' @export
 pseudotimePlotStabilityOverall <- function(object) {
   # Plot overall change in cell pseudotimes as number of walks increases
@@ -58,7 +70,7 @@ pseudotimePlotVisits <- function(object, xlim=NULL) {
   walks.per.cell.melt <- melt(object@pseudotime.stability$walks.per.cell)
   names(walks.per.cell.melt) <- c("Cell", "Walks", "Visits")
   walks.per.cell.melt$Walks <- as.numeric(walks.per.cell.melt$Walks)
-  gg <- ggplot(walks.per.cell.melt, aes(x=Visits, group=Walks, color=Walks, fill=Walks)) + geom_histogram(binwidth = 1) + scale_color_gradientn(colors=colrs) + scale_fill_gradientn(colors=colrs) + labs(y="Cells", title="Cell Visit Frequencies As Random Walks Increase")
+  gg <- ggplot(walks.per.cell.melt, aes(x=Visits, group=Walks, color=Walks, fill=Walks)) + geom_histogram(binwidth = 1) + scale_color_gradientn(colors=defaultURDContinuousColors()) + scale_fill_gradientn(colors=defaultURDContinuousColors()) + labs(y="Cells", title="Cell Visit Frequencies As Random Walks Increase")
   if (!is.null(xlim)) gg <- gg + xlim(xlim)
   return(gg)
 }

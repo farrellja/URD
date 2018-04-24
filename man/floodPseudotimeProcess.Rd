@@ -27,3 +27,19 @@ An URD object with pseudotime stored in \code{@pseudotime} under the column name
 This processes the values returned by \code{\link{floodPseudotime}} and stores
 the result as a pseudotime in an URD object.
 }
+\details{
+Several separate outputs from \code{floodPseudotime} can be combined using
+\code{\link{cbind}} and processed simultaneously. After calculation, 
+\code{\link{pseudotimePlotStabilityOverall}} can be used to determine whether
+cell pseudotimes have stabilized with the number of simulations currently
+performed.
+}
+\examples{
+# Define the root cells as cells in HIGH stage
+root.cells <- rownames(object@meta)[object@meta$STAGE == "ZFHIGH"]
+# Do the simulation
+flood.result <- floodPseudotime(object, root.cells = root.cells, n = 10, minimum.cells.flooded = 2, verbose = T)
+# Convert to pseudotime in the URD object
+object <- floodPseudotimeProcess(object, flood.result, floods.name = "pseudotime", max.frac.NA = 0.4, pseudotime.fun = mean, stability.div = 5)
+
+}

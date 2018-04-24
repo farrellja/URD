@@ -1,8 +1,7 @@
 #' Build pseudotime transition matrix
 #' 
 #' This scales the transition probabilities so that maximum sum of transition
-#' probabilities for a cell is 1. 
-#' This modified matrix is used for calculating pseudotime. It requires
+#' probabilities for a cell is 1. This modified matrix is used for calculating pseudotime. It requires
 #' either the user to provide an URD object (\code{object=}) with a diffusion map
 #' stored in slot \code{@@dm}, or a diffusion map directly (\code{dm=}).
 #' 
@@ -12,7 +11,9 @@
 #' 
 #' @param object An URD object
 #' @param dm A Diffusion Map
+#' 
 #' @return A sparse matrix (dgCMatrix) of normalized transition probabilities.
+#' 
 #' @export
 floodBuildTM <- function(object=NULL, dm=NULL) {
   if (is.null(object) & is.null(dm)) stop("Must provide either object or diffusion map.")
@@ -41,7 +42,7 @@ combine.probs <- function(x) {
 #' @param object An URD object
 #' @param start.cells (Character vector) Cells to initialize as visited to start pseudotime calculation
 #' @param minimum.cells.flooded (Numeric) Stop pseudotime calculation when fewer cells are newly visited in a given iteration, and assign remaining unvisited cells pseudotime NA.
-#' @param tm.flood (Sparse matrix) A sparse matrix of normalized transition probabilities. If unprovided (\code{NULL}), this will be calculated automatically.
+#' @param tm.flood (Sparse or full matrix) A sparse matrix of normalized transition probabilities. If unprovided (\code{NULL}), this will be calculated automatically.
 #' @param verbose.freq (Numeric) Report progress after this many iterations. 0 is silent.
 #' 
 #' @return (Numeric vector) The iteration that newly visited each cell.
@@ -86,24 +87,40 @@ floodPseudotimeCalc <- function(object, start.cells, minimum.cells.flooded=2, tm
 #' 
 #' This calculates pseudotime by performing a probabilistic breadth-first search
 #' of the k-nearest neighbor graph that was used to generate the diffusion map
-#' calculated on the data. 
+#' calculated on the data. The results of this function should be passed to 
+#' \code{\link{floodPseudotimeProcess}} to convert them into pseudotime.
 #' 
-#' A group of 'root' cells are pre-initialized as visited, an an iterative search
+#' A group of 'root' cells are pre-initialized as visited, and an iterative search
 #' of the graph is performed. The probability that a cell is newly visited is the
 #' cumulative transition probability from all cells that have previously been
 #' visited in the graph. The process continues until either the entire graph is
 #' visited, or fewer than \code{minimum.cells.flooded} new cells are visited in
 #' a given iteration. 
 #' 
+#' On a computing cluster, this step can be parallelized by running a smaller number
+#' of simulations on many computers and combining the resulting data.frames with \code{\link{cbind}}.
+#' 
 #' @param object An URD object
 #' @param root.cells (Character vector) Names of cells that will be considered the root and assigned pseudotime 0.
 #' @param n (Numeric) Number of simulations to perform and average
 #' @param minimum.cells.flooded (Numeric) Stop pseudotime calculation when fewer cells are newly visited in a given iteration, and assign remaining unvisited cells pseudotime NA. This is designed to prevent a few poor data points from throwing off the entire pseudotime calculation.
-#' @param tm.flood (Sparse matrix) A sparse matrix of normalized transition probabilities (as returned by \code{\link{floodBuildTM}}. If unprovided (\code{NULL}), this will be calculated automatically.
+#' @param tm.flood (Sparse matrix or matrix) A sparse matrix of normalized transition probabilities (as returned by \code{\link{floodBuildTM}}. If unprovided (\code{NULL}), this will be calculated automatically. While it is very RAM intensive, this function runs about ten times faster if the matrix is provided as a standard (rather than sparse) matrix.)
 #' @param verbose (Logical) Report on progress?
 #' @param verbose.freq (Numeric) Give a report every this many iterations.
 #' 
 #' @return (data.frame) Rows are cells, columns are flood simulations, values are the iteration that newly visited each cell. This can be processed into pseudotime and stored in an URD object with \code{\link{floodPseudotimeProcess}}.
+#' 
+#' @examples
+#' # Define the root cells as cells in HIGH stage
+#' root.cells <- rownames(object@meta)[object@meta$STAGE == "ZFHIGH"]
+#' # Do the simulation
+#' flood.result <- floodPseudotime(object, root.cells = root.cells, n = 10, minimum.cells.flooded = 2, verbose = T)
+#' # Convert to pseudotime in the URD object
+#' object <- floodPseudotimeProcess(object, flood.result, floods.name = "pseudotime", max.frac.NA = 0.4, pseudotime.fun = mean, stability.div = 5)
+#' 
+#' # Use gobs of RAM to make it run faster
+#' flood.result <- floodPseudotime(object, root.cells = root.cells, n = 10, minimum.cells.flooded = 2, verbose = T, tm.flood=as.matrix(floodBuildTM(object)))
+#' 
 #' @export
 floodPseudotime <- function(object, root.cells, n=20, minimum.cells.flooded=2, tm.flood=NULL, verbose=F, verbose.freq=10) {
   if (is.null(tm.flood)) tm.flood <- floodBuildTM(object)
@@ -117,11 +134,16 @@ floodPseudotime <- function(object, root.cells, n=20, minimum.cells.flooded=2, t
 }
 
 
-
 #' Process Flood Pseudotime
 #' 
 #' This processes the values returned by \code{\link{floodPseudotime}} and stores
 #' the result as a pseudotime in an URD object.
+#' 
+#' Several separate outputs from \code{floodPseudotime} can be combined using
+#' \code{\link{cbind}} and processed simultaneously. After calculation, 
+#' \code{\link{pseudotimePlotStabilityOverall}} can be used to determine whether
+#' cell pseudotimes have stabilized with the number of simulations currently
+#' performed.
 #' 
 #' @param object An URD object
 #' @param floods (data.frame) A data.frame of flood visitation information, returned by \code{\link{floodPseudotime}}
@@ -129,7 +151,17 @@ floodPseudotime <- function(object, root.cells, n=20, minimum.cells.flooded=2, t
 #' @param max.frac.NA (Numeric) Maximum fraction of simulations that assigned NA for a cell. Cells with more NAs will not be assigned a pseudotime.
 #' @param pseudotime.fun (Function) Function to combine pseudotimes resulting from each simulation. Default (and only validated function) is mean.
 #' @param stability.div (Numeric) Number of simulation subsamplings to calculate.
+#' 
 #' @return An URD object with pseudotime stored in \code{@@pseudotime} under the column name given in \code{floods.name}, with subsampling information stored in \code{@@pseudotime.stability}. The information stored in \code{@@pseudotime.stability} will be overwritten by any future pseudotime processing.
+#' 
+#' @examples
+#' # Define the root cells as cells in HIGH stage
+#' root.cells <- rownames(object@meta)[object@meta$STAGE == "ZFHIGH"]
+#' # Do the simulation
+#' flood.result <- floodPseudotime(object, root.cells = root.cells, n = 10, minimum.cells.flooded = 2, verbose = T)
+#' # Convert to pseudotime in the URD object
+#' object <- floodPseudotimeProcess(object, flood.result, floods.name = "pseudotime", max.frac.NA = 0.4, pseudotime.fun = mean, stability.div = 5)
+#' 
 #' @export
 floodPseudotimeProcess <- function(object, floods, floods.name="flood", max.frac.NA=0.4, pseudotime.fun=mean, stability.div=10) {
   # Make sure that for tips this doesn't accidentally refer to a columns index.
