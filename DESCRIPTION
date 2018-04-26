@@ -1,8 +1,8 @@
 Package: URD
-Title: Unbiased Reconstruction of Developmental trajectories
+Title: URD
 Version: 0.0.0.9000
 Authors@R: person("Jeffrey", "Farrell", email = "jfarrell@g.harvard.edu", role = c("aut", "cre"))
-Description: URD (Unbiased Reconstruction of Developmental trajectories) finds complex  .
+Description: URD reconstructs transcriptional trajectories underlying specification or differentiation processes in the form of a branching tree fomr single-cell RNAseq data.
 Depends: 
 	R (>= 3.2.0),
 	ggplot2,
@@ -31,7 +31,7 @@ Suggests:
 	rgl,
 	rhdf5,
 	sva
-License: What license is it under?
+License: GPL-3
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 6.0.1
