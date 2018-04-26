@@ -25,16 +25,6 @@ From terminal, run:
 
 ### 5. Install required R packages and URD
 
-#### Automated installation
-
-We have a script that will attempt to install all relevant packages for the user. You can run it by typing into the RStudio Console:
-
-```source("https://")```
-
-#### Manual installation
-
-If you prefer more control over the process or encounter problems, you can run individual steps of the installation separately.
-
 ###### A. Install and attach the *devtools* package
 
 *devtools* is required to compile and install URD, since it's distributed through GitHub.
