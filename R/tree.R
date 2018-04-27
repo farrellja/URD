@@ -40,7 +40,8 @@ buildTree <- function(object, pseudotime, tips.use=NULL, divergence.method=c("ks
   object@tree$pseudotime <- object@pseudotime[,pseudotime]
   names(object@tree$pseudotime) <- rownames(object@pseudotime)
   # Initialize segment to add
-  seg.add <- as.character(max(as.numeric(tips)) + 1)
+  seg.add <- as.character(max(suppressWarnings(as.numeric(tips))) + 1)
+  if (is.na(seg.add)) seg.add <- "1" # If none of the tip names were numeric.
   # Grab cells in segments
   cells.in.segments <- putativeCellsInSegment(object, tips, minimum.visits=minimum.visits, visit.threshold=visit.threshold) 
   object@tree$cells.in.segments <- cells.in.segments
