@@ -124,20 +124,17 @@ plotDim <- function(object, label, label.type="search", reduction.use=c("tsne", 
   this.plot <- this.plot + theme_bw() + theme(panel.grid.minor=element_blank(), panel.grid.major=element_blank(), plot.title=element_text(face="bold"))
   
   # Label clusters/groups if desired
-  if (label.clusters) {
+  if (label.clusters && sig.score[[1]]) {
     # Get info about clusters
-    if (sig.score[[1]]) {
-      data.plot$CLUSTER <- data.plot$SIG
-    } else {
-      data.plot$CLUSTER <- object@group[rownames(data.plot)]
-    }
+    data.plot$CLUSTER <- data.plot$SIG
     # Calculate center of each cluster
     k.centers <- aggregate(data.plot[,1:2], by=list(data.plot$CLUSTER), FUN="mean")
     # Add labels
     this.plot <- this.plot + geom_label(data=k.centers, aes_string(x=dim.x, y=dim.y, label="Group.1"), color="black", alpha=0.6, show.legend = F)
   }
+  
+  # Remove legend if desired
   if (!legend) {
-    # Remove legend if desired
     this.plot <- this.plot + guides(color=FALSE, shape=FALSE)
   } else if (sig.score[[1]]) {
     # Otherwise, make the legend points bigger if coloring by a discrete value

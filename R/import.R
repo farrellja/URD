@@ -32,7 +32,6 @@ seuratToURD <- function(seurat.object) {
               gi <- di[which(discrete <= 0.015)]
               ds@meta <- get.data[,m,drop=F]
               ds@group.ids <- get.data[,gi,drop=F]
-              if (!is.null(seurat.object@ident)) ds@group <- seurat.object@ident
             }
             
             # Copy over var.genes

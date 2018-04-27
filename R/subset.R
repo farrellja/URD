@@ -25,15 +25,11 @@ urdSubset <- function(object, cells.keep) {
             # Subset metadata
             object@meta <- object@meta[cells.keep,]
             # Subset groups
-            object@group <- object@group[cells.keep]
             object@group.ids <- object@group.ids[cells.keep, , drop=F]
             # Subset PCA if it's been calculated
             if(!any(dim(object@pca.scores) == 0)) object@pca.scores <- object@pca.scores[cells.keep,]
-            if(length(object@pca.obj) > 0) warn("pca.obj not subsetted.")  ## TO-DO: crop pca.obj
             # Subset tSNE
             if(!any(dim(object@tsne.y) == 0)) object@tsne.y <- object@tsne.y[cells.keep,]
-            # Subset cell names??
-            if(length(object@cell.names) > 0) object@cell.names <- cells.keep
             # Subset gene signatures
             if(!any(dim(object@gene.sig.z) == 0)) object@gene.sig.z <- object@gene.sig.z[cells.keep,]
             #if(!any(dim(object@gene.sig.p) == 0)) object@gene.sig.p <- object@gene.sig.p[cells.keep,]

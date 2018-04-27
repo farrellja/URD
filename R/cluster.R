@@ -98,7 +98,6 @@ graphClustering <- function(object, dim.use=c("pca","dm"), cells.use=NULL, which
     clust.assign = factor(clust.assign, levels=1:length(unique(graph.out$membership)))
     object@meta$clust = NULL
     object@meta[names(clust.assign),"clust"]=clust.assign
-    object@group=clust.assign; names(object@group)=names(clust.assign);               
     
     this.group.id <- paste0(group.id, "-", this.nn)
     object@group.ids[names(clust.assign),this.group.id] <- as.character(clust.assign)

@@ -5,28 +5,81 @@ NULL
 
 #' URD class
 #' 
+#' All information associated with a reconstruction project is stored in an
+#' URD object. Most functions in the URD package take one as input, and many of
+#' them return an URD object that has been operated on. A new URD object is
+#' created using the \code{\link{createURD}} function.
+#' 
+#' @slot count.data (Sparse Matrix) The initially provided count data expression matrix
+#' @slot logupx.data (Sparse Matrix) The normalized and log2-transformed expression matrix
+#' @slot meta (data.frame) Continuous and categorical information about cells provided during object creation
+#' @slot group.ids (data.frame) Categorial information about cells, such as cluster identities and assignment within the tree
+#' @slot var.genes (Character vector) Genes that have been determined as highly variable
+#' @slot pca.load (data.frame) Loading of genes (rows) into principal components (columns)
+#' @slot pca.score (data.frame) Score for each principal component (columns) in each cell (rows)
+#' @slot pca.sdev (Numeric vector) Standard deviation of each principal component
+#' @slot pca.sig (Logical vector) Whether each PC has been determined to be significant
+#' @slot tsne.y (data.frame) tSNE coordinates for each cell (rows)
+#' @slot dm (DiffusionMap from destiny) Diffusion map calculated by destiny
+#' @slot diff.data (data.frame) Visitation frequencies from 
+#' @slot pseudotime (data.frame) Determined pseudotime for each cell (row)
+#' @slot pseudotime.stability (List) Contains pseudotime and visitation for subsets of floods/walks for assaying whether enough simulations have been performed
+#' \describe{
+#'   \item{\code{pseudotime}}{Determined pseudotime for each cell}
+#'   \item{\code{walks.per.cell}}{Number of walks that visited each cell}
+#' }
+#' @slot tree (List) Contains information from building the tree
+#' \describe{
+#'   \item{\code{tips}}{(Vector) The tips used as input into building the tree}
+#'   \item{\code{cells.in.tip}}{(List of character vectors) The cells that belong to each tip}
+#'   \item{\code{pseudotime}}{(Named vector) The pseudotime of each cell used in construction of the tree}
+#'   \item{\code{segments}}{(Vector) All segments present in the final tree}
+#'   \item{\code{segment.pseudotime.limits}}{(data.frame) Start and end pseudotimes for each tree segment}
+#'   \item{\code{segment.joins}}{(data.frame) Parent and child relationships for all segments in the tree and pseudotime of their breakpoints}
+#'   \item{\code{segment.joins.initial}}{(data.frame) Parent and child relationships during construction of the tree -- this data is prior to collapsing any multifurcating branchpoints or removing any segments that are too short or assigned too few cells}
+#'   \item{\code{pseudotime.breakpoint.details}}{(List) Contains information used during the determination of putative pseudotime breakpoints between each pair of segments. Only retained if \code{save.all.breakpoint.info=T} during \code{buildTree}}
+#'   \item{\code{segment.divergence}}{(data.frame) Used during tree building, stores potential breakpoint pseudotime between each pair of segments remaining}
+#'   \item{\code{cells.in.segment}}{(List of character vectors) Cells assigned to each segment of the tree by URD}
+#'   \item{\code{cells.in.nodes}}{(List of character vectors) Cells assigned to each node of the tree by URD}
+#'   \item{\code{node.mean.pseudotime}}{(Named numeric vector) Mean pseudotime of cells in each node}
+#'   \item{\code{node.max.pseudotime}}{(Named numeric vector) Max pseudotime of cells in each node}
+#'   \item{\code{edge.list}}{(data.frame) All node-node edges in the dendrogram}
+#'   \item{\code{tree.igraph}}{(igraph) igraph representation of all segment-segment relationships}
+#'   \item{\code{segment.layout}}{(data.frame) }
+#'   \item{\code{tree.layout}}{(data.frame) Placement of node-node edges on the dendrogram representation}
+#'   \item{\code{cell.layout}}{(data.frame) Placement of cells on the dendrogram representation}
+#'   \item{\code{segment.names}}{(Named vector) Names for each terminal population for use in the dendrogram layout}
+#'   \item{\code{segment.names.short}}{(Named vector) Short names for each terminal population to use in the force-directed layout}
+#'   \item{\code{walks.force.edges}}{(data.frame) k-NN edge list based on visitation frequency used for force-directed layout}
+#'   \item{\code{walks.force.layout}}{(data.frame) 3D coordinates for the force-directed layout}
+#'   \item{\code{force.view.list}}{(List) Stored orientations for displaying the force-directed layout}
+#'   \item{\code{force.view.default}}{(Character) The force-directed view that should be used if none is specified}
+#' }
+#' @slot nmf.g (Sparse or full matrix) Non-negative matrix factorization Gene x Module matrix
+#' @slot nmf.c (Sparse of full matrix) Non-negative matrix factorization Module x Cell matrix
+#' 
 #' @importClassesFrom destiny DiffusionMap
 #' @importClassesFrom Matrix dgCMatrix
+#' 
 #' @exportClass URD
+#' 
+#' @aliases URDclass
+#' @name URDclass
 URD <- methods::setClass("URD", slots = c(
   count.data=c("dgCMatrix", NULL), 
   logupx.data=c("dgCMatrix", NULL), 
   meta="data.frame", 
-  group="vector", 
   group.ids="data.frame", 
-  active.group="character",
-  pca.obj="list", 
+  var.genes="vector", 
+  knn="list",
   pca.sdev="vector", 
   pca.load="data.frame", 
   pca.scores="data.frame", 
   pca.sig="vector", 
   tsne.y="data.frame", 
-  cell.names="vector", 
+  plot.3d="list",
   gene.sig.z="data.frame", 
   dm=c("DiffusionMap",NULL), 
-  var.genes="vector", 
-  knn="list",
-  plot.3d="list",
   diff.data="data.frame", 
   pseudotime="data.frame",
   pseudotime.stability="list", 
@@ -141,7 +194,6 @@ createURD <- function(count.data, meta=NULL, min.cells=3, min.genes=500, min.cou
   names(initial.group) <- colnames(object@logupx.data)
   object@group.ids <- data.frame(initial.group)
   names(object@group.ids) <- "init"
-  object@active.group <- "init"
   
   # Set up the metadata
   object@meta <- data.frame(n.Genes=num.genes[colnames(object@count.data)])
