@@ -3,7 +3,7 @@
 #' This performs principal component analysis on centered and scaled expression data,
 #' which is stored in \code{@@pca.scores} and \code{@@pca.load}. Then, the principal components
 #' that are significant are estimated using the Marchenko Pastur Law (by calling
-#' \code{\link{pca.marchenko.pastur}}, which is stored in \code{@@pca.sig}. By default, 
+#' \code{\link{pcaMarchenkoPastur}}, which is stored in \code{@@pca.sig}. By default, 
 #' twice as many PCs are saved as are determined as significant, which can be adjusted
 #' with the \code{store.thresh} parameter.
 #' 
@@ -74,7 +74,7 @@ calcPCA <- function(object, genes.use=object@var.genes, pcs.store=NULL, store.th
 #' significant principal components (PCs) as those with eigenvalues greater than
 #' the maximum eigenvalue predicted for random data. This function assumes that
 #' the data has mean 0 and variance 1 (i.e. that the data has been centered and
-#' scaled). This called automatically by \code{\link{calc.PCA}} and the results
+#' scaled). This called automatically by \code{\link{calcPCA}} and the results
 #' are stored in slot \code{pca.sig}.
 #' 
 #' @param M (Numeric) Number of rows in input data

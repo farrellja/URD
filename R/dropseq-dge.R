@@ -218,7 +218,7 @@ txReadDGE <- function(output.path, dge.name=NULL, cells.read=NULL, name.by=c("ge
 #' in another sample.
 #' @param list.dge (List) List of DGEs
 #' @return Sparse matrix (dgCMatrix) with rows as genes and columns as cells.
-#' @seealso \code{\link{ds.read.dge}} to read in DGEs to provide in \code{list.dge}.
+#' @seealso \code{\link{dsReadDGE}} to read in DGEs to provide in \code{list.dge}.
 #' @export
 dsCombineDGE <- function(list.dge) {
   all.gene.names <- sort(unique(unlist(lapply(list.dge, function(x) rownames(x)))))

@@ -18,5 +18,5 @@ in any DGE, and correctly setting values to 0 if that gene was not observed
 in another sample.
 }
 \seealso{
-\code{\link{ds.read.dge}} to read in DGEs to provide in \code{list.dge}.
+\code{\link{dsReadDGE}} to read in DGEs to provide in \code{list.dge}.
 }

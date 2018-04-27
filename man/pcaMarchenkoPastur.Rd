@@ -26,6 +26,6 @@ on the null distribution of eigenvalues for an MxN random matrix. We take
 significant principal components (PCs) as those with eigenvalues greater than
 the maximum eigenvalue predicted for random data. This function assumes that
 the data has mean 0 and variance 1 (i.e. that the data has been centered and
-scaled). This called automatically by \code{\link{calc.PCA}} and the results
+scaled). This called automatically by \code{\link{calcPCA}} and the results
 are stored in slot \code{pca.sig}.
 }
