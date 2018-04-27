@@ -6,9 +6,9 @@
 
 *URD* is a package written in R and designed to be used in the RStudio interactive environment.
 
-R can be obtained and installed from ([https://cran.rstudio.com](https://cran.rstudio.com)). 
+R can be obtained and installed from [https://cran.rstudio.com](https://cran.rstudio.com). 
 
-Following installation of R, Rstudio can be obtained and installed from ([https://www.rstudio.com/products/rstudio/download/](https://www.rstudio.com/products/rstudio/download/)). The free version of RStudio Desktop is sufficient.
+Following installation of R, Rstudio can be obtained and installed from [https://www.rstudio.com/products/rstudio/download/](https://www.rstudio.com/products/rstudio/download/). The free version of RStudio Desktop is sufficient.
 
 ### 2. Install an X11 window client
 

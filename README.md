@@ -4,6 +4,9 @@
 
 ## URD is currently pre-release software. Version 1.0 will be released **Monday 04/30/2018**.
 
+## Installation
 
+* [INSTALL-MAC.md](INSTALL-MAC.md) Mac Installation Instructions
+* [INSTALL-Windows.md](INSTALL-Windows.md) Windows Installation Instructions
 
 	
