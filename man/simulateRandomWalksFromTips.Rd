@@ -29,5 +29,5 @@ simulateRandomWalksFromTips(object, tip.group.id, root.cells, transition.matrix,
 List (of tips) of lists (of walk paths) of character vectors
 }
 \description{
-Simulate Random Walks From All Tips
+This automates
 }

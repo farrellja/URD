@@ -1,17 +1,50 @@
-#' Determine logistic parameters
+#' Determine logistic parameters for biasing transition matrix
+#' 
+#' This determines the slope and inflection point of the logistic function used
+#' to bias the transition probabilities, based on the pseudotimes of cells in the
+#' data.
+#' 
+#' For determining the developmental trajectories, it is critical to ensure that when walks reach a
+#' branchpoint in the data, they continue toward the root, rather than turning down the path toward
+#' a different differentiated population. Thus, we convert the undirected graph defined by the 
+#' transition probabilities into a directed graph where transitions are much more likely to 
+#' earlier or equally pseudotimed cells than to later pseudotimed cells (which would 
+#' correspond to a different, more differentiated branch). To do this, we biased the 
+#' transition probabilities between each pair of cells by multiplying the original 
+#' transition probabilities with a factor that ranges from 0 to 1. These factors are 
+#' obtained by transforming the difference in pseudotime between the two cells with 
+#' a logistic function. This function uses the average difference in pseudotime 
+#' between cells that are \code{optimal.cells.forward} and \code{max.cells.back} 
+#' apart (when all cells in the data are ranked according to pseudotime) to determine
+#' \code{k} and \code{x0} for the logistic function.
 #' 
 #' @param object An URD object
-#' @param pseudotime (Character)
-#' @param optimal.cells.forward (Numeric)
-#' @param max.cells.back (Numeric)
-#' @param pseudotime.direction (Character: "<" or ">")
-#' @param asymptote (Numeric)
-#' @param do.plot (Logical)
-#' @param print.values (Logical)
-#' @return Logistic parameters
+#' @param pseudotime (Character) Name of pseudotime to use for biasing (i.e. a column name of \code{@@pseudotime})
+#' @param optimal.cells.forward (Numeric) The number of cells in the direction specified by \code{pseudotime.direction} at which the logistic should reach 1-\code{asymptote}.
+#' @param max.cells.back (Numeric) The number of cells in the direction opposite from that specified by \code{pseudotime.direction} at which the logistic should reach \code{asymptote}.
+#' @param pseudotime.direction (Character: "<" or ">") Which direction to bias the transition probabilities (\code{"<"} is default, which biases them to move toward cells with younger pseudotime.)
+#' @param do.plot (Logical) Should the logistic function be plotted?
+#' @param print.values (Logical) Should the values determined for the logistic be printed?
+#' 
+#' @return A list: Logistic parameters to use in \code{\link{pseudotimeWeightTransitionMatrix}}.
+#' 
+#' @examples 
+#' # Determine parameters of logistic function
+#' diffusion.logistic <- pseudotimeDetermineLogistic(object, "pseudotime", optimal.cells.forward = 40, max.cells.back = 80, pseudotime.direction = "<", do.plot = T, print.values = T)
+#' 
+#' # Generate biased transition matrix
+#' biased.tm <- pseudotimeWeightTransitionMatrix(object, pseudotime = "pseudotime", logistic.params = diffusion.logistic, pseudotime.direction = "<")
+#' 
+#' # Simulate random walks
+#' these.walks <- simulateRandomWalk(start.cells = tip.10.cells, transition.matrix = biased.tm, end.cells = root.cells, n = 50000, end.visits = 1, verbose.freq = 2500, max.steps = 5000)
+#' 
+#' # Process walks into visitation frequency
+#' object <- processRandomWalks(object, walks = these.walks, walks.name = "10", verbose = F)
+#' 
 #' @export
 
-pseudotimeDetermineLogistic <- function(object, pseudotime, optimal.cells.forward, max.cells.back, pseudotime.direction=">", asymptote=0.01, do.plot=T, print.values=T) {
+pseudotimeDetermineLogistic <- function(object, pseudotime, optimal.cells.forward, max.cells.back, pseudotime.direction="<", do.plot=T, print.values=T) {
+  asymptote=0.01
   if (pseudotime.direction == ">") {
     sort.dec <- FALSE
   } else if (pseudotime.direction == "<") {
@@ -41,15 +74,36 @@ pseudotimeDetermineLogistic <- function(object, pseudotime, optimal.cells.forwar
 
 #' Weight transition matrix by pseudotime
 #' 
+#' This takes the matrix of transition probabilities and biases them according to
+#' the difference in pseudotime between each pair of cells. The parameters of the
+#' logistic function can be manually chosen or determined using \code{\link{pseudotimeDetermineLogistic}}.
+#' The biased transition matrix is used as input to \code{\link{simulateRandomWalk}} or
+#' \code{\link{simulateRandomWalksFromTips}}.
+#' 
 #' @param object An URD object
-#' @param pseudotime (Character)
-#' @param x0 (Numeric)
-#' @param k (Numeric)
-#' @param logistic.params (List)
-#' @param pseudotime.direction (Character: ">" or "<")
+#' @param pseudotime (Character) Name of pseudotime to use for biasing (i.e. a column name of \code{@@pseudotime})
+#' @param x0 (Numeric) Inflection point of the logistic function (in terms of pseudotime difference). Can be left \code{NULL} if \code{logistic.params} is specified.
+#' @param k (Numeric) Slope of the logistic function. Can be left \code{NULL} if \code{logistic.params} is specified.
+#' @param logistic.params (List) Output from \code{\link{pseudotimeDetermineLogistic}} that specifies both \code{x0} and \code{k}.
+#' @param pseudotime.direction (Character: ">" or "<") Which direction to bias the transition probabilities (\code{"<"} is default, which biases them to move toward cells with younger pseudotime.)
+#' 
 #' @return Sparse Matrix (dgCMatrix) of transition probabilities, weighted by pseudotime
+#' 
+#' @examples 
+#' # Determine parameters of logistic function
+#' diffusion.logistic <- pseudotimeDetermineLogistic(object, "pseudotime", optimal.cells.forward = 40, max.cells.back = 80, pseudotime.direction = "<", do.plot = T, print.values = T)
+#' 
+#' # Generate biased transition matrix
+#' biased.tm <- pseudotimeWeightTransitionMatrix(object, pseudotime = "pseudotime", logistic.params = diffusion.logistic, pseudotime.direction = "<")
+#' 
+#' # Simulate random walks
+#' these.walks <- simulateRandomWalk(start.cells = tip.10.cells, transition.matrix = biased.tm, end.cells = root.cells, n = 50000, end.visits = 1, verbose.freq = 2500, max.steps = 5000)
+#' 
+#' # Process walks into visitation frequency
+#' object <- processRandomWalks(object, walks = these.walks, walks.name = "10", verbose = F)
+#' 
 #' @export
-pseudotimeWeightTransitionMatrix <- function(object, pseudotime, x0=NULL, k=NULL, logistic.params=NULL, pseudotime.direction=">") {
+pseudotimeWeightTransitionMatrix <- function(object, pseudotime, x0=NULL, k=NULL, logistic.params=NULL, pseudotime.direction="<") {
   # Check that pseudotime.direction is valid
   if (!(pseudotime.direction %in% c(">", "<"))) stop ("pseudotime.direction parameter must be either \">\" or \"<\"")
   # Unpack logistic.params
@@ -78,17 +132,39 @@ pseudotimeWeightTransitionMatrix <- function(object, pseudotime, x0=NULL, k=NULL
 
 #' Simulate random walks
 #' 
+#' In order to find each developmental trajectory, biased random walks are used to
+#' find the paths through the data that connect particular tips to the root. This function
+#' simulates random walks from a given starting population (usually cells in a tip) to
+#' a given ending population (usually the cells in the root), using connections in
+#' the provided transition matrix (usually biased by \code{\link{pseudotimeWeightTransitionMatrix}}).
+#' The output is then turned into visitation frequency by the function \code{\link{processRandomWalks}}.
 #' 
+#' This function can be accelerated about 10-fold by using a full matrix of transition
+#' probabilities, rather than a sparse one, though at the cost of using large amounts
+#' of RAM for data sets with many cells.
 #' 
-#' @param start.cells (Character vector) Cells to use as a starting pool. One is chosen at random.
-#' @param transition.matrix (Matrix or Sparse Matrix) Transition matrix 
-#' @param end.cells (Character vector)
+#' @param start.cells (Character vector) Cells to use as a starting pool. One cell is chosen at random each simulation.
+#' @param transition.matrix (Matrix or Sparse Matrix) Transition matrix (generally biased by \code{\link{pseudotimeWeightTransitionMatrix}}.)
+#' @param end.cells (Character vector) Stop the random walks when they visit these cells. (Usually the root cells.)
 #' @param n (Numeric) Number of walks to simulate
 #' @param end.visits (Numeric) Number of visits to end.cells to do before stopping
 #' @param verbose.freq (Numeric) Print a progress update, every \code{verbose.freq} walks. If 0, no progress updates are reported.
 #' @param max.steps (Numeric) Maximum number of steps to take before aborting the walk, making the assumption that the walk has somehow gotten stuck. Returns \code{NULL} for those walks.
 #' 
 #' @return (Character vector) Names of cells visited during the random walk.
+#' 
+#' @examples 
+#' # Determine parameters of logistic function
+#' diffusion.logistic <- pseudotimeDetermineLogistic(object, "pseudotime", optimal.cells.forward = 40, max.cells.back = 80, pseudotime.direction = "<", do.plot = T, print.values = T)
+#' 
+#' # Generate biased transition matrix
+#' biased.tm <- pseudotimeWeightTransitionMatrix(object, pseudotime = "pseudotime", logistic.params = diffusion.logistic, pseudotime.direction = "<")
+#' 
+#' # Simulate random walks
+#' these.walks <- simulateRandomWalk(start.cells = tip.10.cells, transition.matrix = biased.tm, end.cells = root.cells, n = 50000, end.visits = 1, verbose.freq = 2500, max.steps = 5000)
+#' 
+#' # Process walks into visitation frequency
+#' object <- processRandomWalks(object, walks = these.walks, walks.name = "10", verbose = F)
 #' 
 #' @export
 simulateRandomWalk <- function(start.cells, transition.matrix, end.cells, n=10000, end.visits=1, verbose.freq=0, max.steps=5000) {
@@ -120,6 +196,8 @@ simulateRandomWalk <- function(start.cells, transition.matrix, end.cells, n=1000
 }
 
 #' Simulate Random Walks From All Tips
+#' 
+#' This automates 
 #' 
 #' @param object An URD object
 #' @param tip.group.id (Character) The name of the clustering that defines tips

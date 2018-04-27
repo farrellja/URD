@@ -8,11 +8,11 @@ simulateRandomWalk(start.cells, transition.matrix, end.cells, n = 10000,
   end.visits = 1, verbose.freq = 0, max.steps = 5000)
 }
 \arguments{
-\item{start.cells}{(Character vector) Cells to use as a starting pool. One is chosen at random.}
+\item{start.cells}{(Character vector) Cells to use as a starting pool. One cell is chosen at random each simulation.}
 
-\item{transition.matrix}{(Matrix or Sparse Matrix) Transition matrix}
+\item{transition.matrix}{(Matrix or Sparse Matrix) Transition matrix (generally biased by \code{\link{pseudotimeWeightTransitionMatrix}}.)}
 
-\item{end.cells}{(Character vector)}
+\item{end.cells}{(Character vector) Stop the random walks when they visit these cells. (Usually the root cells.)}
 
 \item{n}{(Numeric) Number of walks to simulate}
 
@@ -26,5 +26,29 @@ simulateRandomWalk(start.cells, transition.matrix, end.cells, n = 10000,
 (Character vector) Names of cells visited during the random walk.
 }
 \description{
-Simulate random walks
+In order to find each developmental trajectory, biased random walks are used to
+find the paths through the data that connect particular tips to the root. This function
+simulates random walks from a given starting population (usually cells in a tip) to
+a given ending population (usually the cells in the root), using connections in
+the provided transition matrix (usually biased by \code{\link{pseudotimeWeightTransitionMatrix}}).
+The output is then turned into visitation frequency by the function \code{\link{processRandomWalks}}.
+}
+\details{
+This function can be accelerated about 10-fold by using a full matrix of transition
+probabilities, rather than a sparse one, though at the cost of using large amounts
+of RAM for data sets with many cells.
+}
+\examples{
+# Determine parameters of logistic function
+diffusion.logistic <- pseudotimeDetermineLogistic(object, "pseudotime", optimal.cells.forward = 40, max.cells.back = 80, pseudotime.direction = "<", do.plot = T, print.values = T)
+
+# Generate biased transition matrix
+biased.tm <- pseudotimeWeightTransitionMatrix(object, pseudotime = "pseudotime", logistic.params = diffusion.logistic, pseudotime.direction = "<")
+
+# Simulate random walks
+these.walks <- simulateRandomWalk(start.cells = tip.10.cells, transition.matrix = biased.tm, end.cells = root.cells, n = 50000, end.visits = 1, verbose.freq = 2500, max.steps = 5000)
+
+# Process walks into visitation frequency
+object <- processRandomWalks(object, walks = these.walks, walks.name = "10", verbose = F)
+
 }
