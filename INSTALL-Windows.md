@@ -20,6 +20,8 @@ We wrote a script that will attempt to install all requirements for URD and then
 
 ## Troubleshooting: 
 
+### Manual installation
+
 If something went wrong previously, you may have try installing some of URD's dependencies manually:
 
 ###### A. Install and attach the *devtools* package
