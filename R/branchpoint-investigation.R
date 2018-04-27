@@ -19,7 +19,16 @@
 #' 
 #' @export
 branchpointDetailsVisitTsne <- function(object, seg.1, seg.2, file=NULL, file.width=750, file.height=600) {
-  pbd <- object@tree$pseudotime.breakpoint.details[[paste0(seg.1, "-", seg.2)]]
+  # Check whether seg.1 and seg.2 need to be switched
+  if (paste0(seg.1, "-", seg.2) %in% names(object@tree$pseudotime.breakpoint.details)) {
+    pbd.name <- paste0(seg.1, "-", seg.2)
+  } else if (paste0(seg.2, "-", seg.2) %in% names(object@tree$pseudotime.breakpoint.details)) {
+    pbd.name <- paste0(seg.2, "-", seg.1)
+    seg.switch <- seg.1; seg.1 <- seg.2; seg.2 <- seg.switch
+  } else {
+    stop("A comparison between segments ", seg.1, " and ", seg.2, " was not found.")
+  }
+  pbd <- object@tree$pseudotime.breakpoint.details[[pbd.name]]
   plots <- lapply(1:length(pbd$cells.in.windows), function(pt.window) {
     cells <- pbd$cells.in.windows[[pt.window]]
     object@diff.data$visitfreq.log.seg1 <- NA
@@ -62,8 +71,17 @@ branchpointDetailsVisitTsne <- function(object, seg.1, seg.2, file=NULL, file.wi
 #' 
 #' @export
 branchpointDetailsVisitDist <- function(object, seg.1, seg.2, file=NULL, file.width=375, file.height=300) {
+  # Check whether seg.1 and seg.2 need to be switched
+  if (paste0(seg.1, "-", seg.2) %in% names(object@tree$pseudotime.breakpoint.details)) {
+    pbd.name <- paste0(seg.1, "-", seg.2)
+  } else if (paste0(seg.2, "-", seg.2) %in% names(object@tree$pseudotime.breakpoint.details)) {
+    pbd.name <- paste0(seg.2, "-", seg.1)
+    seg.switch <- seg.1; seg.1 <- seg.2; seg.2 <- seg.switch
+  } else {
+    stop("A comparison between segments ", seg.1, " and ", seg.2, " was not found.")
+  }
   # Get breakpoint details out of object
-  pbd <- object@tree$pseudotime.breakpoint.details[[paste0(seg.1, "-", seg.2)]]
+  pbd <- object@tree$pseudotime.breakpoint.details[[pbd.name]]
   # Make a plot for each window
   plots <- lapply(1:length(pbd$cells.in.windows), function(pt.window) {
     cells <- pbd$cells.in.windows[[pt.window]]
@@ -112,9 +130,16 @@ branchpointDetailsVisitDist <- function(object, seg.1, seg.2, file=NULL, file.wi
 #' 
 #' @export
 branchpointDetailsPreferenceDist <- function(object, seg.1, seg.2, file=NULL, file.width=375, file.height=300) {
-  if (length(test) > 1) test <- test[1]
+  # Check whether seg.1 and seg.2 need to be switched
+  if (paste0(seg.1, "-", seg.2) %in% names(object@tree$pseudotime.breakpoint.details)) {
+    pbd.name <- paste0(seg.1, "-", seg.2)
+  } else if (paste0(seg.2, "-", seg.2) %in% names(object@tree$pseudotime.breakpoint.details)) {
+    pbd.name <- paste0(seg.2, "-", seg.1)
+  } else {
+    stop("A comparison between segments ", seg.1, " and ", seg.2, " was not found.")
+  }
   # Get breakpoint details out of object
-  pbd <- object@tree$pseudotime.breakpoint.details[[paste0(seg.1, "-", seg.2)]]
+  pbd <- object@tree$pseudotime.breakpoint.details[[pbd.name]]
   # Make a plot for each window
   plots <- lapply(1:length(pbd$cells.in.windows), function(pt.window) {
     cells <- pbd$cells.in.windows[[pt.window]]
@@ -130,7 +155,7 @@ branchpointDetailsPreferenceDist <- function(object, seg.1, seg.2, file=NULL, fi
     n.cols=ceiling(sqrt(length(pbd$cells.in.windows)))
     n.rows=ceiling(length(pbd$cells.in.windows) / n.cols)
     png(file=file, width=file.width*n.cols, height=file.height*n.rows)
-    gridExtra::grid.arrange(grobs=plots, ncol=ceiling(sqrt(length(pbd$cells.in.windows))), top=paste0(seg.1, " vs ", seg.2))
+    gridExtra::grid.arrange(grobs=plots, ncol=ceiling(sqrt(length(pbd$cells.in.windows))), top=pbd.name)
     dev.off()
   }
 }
