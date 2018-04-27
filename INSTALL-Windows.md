@@ -1,6 +1,6 @@
-# Installing URD (Mac OS X):
+# Installing URD (Windows):
 
-## Quick Installation
+## Quick installation
 
 ### 1. Install R and RStudio
 
@@ -9,20 +9,18 @@
 R can be obtained and installed from ([https://cran.rstudio.com](https://cran.rstudio.com)). 
 
 Following installation of R, Rstudio can be obtained and installed from ([https://www.rstudio.com/products/rstudio/download/](https://www.rstudio.com/products/rstudio/download/)). The free version of RStudio Desktop is sufficient.
+        
+### 2. Start RStudio
 
-### 2. Install an X11 window client
-
-3D plots produced by URD require an X11 windowing client to display. Our favorite for Mac is XQuartz ([https://www.xquartz.org](https://www.xquartz.org)). After installation, restart your computer.
-
-### 3. Start RStudio
-
-### 4. Install required R packages and URD
+### 3. Install required R packages and URD
 
 We wrote a script that will attempt to install all requirements for URD and then URD itself.
 
 ```source("https://raw.githubusercontent.com/farrellja/URD/master/URD-Install.R")```
 
-## Troubleshooting
+## Troubleshooting: 
+
+If something went wrong previously, you may have try installing some of URD's dependencies manually:
 
 ###### A. Install and attach the *devtools* package
 
@@ -35,7 +33,7 @@ We wrote a script that will attempt to install all requirements for URD and then
 Because these packages are deposited in Bioconductor and not CRAN, they must be installed manually before installing URD (otherwise its installation will fail.)
 
 ```source("https://bioconductor.org/biocLite.R")```
-```biocLite(c('Biobase', 'S4Vectors', 'AnnotationDbi', 'destiny'))```
+```biocLite(c('Biobase', 'S4Vectors', 'AnnotationDbi', 'destiny')```
 
 Optionally, additional packages that are required for specific functions can be installed.
 
@@ -52,9 +50,4 @@ If installing on a cluster, where you do not have write permissions to the main 
 ```library(devtools)```
 ```install_github(repo="farrellja/URD")```
 
-### 3. Increase number of DLLs available to R
-
-R has limit on the number of DLLs that can be loaded by linked packages. Currently, URD's dependencies require more DLLs than is allowed in a default installation of R. To increase the number of simultaneously allowed DLLs from 100 to 150, the *.Renviron* file must be modified.
-
-From terminal, run:
-```echo "R_MAX_NUM_DLLS=150" >> ~/.Renviron```	
+	
