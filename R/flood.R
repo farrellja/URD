@@ -164,6 +164,29 @@ floodPseudotime <- function(object, root.cells, n=20, minimum.cells.flooded=2, t
 #' 
 #' @export
 floodPseudotimeProcess <- function(object, floods, floods.name="flood", max.frac.NA=0.4, pseudotime.fun=mean, stability.div=10) {
+  # Make sure that @diff.data and @pseudotime were previously initialized.
+  if (nrow(object@diff.data) == 0) {
+    warning("Initializing @diff.data, though this should have been previously initialized by creation or importation of diffusion map.")
+    # Make sure that a diffusion map is loaded.
+    if (nrow(object@dm@eigenvectors) == 0) {
+      stop("Make sure your diffusion map is loaded into the object (calcDM or importDM)")
+    }
+    # Initialize the diff.data data frame
+    object@diff.data <- data.frame(
+      row.names = rownames(dm@eigenvectors)
+    )
+  }
+  if (nrow(object@pseudotime) == 0) {
+    warning("Initializing @pseudotime, though this should have been previously initialized by creation or importation of diffusion map.")
+    # Make sure that a diffusion map is loaded.
+    if (nrow(object@dm@eigenvectors) == 0) {
+      stop("Make sure your diffusion map is loaded into the object (calcDM or importDM)")
+    }
+    # Initialize the pseudotime data frame
+    object@pseudotime <- data.frame(
+      row.names = rownames(dm@eigenvectors)
+    )
+  }
   # Make sure that for tips this doesn't accidentally refer to a columns index.
   floods.name <- as.character(floods.name)
   # If floods is a list of data.frames, combine them into a single data.frame
