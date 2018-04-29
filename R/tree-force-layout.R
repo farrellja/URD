@@ -356,6 +356,152 @@ plotTreeForce <- function(object, label, label.type="search", view="default", al
   }
 }
 
+#' Plot force-directed layout of tree
+#' 
+#' This plots data on the force-directed layout of an URD tree, gerenated by \code{\link{treeForceDirectedLayout}}.
+#' 
+#' @param object An URD object
+#' @param label.red (Character) Data to use for coloring tree (red channel) (see \link{data.for.plot})
+#' @param label.green (Character) Data to use for coloring tree (green channel) (see \link{data.for.plot})
+#' @param label.type.red (Character) Where to find data for red channel label (default \code{"search"} auto-detects, see \link{data.for.plot})
+#' @param label.type.green (Character) Where to find data for green channel label (default \code{"search"} auto-detects, see \link{data.for.plot})
+#' @param view (Character) Name of view to use (i.e. the name of an entry in \code{@@tree$force.view.list}) created by \link{plotTreeForceStore3DView}. Default is last view created.
+#' @param alpha (Numeric) Maximum transparency of points
+#' @param alpha.fade (Numeric) Minimum transparency of points
+#' @param size (Numeric) Size of points in the plot
+#' @param title (Character) Title to add to the plot. (This is sensitive to resizing the window after plotting, but if a view is stored, the window will be resized before the title is added, so it will be acceptable resolution for figures.)
+#' @param title.cex (Numeric) Adjust the title font size
+#' @param title.line (Numeric) Adjust the position of the title. Positive numbers move the title upward.
+#' @param label.tips (Logical) Should text identifying the tips of the tree be placed in the force directed layout? Defaults to TRUE if \code{@@tree$segment.names} has been set.
+#' @param use.short.names (Logical) Should short names from \code{@@tree$segment.names.short} be used? Defaults to TRUE if those values have been set.
+#' @param seg.show (Character vector) Segments of the tree to put on the plot (Default \code{NULL} is all segments)
+#' @param cells.show (Character vector) Cells of the tree to show (Default \code{NULL} is all cells)
+#' @param fade.below (Numeric) If desired, transparency can be lowered for points with low expression values (thereby highlighting the portions of the tree with expression). This value is the portion of the range of expression values to fade. (The default, 1/3, fades the bottom third of the expression values.) A fully 'faded' point will have alpha of \code{alpha.fade}.
+#' @param fade.method (Character: "max", "min", or "mean") Should fade be calculated on max expression of the two labels (emphasize any cells expressing either label), min expression of the two labels (emphasize only cells co-expressing both labels), or mean expression
+#' @param density.alpha (Logical) Should points with short distance to nearest neighbors (i.e. in denser regions of the plot) be more transparent?
+#' @param label.spacing (Numeric) How far should labels be from the detected tips
+#' @param text.cex (Numeric) Size of the label text
+#' 
+#' @return Nothing. Produces a plot using the \code{rgl} package, displayed in an X11 window.
+#' 
+#' @export
+plotTreeForceDual <- function(object, label.red, label.green, label.red.type="search", label.green.type="search", view="default", alpha=0.8, alpha.fade=0.025, size=5, title=NULL, title.cex=3, title.line=0, label.tips=(!is.null(object@tree$segment.names) | !is.null(object@tree$segment.names.short)), use.short.names=!is.null(object@tree$segment.names.short), seg.show=NULL, cells.show=NULL, fade.below=(1/3), fade.method=c("max", "min", "mean"), density.alpha=T, label.spacing=5, text.cex=0.8) {
+  
+  if (requireNamespace("rgl", quietly = TRUE)) {
+    
+    # Figure out which view to use
+    if (!is.null(view)) {
+      if (view=="default") {
+        if ("force.view.default" %in% names(object@tree)) view <- object@tree$force.view.default
+        else view <- NULL
+      }
+      view <- object@tree$force.view.list[[view]]
+    }
+    
+    # Get layout data
+    gg.data <- object@tree$walks.force.layout
+    gg.data$segment <- object@diff.data[rownames(gg.data),"segment"]
+    
+    # Get expression data
+    red.data <- data.for.plot(object=object, label=label.red, label.type=label.red.type, as.single.color = T, as.discrete.list=T, cells.use=rownames(gg.data))
+    green.data <- data.for.plot(object=object, label=label.green, label.type=label.green.type, as.single.color = T, as.discrete.list=T, cells.use=rownames(gg.data))
+    if (red.data$discrete | green.data$discrete) stop("For dual-color plots, both labels must be continuous values.")
+    gg.data$expression <- rgb(red.data$data, green.data$data, 0)
+    gg.data$alpha <- alpha
+    gg.data$size <- size
+    
+    # Focus on expression
+    # For this, grey out any thing below focus, set alpha low for those, and increase progressively until 2*focus.
+    if (fade.below > 0) {
+      # Figure out value for fading
+      if (length(fade.method) > 1) fade.method <- fade.method[1]
+      if (tolower(fade.method) == "max") {
+        # Use max of red or green for fading
+        expression.data <- pmax(red.data$data, green.data$data)
+      } else if (tolower(fade.method) == "min") {
+        # Use min of red or green for fading
+        expression.data <- pmin(red.data$data, green.data$data)
+      } else if (tolower(fade.method) == "mean") {
+        # Use min of red or green for fading
+        expression.data <- apply(data.frame(red.data$data, green.data$data), 1, mean)
+      } else {
+        stop("fade.method must be max, min, or mean.")
+      }
+      # Adjust gg.data
+      fade <- (fade.below - expression.data)/fade.below
+      fade[fade < 0] <- 0
+      gg.data$alpha <- alpha - ((alpha-alpha.fade) * fade)
+    }
+    
+    # Open 3D view
+    if (!is.null(view)) {
+      rgl::open3d(
+        zoom=view$rgl.setting$zoom, 
+        scale=view$rgl.setting$scale, 
+        userMatrix=view$rgl.setting$userMatrix, 
+        windowRect=view$rgl.setting$windowRect
+      )
+    } else {
+      rgl::open3d()
+    }
+    
+    # Adjust transparency for local density
+    if (density.alpha) {
+      dr <- range(object@tree$walks.force.layout$n.dist)
+      n.dist <- object@tree$walks.force.layout$n.dist / dr[2]
+      density.adj <- sqrt(n.dist)
+      density.adj <- density.adj / median(density.adj)
+      gg.data$alpha <- gg.data$alpha * density.adj
+    }
+    
+    # Convert alpha to 0 on cells not to show (so the plot size doesn't get changed)
+    if (!is.null(seg.show) & is.null(cells.show)) {
+      segs.show <- segChildrenAll(object, seg.show, include.self=T)
+      cells.show <- rownames(gg.data)[which(gg.data$segment %in% segs.show)]
+    }
+    if (!is.null(cells.show)) {
+      cells.hide <- setdiff(rownames(gg.data), cells.show)
+      gg.data[cells.hide,"alpha"] <- 0
+    }
+    
+    # Add the points to the plot
+    rgl::points3d(x=gg.data$x, y=gg.data$y, z=gg.data$telescope.pt, col=gg.data$expression, alpha=gg.data$alpha, size=size)
+    
+    # Add title to plot
+    if (!is.null(title)) {
+      Sys.sleep(0.1)
+      rgl::bgplot3d({plot.new(); title(main=title, line=title.line, cex.main=title.cex)})
+      Sys.sleep(0.1)
+    }
+    
+    # Add labels to tips
+    if (label.tips) {
+      
+      # Check for existing tree labels
+      if (!is.null(object@tree$walks.force.labels)) {
+        tip.labels <- object@tree$walks.force.labels
+      } else {
+        # If there aren't any, generate some.
+        tip.labels <- treeForcePositionLabels(object)
+      }
+      
+      # Choose short or long labels
+      if (use.short.names) tip.labels$label <- tip.labels$name.short else tip.labels$label <- tip.labels$name
+      
+      # Limit to labels of cells that appear in the plot
+      segs.to.label <- intersect(unique(gg.data[which(gg.data$alpha > 0),"segment"]), tip.labels$seg)
+      tip.labels <- tip.labels[which(tip.labels$seg %in% segs.to.label),]
+      
+      # Add the text
+      rgl::text3d(x=tip.labels$x, y=tip.labels$y, z=tip.labels$z, text=tip.labels$label, adj=0.5, cex=text.cex)
+    }
+    
+    # Add a brief pause to ensure that rendering completes before moving on to next function.
+    Sys.sleep(0.1)
+  } else {
+    stop("Package rgl is required for this function. To install: install.packages('rgl')\n")
+  }
+}
 
 #' Determine position for segment labels in force-directed layout
 #' 
