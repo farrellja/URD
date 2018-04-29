@@ -5,7 +5,7 @@
 #' 
 #' @param object An URD object
 #' @param pseudotime (Character) Pseudotime to use for building tree
-#' @param tips.use (Character vector) Name of tips to use in the final tree (Default is NULL, which uses all tips.)
+#' @param tips.use (Character vector) Name of tips to use in the final tree (Default is NULL, which uses all tips.) Currently, these should all be numeric -- the tree building function will fail otherwise.
 #' @param divergence.method (Character: "ks" or "preference") Test to use to determine whether visitation has diverged for each pseudotime window.
 #' @param cells.per.pseudotime.bin (Numeric) Approximate number of cells to assign to each pseudotime bin for branchpoint finding.
 #' @param bins.per.pseudotime.window (Numeric) Width of moving window in pseudotime used for branchpoint finding, in terms of bins.

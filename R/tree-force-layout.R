@@ -183,6 +183,8 @@ treeForceDirectedLayout <- function(object, num.nn=NULL, pseudotime, method=c("f
     rownames(object@tree$walks.force.layout.3d) <- V(igraph.walk.weights)$name
   }
   
+  object@tree$walks.force.labels <- treeForcePositionLabels(object)
+  
   # Return the object
   if (verbose) print(paste0(Sys.time(), ": Finished."))
   return(object)
@@ -305,7 +307,7 @@ plotTreeForce <- function(object, label, label.type="search", view="default", al
       gg.data$alpha <- gg.data$alpha * density.adj
     }
     
-    # Exclude 
+    # Convert alpha to 0 on cells not to show (so the plot size doesn't get changed)
     if (!is.null(seg.show) & is.null(cells.show)) {
       segs.show <- segChildrenAll(object, seg.show, include.self=T)
       cells.show <- rownames(gg.data)[which(gg.data$segment %in% segs.show)]
@@ -322,32 +324,26 @@ plotTreeForce <- function(object, label, label.type="search", view="default", al
     if (!is.null(title)) {
       Sys.sleep(0.1)
       rgl::bgplot3d({plot.new(); title(main=title, line=title.line, cex.main=title.cex)})
+      Sys.sleep(0.1)
     }
     
     # Add labels to tips
     if (label.tips) {
       
-      # Grab the final tips
-      tip.labels <- data.frame(
-        tip=unique(setdiff(object@tree$segment.joins$child, object@tree$segment.joins$parent)),
-        stringsAsFactors=F, row.names=unique(setdiff(object@tree$segment.joins$child, object@tree$segment.joins$parent))
-      )
+      # Check for existing tree labels
+      if (!is.null(object@tree$walks.force.labels)) {
+        tip.labels <- object@tree$walks.force.labels
+      } else {
+        # If there aren't any, generate some.
+        tip.labels <- treeForcePositionLabels(object)
+      }
       
-      # Figure out the actual label for each tip
-      tip.labels$label <- unlist(lapply(tip.labels$tip, function(tip) {
-        if (use.short.names) object@tree$segment.names.short[tip] else object@tree$segment.names[tip]
-      }))
+      # Choose short or long labels
+      if (use.short.names) tip.labels$label <- tip.labels$name.short else tip.labels$label <- tip.labels$name
       
-      # Figure out the location for each label by projecting out the vector at the end of each tip
-      tip.labels[,c("x","y","z")] <- t(as.data.frame(lapply(tip.labels$tip, function(tip) {
-        #cells.in.tip <- rownames(object@diff.data)[which(object@diff.data[rownames(object@tree$walks.force.layout),"segment"] == tip)]
-        cells.in.tip <- rownames(gg.data)[gg.data$segment == tip]
-        cell.pt.order <- cells.in.tip[order(object@tree$pseudotime[cells.in.tip], decreasing = T)]
-        tip.vec <- as.numeric(apply(gg.data[c(cell.pt.order[1],cell.pt.order[5]),c("x","y","telescope.pt")], 2, diff))
-        s <- sqrt(label.spacing^2/(tip.vec[1]^2+tip.vec[2]^2+tip.vec[3]^2))
-        tip.vec <- s*tip.vec
-        return(apply(rbind(as.numeric(gg.data[cell.pt.order[1],c("x","y","telescope.pt")]), tip.vec), 2, sum))
-      })))
+      # Limit to labels of cells that appear in the plot
+      segs.to.label <- intersect(unique(gg.data[which(gg.data$alpha > 0),"segment"]), tip.labels$seg)
+      tip.labels <- tip.labels[which(tip.labels$seg %in% segs.to.label),]
       
       # Add the text
       rgl::text3d(x=tip.labels$x, y=tip.labels$y, z=tip.labels$z, text=tip.labels$label, adj=0.5, cex=text.cex)
@@ -358,6 +354,61 @@ plotTreeForce <- function(object, label, label.type="search", view="default", al
   } else {
     stop("Package rgl is required for this function. To install: install.packages('rgl')\n")
   }
+}
+
+
+#' Determine position for segment labels in force-directed layout
+#' 
+#' Finds cells near the end of each tip, and attempts to calculate a vector from
+#' them to determine a good location for a label near each tip. Called automatically
+#' by \code{\link{treeForceDirectedLayout}}, but can be re-run if needed.
+#' 
+#' @param object An URD object
+#' @param label.spacing (Numeric) Length of vector from final cell in each tip to label
+#' 
+#' @return A data.frame with rows as tips, and columns containing labels and coordinates.
+#' This is normally stored in \code{@@tree$walks.force.labels}.
+#' 
+#' @examples 
+#' object@tree$walks.force.labels <- treeForcePositionLabels(object, label.spacing=2) # Move labels closer
+#' 
+#' @export
+treeForcePositionLabels <- function(object, label.spacing=5) {
+  
+  # Grab the tips and their names
+  tip.labels <- data.frame(
+    seg=segTerminal(object),
+    name=object@tree$segment.names[segTerminal(object)],
+    name.short=object@tree$segment.names.short[segTerminal(object)],
+    stringsAsFactors=F, row.names=segTerminal(object)
+  )
+  
+  # Anything that wasn't assigned a name previously: NA -> blank
+  tip.labels[is.na(tip.labels)] <- ""
+  
+  # Get force-directed layout and add segment and pseudotime information
+  fdl.data <- object@tree$walks.force.layout
+  fdl.data$segment <- object@diff.data[rownames(fdl.data),"segment"]
+  fdl.data$pseudotime <- object@tree$pseudotime[rownames(fdl.data)]
+  
+  # Order fdl data by pseudotime
+  fdl.data <- fdl.data[order(fdl.data$pseudotime, decreasing=T),]
+  
+  # Figure out the location for each label by projecting out the vector at the end of each tip
+  tip.labels[,c("x","y","z")] <- t(as.data.frame(lapply(tip.labels$seg, function(tip) {
+    # Get cells from this tip
+    this.fdl <- fdl.data[which(fdl.data$segment==tip),]
+    # Find the vector describing direction that the cells at the tip are moving
+    tip.vec <- as.numeric(apply(this.fdl[c(1,5),c("x","y","telescope.pt")], 2, diff))
+    # Normalize the length of vector
+    s <- sqrt(label.spacing^2/(tip.vec[1]^2+tip.vec[2]^2+tip.vec[3]^2))
+    tip.vec <- s*tip.vec
+    # Place the label
+    label.coords <- apply(rbind(this.fdl[1,c("x","y","telescope.pt")], tip.vec),2,sum)
+    return(label.coords)
+  })))
+  
+  return(tip.labels)
 }
 
 #' Calculate force-directed layout local density

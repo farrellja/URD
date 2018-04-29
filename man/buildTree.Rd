@@ -18,7 +18,7 @@ buildTree(object, pseudotime, tips.use = NULL, divergence.method = c("ks",
 
 \item{pseudotime}{(Character) Pseudotime to use for building tree}
 
-\item{tips.use}{(Character vector) Name of tips to use in the final tree (Default is NULL, which uses all tips.)}
+\item{tips.use}{(Character vector) Name of tips to use in the final tree (Default is NULL, which uses all tips.) Currently, these should all be numeric -- the tree building function will fail otherwise.}
 
 \item{divergence.method}{(Character: "ks" or "preference") Test to use to determine whether visitation has diverged for each pseudotime window.}
 
