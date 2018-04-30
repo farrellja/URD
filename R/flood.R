@@ -69,7 +69,7 @@ floodPseudotimeCalc <- function(object, start.cells, minimum.cells.flooded=2, tm
   while (length(cells.visited) < (total.cells-1) & length(cells.newly.visited) >= minimum.cells.flooded) {
     # Increment step counter
     i <- i + 1
-    if (i %% verbose.freq == 0) print(paste("Flooding, step", i, "-", paste0(round(length(cells.visited) / total.cells * 100, digits=1), "%:"), length(cells.visited), "of", total.cells, "cells visited."))
+    if ((verbose.freq > 0) && (i %% verbose.freq == 0)) print(paste("Flooding, step", i, "-", paste0(round(length(cells.visited) / total.cells * 100, digits=1), "%:"), length(cells.visited), "of", total.cells, "cells visited."))
     # Calculate visitation probability for each cell
     visitation.prob <- apply(tm.flood[cells.not.visited,cells.visited], 1, combine.probs)
     # Figure out which cells are newly visited
