@@ -219,7 +219,8 @@ simulateRandomWalksFromTips <- function(object, tip.group.id, root.cells, transi
     # Get tip cells
     tip.cells <- rownames(object@group.ids)[which(as.character(object@group.ids[,tip.group.id]) == tip)]
     # Do random walks
-    walks <- simulateRandomWalk(start.cells=tip.cells, transition.matrix=transition.matrix, end.cells=root.cells, n=n.per.tip, end.visits=root.visits, verbose.freq=round(n.per.tip/10), max.steps=max.steps)
+    if (verbose) verbose.freq=round(n.per.tip/10) else verbose.freq=0
+    walks <- simulateRandomWalk(start.cells=tip.cells, transition.matrix=transition.matrix, end.cells=root.cells, n=n.per.tip, end.visits=root.visits, verbose.freq=verbose.freq, max.steps=max.steps)
     return(walks)
   })
   names(tip.walks) <- all.tips
