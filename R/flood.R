@@ -163,7 +163,7 @@ floodPseudotime <- function(object, root.cells, n=20, minimum.cells.flooded=2, t
 #' object <- floodPseudotimeProcess(object, flood.result, floods.name = "pseudotime", max.frac.NA = 0.4, pseudotime.fun = mean, stability.div = 5)
 #' 
 #' @export
-floodPseudotimeProcess <- function(object, floods, floods.name="flood", max.frac.NA=0.4, pseudotime.fun=mean, stability.div=10) {
+floodPseudotimeProcess <- function(object, floods, floods.name="pseudotime", max.frac.NA=0.4, pseudotime.fun=mean, stability.div=10) {
   # Make sure that @diff.data and @pseudotime were previously initialized.
   if (nrow(object@diff.data) == 0) {
     warning("Initializing @diff.data, though this should have been previously initialized by creation or importation of diffusion map.")

@@ -4,7 +4,7 @@
 \alias{floodPseudotimeProcess}
 \title{Process Flood Pseudotime}
 \usage{
-floodPseudotimeProcess(object, floods, floods.name = "flood",
+floodPseudotimeProcess(object, floods, floods.name = "pseudotime",
   max.frac.NA = 0.4, pseudotime.fun = mean, stability.div = 10)
 }
 \arguments{
