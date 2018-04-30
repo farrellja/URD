@@ -45,7 +45,7 @@ neighbor graph, remove any cells that remain connected to fewer than this many o
 
 \item{start.temp}{(Numeric) Starting temperature for the force-directed layout (if \code{method="fr"}), which controls how much cells can move in the initial iterations of the algorithm. Default (\code{NULL}) is the square root of the number of cells.}
 
-\item{density.neighbors}{(Numeric) Distance to this nearest neighbor (default is 10th nearest neighbor) is used as a proxy for local density in the force-directed layout. This is used by \code{\link{plotTreeForce}} if \code{density.alpha=T} for increasing transparency in more high density regions of the layout.}
+\item{density.neighbors}{(Numeric) Distance to this nearest neighbor (default is 10th nearest neighbor) is used as a proxy for local density in the force-directed layout. This is used by \code{\link{plotTreeForce}} if \code{density.alpha=T} for increasing transparency in more high density regions of the layout. This can be adjusted after generating the layout by re-running the \code{\link{fdl.density}} function.}
 
 \item{plot.outlier.cuts}{(Logical) If \code{cut.outlier.cells=T} or \code{cut.outlier.edges=T}, this displays the}
 
@@ -65,4 +65,22 @@ default. However, the dendrogram structure recovered by URD is used by default t
 refine the k-nearest neighbor network, breaking links between cells that are distant
 in the dendrogram. This emphasizes producing a parseable layout at the expense of
 representing rare transitions in the data.
+
+Parameters that greatly affect the quality of the layout are the number of nearest
+neighbors used in the graph (\code{num.nn}) and the aggresiveness of the
+\code{cut.unconnected.segments} parameter. Additionally, the layout is largely
+reproducible if given the same starting conditions, but minor changes can affect
+it quite a bit, so it is sometimes worth varying \code{num.nn} by 1 across a small range
+(i.e. try 5 layouts with \code{num.nn=120-125}) and choosing the best one. Finally,
+sometimes different branches can overlap after they have separated, and for a final
+publication-ready layout, it can make sense to hand-tune the layout some. This can
+be done using the \code{\link{treeForceRotateCoords}} and \code{\link{treeForceTranslateCoords}}
+functions to move or rotate sections of the tree. (For instance, in the zebrafish
+layout, we used these functions to move the completely disconnected EVL and PGC cells
+into place and to increase the angular distance at the first branchpoint in the blastoderm
+so that the more fine-grained branches from the different germ layers didn't overlap.)
+}
+\examples{
+object.built <- treeForceDirectedLayout(object.built, num.nn=120, pseudotime="pseudotime", method = "fr", dim = 2, cells.to.do = robustly.visited.cells, tips=final.tips, cut.unconnected.segments = 2, min.final.neighbors=4, verbose=T)
+
 }
