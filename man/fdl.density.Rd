@@ -4,7 +4,7 @@
 \alias{fdl.density}
 \title{Calculate force-directed layout local density}
 \usage{
-fdl.density(object, neighbor = 10)
+fdl.density(object, neighbor = 10, knn = NULL)
 }
 \arguments{
 \item{object}{An URD object}

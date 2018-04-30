@@ -34,7 +34,6 @@
 #' 
 #' @param object An URD object
 #' @param num.nn (Numeric) Number of nearest neighbors to use. (\code{NULL} will use the square root of the number of cells as default.)
-#' @param pseudotime (Character) Pseudotime to use in nearest-neighbor calculation (i.e. a column name of \code{@@pseudotime}). (\code{NULL} omits pseudotime from the distance calculation of the nearest neighbor network.)
 #' @param method (Character: "fr", "drl", or "kk") Which force-directed layout algorithm to use (\link[igraph:layout_with_fr]{Fruchterman-Reingold}, \link[igraph:layout_with_drl]{DrL}, or \link[igraph:layout_with_kk]{Kamada-Kawai})
 #' @param cells.to.do (Character vector) Cells to use in the layout (default \code{NULL} is all cells in the tree.)
 #' @param cut.outlier.cells (Numeric) If desired, omit cells with unusual second nearest neighbor distances (i.e. those that are likely outliers only well connected to one other cell). Parameter is given as a factor of the interquartile range calculated across all cells' distance to their second nearest neighbor. (Default is not to omit any cells.)
@@ -61,14 +60,14 @@
 #' 
 #' @export
 
-treeForceDirectedLayout <- function(object, num.nn=NULL, pseudotime, method=c("fr", "drl", "kk"), cells.to.do=NULL, cut.outlier.cells=NULL, cut.outlier.edges=NULL, max.pseudotime.diff=NULL, cut.unconnected.segments=2, min.final.neighbors=2, tips=object@tree$tips, coords="auto", start.temp=NULL, density.neighbors=10, plot.outlier.cuts=F, verbose=F) {
+treeForceDirectedLayout <- function(object, num.nn=NULL, method=c("fr", "drl", "kk"), cells.to.do=NULL, cut.outlier.cells=NULL, cut.outlier.edges=NULL, max.pseudotime.diff=NULL, cut.unconnected.segments=2, min.final.neighbors=2, tips=object@tree$tips, coords="auto", start.temp=NULL, density.neighbors=10, plot.outlier.cuts=F, verbose=F) {
   # Params
   if (length(method) > 1) method <- method[1]
   if (is.null(cells.to.do)) cells.to.do <- rownames(object@diff.data)
   starting.cells <- length(cells.to.do)
   if (is.null(num.nn)) num.nn <- ceiling(sqrt(length(cells.to.do)))
   if (is.null(tips)) tips <- object@tree$tips
-  if (coords=="auto") {
+  if (class(coords)=="character" && coords=="auto") {
     coords <- as.matrix(object@tree$cell.layout[cells.to.do,c("x","y")])
   } else if (!is.null(coords) && class(coords) != "matrix") {
     stop("coords must either be 'auto', NULL, or a matrix.")
@@ -77,12 +76,23 @@ treeForceDirectedLayout <- function(object, num.nn=NULL, pseudotime, method=c("f
   
   if (verbose) print(paste(Sys.time(), ": Starting with parameters", method, num.nn, "NN", dim, "D", length(cells.to.do), "cells"))
   
+  # Get rid of any cells that don't have a pseudotime (or, if cut.unconnected.segments is turned on, any cells that aren't part of the tree)
+  cells.no.pseudotime <- cells.to.do[which(is.na(object@tree$pseudotime[cells.to.do]))]
+  if (!is.na(cut.unconnected.segments) & !is.null(cut.unconnected.segments) & cut.unconnected.segments > 0) {
+    cells.not.in.tree <- setdiff(cells.to.do, unlist(object@tree$cells.in.segment))
+    if (verbose) print(paste0("Removing ", length(unique(c(cells.no.pseudotime, cells.not.in.tree))), " cells that are not assigned a pseudotime or a segment in the tree."))
+    cells.to.do <- setdiff(cells.to.do, c(cells.no.pseudotime, cells.not.in.tree))
+  }  else {
+    if (verbose) print(paste0("Removing ", length(cells.no.pseudotime), " cells that are not assigned a pseudotime."))
+    cells.to.do <- setdiff(cells.to.do, cells.no.pseudotime)
+  }
+  
   # Get and normalize walk data, then add pseudotime (unless NULL in which case don't use)
   if (verbose) print(paste0(Sys.time(), ": Preparing walk data."))
   walk.data <- object@diff.data[cells.to.do,paste0("visitfreq.raw.", object@tree$tips)]
   walk.total <- apply(walk.data, 1, sum)
   walk.data <- sweep(walk.data, 1, walk.total, "/")
-  if (!is.null(pseudotime)) walk.data$pseudotime <- object@pseudotime[cells.to.do, pseudotime]
+  walk.data$pseudotime <- object@tree$pseudotime[cells.to.do]
   walk.data <- as.matrix(walk.data)
   
   # Calculate nearest neighbor graph
@@ -136,8 +146,8 @@ treeForceDirectedLayout <- function(object, num.nn=NULL, pseudotime, method=c("f
   
   # Cut connections with overly large pseudotime differences
   if (!is.null(max.pseudotime.diff)) {
-    edges$pt1 <- object@pseudotime[edges$V1,pseudotime]
-    edges$pt2 <- object@pseudotime[edges$V2,pseudotime]
+    edges$pt1 <- object@tree$pseudotime[edges$V1]
+    edges$pt2 <- object@tree$pseudotime[edges$V2]
     edges$dpt <- abs(edges$pt1 - edges$pt2)
     if (verbose) print(paste0(Sys.time(), ": Removing ", round(length(which(edges$dpt > max.pseudotime.diff)) / starting.edges * 100, digits=3), "% of edges with too large pseudotime difference."))
     edges <- edges[which(edges$dpt <= max.pseudotime.diff),]
@@ -200,7 +210,10 @@ treeForceDirectedLayout <- function(object, num.nn=NULL, pseudotime, method=c("f
     # Calculate weighted pseudotime of cells' neighbors for tree layout.
     if (verbose) print(paste0(Sys.time(), ": Calculating Z."))
     neighbor.pt <- unlist(lapply(1:dim(walk.nn$nn.label)[1], function(i) {
-      weighted.mean(x=object@pseudotime[walk.nn$nn.label[i,],pseudotime], w=1/walk.nn$nn.dists[i,])
+      # Deal with points with 0 distance, by setting their weight to the sum of all other weights.
+      weights <- 1/walk.nn$nn.dists[i,]
+      weights[!is.finite(weights)] <- sum(weights[is.finite(weights)])
+      weighted.mean(x=object@tree$pseudotime[walk.nn$nn.label[i,]], w=weights)
     }))
     names(neighbor.pt) <- rownames(walk.nn$nn.label)
     # Store the layout
@@ -212,7 +225,7 @@ treeForceDirectedLayout <- function(object, num.nn=NULL, pseudotime, method=c("f
     object@tree$walks.force.layout$telescope.pt <- neighbor.pt[rownames(object@tree$walks.force.layout)] * neighbor.pt.factor
     
     # Calculate local density for adjusting alpha
-    if (verbose) print(paste0(Sys.time(), ": Calculating neighbor distance."))
+    if (verbose) print(paste0(Sys.time(), ": Calculating local density."))
     object <- fdl.density(object, neighbor=density.neighbors)
     
   } else if (dim==3) {
@@ -646,9 +659,9 @@ treeForcePositionLabels <- function(object, label.spacing=5) {
 #' @param object An URD object
 #' @param neighbor (Numeric) Distance to \code{neighbor}th nearest neighbor is used for
 #' density adjustment of point transparency on force-directed layout plots.
-fdl.density <- function(object, neighbor=10) {
-  nn <- RANN::nn2(object@tree$walks.force.layout, k = neighbor, treetype = 'bd')
-  object@tree$walks.force.layout$n.dist <- nn$nn.dists[,neighbor]
+fdl.density <- function(object, neighbor=10, knn=NULL) {
+  knn <- RANN::nn2(object@tree$walks.force.layout[,c("x","y","telescope.pt")], k = neighbor, treetype = 'kd')
+  object@tree$walks.force.layout$n.dist <- knn$nn.dists[,neighbor]
   return(object)
 }
 

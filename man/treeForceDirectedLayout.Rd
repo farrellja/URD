@@ -4,8 +4,8 @@
 \alias{treeForceDirectedLayout}
 \title{Generate force-directed layout using tip-walk data.}
 \usage{
-treeForceDirectedLayout(object, num.nn = NULL, pseudotime, method = c("fr",
-  "drl", "kk"), cells.to.do = NULL, cut.outlier.cells = NULL,
+treeForceDirectedLayout(object, num.nn = NULL, method = c("fr", "drl",
+  "kk"), cells.to.do = NULL, cut.outlier.cells = NULL,
   cut.outlier.edges = NULL, max.pseudotime.diff = NULL,
   cut.unconnected.segments = 2, min.final.neighbors = 2,
   tips = object@tree$tips, coords = "auto", start.temp = NULL,
@@ -15,8 +15,6 @@ treeForceDirectedLayout(object, num.nn = NULL, pseudotime, method = c("fr",
 \item{object}{An URD object}
 
 \item{num.nn}{(Numeric) Number of nearest neighbors to use. (\code{NULL} will use the square root of the number of cells as default.)}
-
-\item{pseudotime}{(Character) Pseudotime to use in nearest-neighbor calculation (i.e. a column name of \code{@pseudotime}). (\code{NULL} omits pseudotime from the distance calculation of the nearest neighbor network.)}
 
 \item{method}{(Character: "fr", "drl", or "kk") Which force-directed layout algorithm to use (\link[igraph:layout_with_fr]{Fruchterman-Reingold}, \link[igraph:layout_with_drl]{DrL}, or \link[igraph:layout_with_kk]{Kamada-Kawai})}
 
