@@ -1,5 +1,17 @@
 #' Generate force-directed layout using tip-walk data.
 #' 
+#' This function generates a k-nearest neighbor network for cells, based on their visitation
+#' frequency by the biased random walks from different tips (and optionally pseudotime), and
+#' uses it as input into a force-directed layout (powered by igraph). The force-directed
+#' layout is generated in 2 dimensions, and pseudotime is used as a third dimension.
+#' 
+#' Several settings adjust the k-nearest neighbor network to assist in the layout. Outlier
+#' cells (that are only closely connected to a single other cells) or outlier edges (with
+#' unusually long distances) can be eliminated, though these parameters are disabled by
+#' default. However, the dendrogram structure recovered by URD is used by default to
+#' refine the k-nearest neighbor network, breaking links between cells that are distant
+#' in the dendrogram. This emphasizes producing a parseable layout at the expense of
+#' representing rare transitions in the data.
 #' 
 #' @importFrom RANN nn2
 #' @importFrom stats quantile
@@ -7,24 +19,32 @@
 #' @importFrom igraph graph_from_data_frame layout_with_fr layout_with_drl layout_with_kk vcount V distances
 #' 
 #' @param object An URD object
-#' @param num.nn (Numeric) Number of nearest neighbors to use, 
-#' @param pseudotime (Character) Pseudotime to use (i.e. a column name of \code{@@pseudotime}). (NULL omits pseudotime from the distance calculation of the nearest neighbor network.)
-#' @param method (Character) Which force-directed layout algorithm to use
-#' @param dim (Numeric) Don't change this from 2.
+#' @param num.nn (Numeric) Number of nearest neighbors to use. (\code{NULL} will use the square root of the number of cells as default.)
+#' @param pseudotime (Character) Pseudotime to use in nearest-neighbor calculation (i.e. a column name of \code{@@pseudotime}). (\code{NULL} omits pseudotime from the distance calculation of the nearest neighbor network.)
+#' @param method (Character: "fr", "drl", or "kk") Which force-directed layout algorithm to use (\link[igraph:layout_with_fr]{Fruchterman-Reingold}, \link[igraph:layout_with_drl]{DrL}, or \link[igraph:layout_with_kk]{Kamada-Kawai})
 #' @param cells.to.do (Character vector) Cells to use in the layout (default \code{NULL} is all cells in the tree.)
-#' @param cut.outlier.cells Who knows
-#' @param cut.outlier.edges Who knows
-#' @param cut.unconnected.segments (Numeric) Cut connections in the nearest-neighbor graph that are more
-#' distant in the tree dendrogram structure than this. Default value is 1, which is the most aggressive.
-#' It will only maintain connections within a segment and to that segment's parent or children. Higher values
-#' permit more distant connections. (To disable, set to NA or NULL, which will permit any connections.)
+#' @param cut.outlier.cells (Numeric) If desired, omit cells with unusual second nearest neighbor distances (i.e. those that are likely outliers only well connected to one other cell). Parameter is given as a factor of the interquartile range calculated across all cells' distance to their second nearest neighbor. (Default is not to omit any cells.)
+#' @param cut.outlier.edges (Numeric) If desired, cut edges in the nearest neighbor graph with unusually long distances. Parameters is given as a factor of the interquartile range calculated across all edges in the graph. (Default is not to cut any edges based on their length.)
+#' @param max.pseudotime.diff (Numeric) If desired, cut edges in the nearest neighbor graph between cells with longer difference in pseudotime. (Default is not to cut any edges based on their pseudotime.)
+#' @param cut.unconnected.segments (Numeric) Cut connections in the nearest-neighbor graph to cells that are 
+#' more segments away in the dendrogram structure. For instance, the most aggressive setting (1) will only 
+#' maintain that are at most 1 segment away (so it will maintain connections within a segment and to that 
+#' segment's parent or children. Higher values permit more distant connections. The default value is 2, 
+#' which permits connections up to two segments away (i.e. connections within a segment, to that segment's 
+#' parent, grandparent, children, grandchildren, and siblings.) \code{NA} or \code{NULL} disable this setting
+#' and permit all connections.
 #' @param min.final.neighbors (Numeric) After trimming outlier and unconnected connections in the nearest
-#' neighbor graph, 
-#'
+#' neighbor graph, remove any cells that remain connected to fewer than this many other cells.
+#' @param tips (Character vector) Tips for which walk visitation data should be used in the construction of the nearest neighbor graph. (Default is all tips )
+#' @param coords (Matrix: Cells as rows, 2 columns) Starting coordinates for the force directed layout. Default (\code{"auto"}) takes them from the cell layout of the dendrogram.
+#' @param start.temp (Numeric) Starting temperature for the force-directed layout (if \code{method="fr"}), which controls how much cells can move in the initial iterations of the algorithm. Default (\code{NULL}) is the square root of the number of cells.
+#' @param density.neighbors (Numeric) Distance to this nearest neighbor (default is 10th nearest neighbor) is used as a proxy for local density in the force-directed layout. This is used by \code{\link{plotTreeForce}} if \code{density.alpha=T} for increasing transparency in more high density regions of the layout. 
+#' @param plot.outlier.cuts (Logical) If \code{cut.outlier.cells=T} or \code{cut.outlier.edges=T}, this displays the 
+#' @param verbose (Logical) Print progress and time stamps?
 #' 
 #' @export
 
-treeForceDirectedLayout <- function(object, num.nn=NULL, pseudotime, method=c("fr", "drl", "kk"), dim=2, cells.to.do=NULL, cut.outlier.cells=NULL, cut.outlier.edges=NULL, cut.unconnected.segments=1, min.final.neighbors=2, tips=object@tree$tips, max.pseudotime.diff=NULL,  plot.outlier.cuts=F, verbose=F, coords="auto", start.temp=NULL, density.neighbors=10) {
+treeForceDirectedLayout <- function(object, num.nn=NULL, pseudotime, method=c("fr", "drl", "kk"), cells.to.do=NULL, cut.outlier.cells=NULL, cut.outlier.edges=NULL, max.pseudotime.diff=NULL, cut.unconnected.segments=2, min.final.neighbors=2, tips=object@tree$tips, coords="auto", start.temp=NULL, density.neighbors=10, plot.outlier.cuts=F, verbose=F) {
   # Params
   if (length(method) > 1) method <- method[1]
   if (is.null(cells.to.do)) cells.to.do <- rownames(object@diff.data)
@@ -36,6 +56,7 @@ treeForceDirectedLayout <- function(object, num.nn=NULL, pseudotime, method=c("f
   } else if (!is.null(coords) && class(coords) != "matrix") {
     stop("coords must either be 'auto', NULL, or a matrix.")
   }
+  dim=2
   
   if (verbose) print(paste(Sys.time(), ": Starting with parameters", method, num.nn, "NN", dim, "D", length(cells.to.do), "cells"))
   
@@ -155,12 +176,12 @@ treeForceDirectedLayout <- function(object, num.nn=NULL, pseudotime, method=c("f
   if (verbose) print(paste0(Sys.time(), ": Doing force-directed layout."))
   if (method=="fr") igraph.walk.layout <- layout_with_fr(igraph.walk.weights, dim=dim, coords=coords, start.temp=start.temp)
   if (method=="drl") igraph.walk.layout <- layout_with_drl(igraph.walk.weights, dim=dim, options=list(edge.cut=0))
-  if (method=="kk") igraph.walk.layout <- layout_with_kk(igraph.walk.weights, dim=dim)
+  if (method=="kk") igraph.walk.layout <- layout_with_kk(igraph.walk.weights, dim=dim, coords=coords)
   
   # Store the layout
   if (dim==2) {
     # Calculate weighted pseudotime of cells' neighbors for tree layout.
-    if (verbose) print(paste0(Sys.time(), ": Calculating z-coordinate for telescope plots."))
+    if (verbose) print(paste0(Sys.time(), ": Calculating Z."))
     neighbor.pt <- unlist(lapply(1:dim(walk.nn$nn.label)[1], function(i) {
       weighted.mean(x=object@pseudotime[walk.nn$nn.label[i,],pseudotime], w=1/walk.nn$nn.dists[i,])
     }))
