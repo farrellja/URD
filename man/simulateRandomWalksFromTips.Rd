@@ -29,5 +29,24 @@ simulateRandomWalksFromTips(object, tip.group.id, root.cells, transition.matrix,
 List (of tips) of lists (of walk paths) of character vectors
 }
 \description{
-This automates
+This automates the process of performing random walks for many tips. See 
+\code{\link{simulateRandomWalk}} for more information. The output of this
+function can be passed to \code{\link{processRandomWalksFromTips}} directly
+to convert these walk data into visitation frequencies.
+}
+\examples{
+# Determine the parameters of the logistic used to bias the transition probabilities. The procedure
+# is relatively robust to this parameter, but the cell numbers may need to be modified for larger
+# or smaller data sets.
+axial.ptlogistic <- pseudotimeDetermineLogistic(axial, "pseudotime", optimal.cells.forward=20, max.cells.back=40, do.plot = T)
+
+# Bias the transition matrix acording to pseudotime
+axial.biased.tm <- as.matrix(pseudotimeWeightTransitionMatrix(axial, "pseudotime", logistic.params=axial.ptlogistic))
+
+# Simulate the biased random walks from each tip
+axial.walks <- simulateRandomWalksFromTips(axial, tip.group.id="tip.clusters", root.cells=root.cells, transition.matrix = axial.biased.tm, n.per.tip = 25000, root.visits = 1, max.steps = 5000, verbose = F)
+
+# Process the biased random walks into visitation frequencies
+axial <- processRandomWalksFromTips(axial, axial.walks, verbose = F)
+
 }

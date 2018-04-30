@@ -197,7 +197,10 @@ simulateRandomWalk <- function(start.cells, transition.matrix, end.cells, n=1000
 
 #' Simulate Random Walks From All Tips
 #' 
-#' This automates 
+#' This automates the process of performing random walks for many tips. See 
+#' \code{\link{simulateRandomWalk}} for more information. The output of this
+#' function can be passed to \code{\link{processRandomWalksFromTips}} directly
+#' to convert these walk data into visitation frequencies.
 #' 
 #' @param object An URD object
 #' @param tip.group.id (Character) The name of the clustering that defines tips
@@ -208,6 +211,22 @@ simulateRandomWalk <- function(start.cells, transition.matrix, end.cells, n=1000
 #' @param max.visits (Numeric) Abandon walks that take more steps than this, as it likely means that it has gotten stuck. (Default is number of cells in the data. On large data, may want to lower this value.)
 #' @param verbose (Logical) Whether to report on progress
 #' @return List (of tips) of lists (of walk paths) of character vectors
+#' 
+#' @examples 
+#' # Determine the parameters of the logistic used to bias the transition probabilities. The procedure
+#' # is relatively robust to this parameter, but the cell numbers may need to be modified for larger
+#' # or smaller data sets.
+#' axial.ptlogistic <- pseudotimeDetermineLogistic(axial, "pseudotime", optimal.cells.forward=20, max.cells.back=40, do.plot = T)
+#'
+#' # Bias the transition matrix acording to pseudotime
+#' axial.biased.tm <- as.matrix(pseudotimeWeightTransitionMatrix(axial, "pseudotime", logistic.params=axial.ptlogistic))
+#'
+#' # Simulate the biased random walks from each tip
+#' axial.walks <- simulateRandomWalksFromTips(axial, tip.group.id="tip.clusters", root.cells=root.cells, transition.matrix = axial.biased.tm, n.per.tip = 25000, root.visits = 1, max.steps = 5000, verbose = F)
+#'
+#' # Process the biased random walks into visitation frequencies
+#' axial <- processRandomWalksFromTips(axial, axial.walks, verbose = F)
+#' 
 #' @export
 simulateRandomWalksFromTips <- function(object, tip.group.id, root.cells, transition.matrix, n.per.tip=10000, root.visits=1, max.steps=ncol(object@logupx.data), verbose=T) {
   # Get all tips from that id
@@ -227,20 +246,26 @@ simulateRandomWalksFromTips <- function(object, tip.group.id, root.cells, transi
   return(tip.walks)
 }
 
-#' Process random walks and store in object
+#' Process random walks into visitation frequency
 #' 
+#' The output of \code{\link{simulateRandomWalk}} is vectors of cells visited by 
+#' each random walk. This converts that data into the visitation frequency of each
+#' cell by the random walks, in addition to generating an independent pseudotime
+#' for that particular trajectory, which can be useful for some analyses.
 #' 
 #' @importFrom reshape2 dcast melt
 #' @importFrom data.table rbindlist
 #' 
 #' @param object An URD object
-#' @param walks (List) List of character vectors of cells visited during random walks.
+#' @param walks (List) List of character vectors of cells visited during random walks (i.e. the output of \code{\link{simulateRandomWalk}})
 #' @param walks.name (Character) Name to use for storing walks
 #' @param aggregate.fun (Function) Function to aggregate pseudotime (default: mean)
 #' @param n.subsample (Numeric) Number of subsamplings to perform for calculating 
 #' @param verbose (Logical) Report on progress
+#' 
 #' @return An URD object with cell visitation frequency stored in \code{@@diff.data}, a calculated pseudotime stored in \code{@@pseudotime}, and
 #' subsampled data in \code{@@pseudotime.stability}.
+#' 
 #' @export
 processRandomWalks <- function(object, walks, walks.name, aggregate.fun=mean, n.subsample=10, verbose=T) {
   # Make sure that for tips this doesn't accidentally refer to a columns index.
@@ -287,14 +312,34 @@ processRandomWalks <- function(object, walks, walks.name, aggregate.fun=mean, n.
 
 #' Process random walks from all tips
 #' 
+#' This processes random walks from several tips automatically. See
+#' \code{\link{processRandomWalks}} for more information. This function can be
+#' run directly with the output of \code{\link{simulateRandomWalksFromTips}}.
 #' 
 #' @param object An URD object
 #' @param walks.list (List of lists) List of character vectors of cells visited during random walks.
+#' (This is the output format of \code{\link{simulateRandomWalksFromTips}})
 #' @param aggregate.fun (Function) Function to aggregate pseudotime (default: mean)
-#' @param n.subsample (Numeric) Number of subsamplings to perform for calculating 
-#' @param verbose (Logical) Report on progress
-#' @return An URD object with cell visitation frequency stored in \code{@@diff.data}, a calculated pseudotime stored in \code{@@pseudotime}, and
-#' subsampled data in \code{@@pseudotime.stability}.
+#' @param n.subsample (Numeric) Number of subsamplings to perform for calculating stability
+#' @param verbose (Logical) Report on progress?
+#' 
+#' @return An URD object with cell visitation frequencies stored in \code{@@diff.data}, calculated pseudotimes stored in \code{@@pseudotime}, and subsampled data in \code{@@pseudotime.stability}.
+#' 
+#' @examples 
+#' # Determine the parameters of the logistic used to bias the transition probabilities. The procedure
+#' # is relatively robust to this parameter, but the cell numbers may need to be modified for larger
+#' # or smaller data sets.
+#' axial.ptlogistic <- pseudotimeDetermineLogistic(axial, "pseudotime", optimal.cells.forward=20, max.cells.back=40, do.plot = T)
+#'
+#' # Bias the transition matrix acording to pseudotime
+#' axial.biased.tm <- as.matrix(pseudotimeWeightTransitionMatrix(axial, "pseudotime", logistic.params=axial.ptlogistic))
+#'
+#' # Simulate the biased random walks from each tip
+#' axial.walks <- simulateRandomWalksFromTips(axial, tip.group.id="tip.clusters", root.cells=root.cells, transition.matrix = axial.biased.tm, n.per.tip = 25000, root.visits = 1, max.steps = 5000, verbose = F)
+#'
+#' # Process the biased random walks into visitation frequencies
+#' axial <- processRandomWalksFromTips(axial, axial.walks, verbose = F)
+#' 
 #' @export
 processRandomWalksFromTips <- function(object, walks.list, aggregate.fun=mean, n.subsample=10, verbose=T) {
   # Check that walks.list is a proper list

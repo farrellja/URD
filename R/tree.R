@@ -1,5 +1,45 @@
 #' Build Tree
 #' 
+#' This function recovers the branching dendrogram structure from the developmental trajectories
+#' found by the random walks. IMPORTANT: CURRENTLY THIS FUNCTION IS DESTRUCTIVE. Output the
+#' results to a new URD object (i.e. \code{object2 <- buildTree(object1, ...)} or save your object
+#' (using \code{\link{saveRDS}}) before running.
+#' 
+#' This function starts from each tip and agglomeratively joins trajectories that
+#' visited the same cells (which indicates a common progenitor type). It works by
+#' first comparing all tips in a pair-wise fashion. For each pair, the cells
+#' visited by either tip are divided up by a moving window through pseudotime. Then,
+#' a test is used to determine whether the cells in each window were visited significantly
+#' differently by walks from the two tips. A putative branchpoint is chosen when
+#' the test starts being significant. After comparing all tips, the latest branchpoint
+#' is chosen, and the two segments are combined upstream of the branchpoint into a new
+#' segment. This process is repeated iteratively until only one trajectory remains.
+#' Then, the branching tree is refined to remove overly short segments, thereby
+#' allowing for multi-furcating branchpoints. Finally, the dendrogram layouts are
+#' generated.
+#' 
+#' There are several parameters that can be modified that affect the resultant tree
+#' structure slightly. (1) The test used for determining whether visitation of cells
+#' is different from two tips (\code{divergence.method}), the p-value threshold used (\code{p.thresh}),
+#' and the number of cells in each pseudotime window (\code{cells.per.pseudotime.bin}
+#' and \code{bins.per.pseudotime.window}). In general, adjusting the p-value threshold
+#' will make all branchpoints slightly earlier or later. Adjusting the number of cells
+#' in each window may be important to make sure that the procedure is buffered
+#' from noise (too small windows can cause bizarre fusion results), but if it is
+#' too large, cell populations that split near the end of your timecourse may immediately fuse.
+#' 
+#' A number of plots can help shed light on the tree-building process. If \code{save.breakpoint.plots}
+#' points to a path, then a plot is saved every time two branches fuse showing the
+#' pseudotime of the putative branchpoint between every pair of segments. The plots are
+#' named by the number of remaining segments (so the largest number is the first
+#' fusion event). Within a plot, each bar represents the comparison between a pair
+#' of segments with pseudotime along the x-axis, red represents pseudotime windows
+#' that are not significantly different and blue represents pseudotime windows that
+#' are significantly different, and the orange dotted line represents the putative
+#' pseudotime of the breakpoint. Additionally, branchpoint detail plots can be very
+#' useful if \code{save.all.breakpoint.info=T} -- see \code{\link{branchpointDetailsVisitTsne}},
+#' \code{\link{branchpointDetailsVisitDist}}, and \code{\link{branchpointDetailsPreferenceDist}}.
+#' 
 #' @importFrom stats weighted.mean
 #' @importFrom gridExtra grid.arrange
 #' 
@@ -9,19 +49,32 @@
 #' @param divergence.method (Character: "ks" or "preference") Test to use to determine whether visitation has diverged for each pseudotime window.
 #' @param cells.per.pseudotime.bin (Numeric) Approximate number of cells to assign to each pseudotime bin for branchpoint finding.
 #' @param bins.per.pseudotime.window (Numeric) Width of moving window in pseudotime used for branchpoint finding, in terms of bins.
-#' @param minimum.visits (Numeric) Minimum number of random walk visits to a cell to retain it in the tree
+#' @param minimum.visits (Numeric) Minimum number of random walk visits to a cell to consider it for the tree
 #' @param visit.threshold (Numeric) Cells are considered potential members for segments/tips from which random walks visited them 
-#' at least this fraction of their maximum visitation from a single tip
-#' @param save.breakpoint.plots (Path) Path to save plots summarizing (default is NULL, which does not save plots as they are somewhat slow)
-#' @param save.all.breakpoint.info (Logical) Should all information about breakpoints be stored in the object for use in diagnostic plots? (Can add several hundred MB to object size.)
+#' at least this fraction of their maximum visitation from a single tip (i.e. if \code{visit.treshold=0.7} and a cell was visited
+#' most heavily from tip X with 10,000 visits, then all tips that visited that cell at least 7,000 times will include it when
+#' determining branchpoints.)
+#' @param save.breakpoint.plots (Path) Path to save plots summarizing (default is \code{NULL}, which does not save plots as they are somewhat slow)
+#' @param save.all.breakpoint.info (Logical) Should all information about breakpoints be stored in the object for use in diagnostic plots? (Can add several hundred MB to object size, but enables branchpointDetails plots.)
 #' @param p.thresh (Numeric) p-value threshold to use in determining whether visitation is significantly different from pairs of tips
-#' @param min.cells.per.segment (Numeric) Segments with fewer assigned cells weill be collapsed during tree construction
+#' @param min.cells.per.segment (Numeric) Segments with fewer assigned cells will be collapsed during tree construction
 #' @param min.pseudotime.per.segment (Numeric) Segments shorter than this in pseudotime will be collapsed during tree construction
 #' @param dendro.node.size (Numeric) Number of cells to assign per node (used for averaging expression for tree dendrogram branch coloring)
 #' @param dendro.cell.jitter (Numeric) For the dendrogram tree layout, how much jitter to apply to cells. This can be revised after building the tree by re-generating the cell layout using \code{\link{treeLayoutCells}} with a different parameter.
 #' @param dendro.cell.dist.to.tree (Numeric) For the dendrogram tree layout, how far to push cells away from the dendrogram branches. This can be revised after building the tree by re-generating the cell layout using \code{\link{treeLayoutCells}} with a different parameter.
 #' @param verbose (Logical) Report on progress?
-#' @return An URD object with an URD-recovered tree structure stored in \code{@@tree}
+#' 
+#' @return An URD object with an URD-recovered tree structure stored in \code{@@tree}.
+#' 
+#' @examples 
+#' # Load the cells used for each tip into the URD object
+#' axial.tree <- loadTipCells(axial, "tip.clusters")
+#' 
+#' # Build the tree
+#' axial.tree <- buildTree(axial.tree, pseudotime = "pseudotime", tips.use=1:2, divergence.method = "preference", cells.per.pseudotime.bin = 25, bins.per.pseudotime.window = 8, save.all.breakpoint.info = T, p.thresh=0.001)
+#' 
+#' object.built <- buildTree(object = object, pseudotime="pseudotime", divergence.method = "ks", tips.use=tips.to.use, weighted.fusion = T, use.only.original.tips = T, cells.per.pseudotime.bin=80, bins.per.pseudotime.window = 5, minimum.visits = 1, visit.threshold = 0.7, p.thresh = 0.025, save.breakpoint.plots = NULL, dendro.node.size = 100, min.cells.per.segment = 10, min.pseudotime.per.segment = .01, verbose = F)
+#' 
 #' @export
 buildTree <- function(object, pseudotime, tips.use=NULL, divergence.method=c("ks", "preference"), weighted.fusion=T, use.only.original.tips=T, cells.per.pseudotime.bin=80, bins.per.pseudotime.window=5, minimum.visits=10, visit.threshold=0.7, save.breakpoint.plots=NULL, save.all.breakpoint.info=F, p.thresh=.01, min.cells.per.segment=1, min.pseudotime.per.segment=.01, dendro.node.size=100, dendro.cell.jitter=0.15, dendro.cell.dist.to.tree=0.05, verbose=T) {
   # Check divergence.method parameter

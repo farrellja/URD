@@ -1,9 +1,18 @@
 #' Load Tip Cells
 #' 
+#' This loads the cells that belong to each tip into the URD object. This information
+#' is required if \code{weighted.fusion=T} during \code{\link{buildTree}} so that
+#' new segment visitation can properly be determined using a weighted average, based
+#' on the number of cells that were in each tip.
+#' 
 #' @param object An URD object
 #' @param tips (Character) A clustering that was used as the tips (i.e. a column name of \code{@@group.ids})
 #' 
 #' @return An URD object with the cells that were used to start each tip stored in \code{@@tree$cells.in.tip}
+#' 
+#' @examples 
+#' # Load the cells used for each tip into the URD object
+#' axial.tree <- loadTipCells(axial, "tip.clusters")
 #' 
 #' @export
 loadTipCells <- function(object, tips) {

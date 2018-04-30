@@ -2,7 +2,7 @@
 % Please edit documentation in R/diffusion.R
 \name{processRandomWalks}
 \alias{processRandomWalks}
-\title{Process random walks and store in object}
+\title{Process random walks into visitation frequency}
 \usage{
 processRandomWalks(object, walks, walks.name, aggregate.fun = mean,
   n.subsample = 10, verbose = T)
@@ -10,7 +10,7 @@ processRandomWalks(object, walks, walks.name, aggregate.fun = mean,
 \arguments{
 \item{object}{An URD object}
 
-\item{walks}{(List) List of character vectors of cells visited during random walks.}
+\item{walks}{(List) List of character vectors of cells visited during random walks (i.e. the output of \code{\link{simulateRandomWalk}})}
 
 \item{walks.name}{(Character) Name to use for storing walks}
 
@@ -25,5 +25,8 @@ An URD object with cell visitation frequency stored in \code{@diff.data}, a calc
 subsampled data in \code{@pseudotime.stability}.
 }
 \description{
-Process random walks and store in object
+The output of \code{\link{simulateRandomWalk}} is vectors of cells visited by 
+each random walk. This converts that data into the visitation frequency of each
+cell by the random walks, in addition to generating an independent pseudotime
+for that particular trajectory, which can be useful for some analyses.
 }

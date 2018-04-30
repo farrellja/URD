@@ -10,18 +10,36 @@ processRandomWalksFromTips(object, walks.list, aggregate.fun = mean,
 \arguments{
 \item{object}{An URD object}
 
-\item{walks.list}{(List of lists) List of character vectors of cells visited during random walks.}
+\item{walks.list}{(List of lists) List of character vectors of cells visited during random walks.
+(This is the output format of \code{\link{simulateRandomWalksFromTips}})}
 
 \item{aggregate.fun}{(Function) Function to aggregate pseudotime (default: mean)}
 
-\item{n.subsample}{(Numeric) Number of subsamplings to perform for calculating}
+\item{n.subsample}{(Numeric) Number of subsamplings to perform for calculating stability}
 
-\item{verbose}{(Logical) Report on progress}
+\item{verbose}{(Logical) Report on progress?}
 }
 \value{
-An URD object with cell visitation frequency stored in \code{@diff.data}, a calculated pseudotime stored in \code{@pseudotime}, and
-subsampled data in \code{@pseudotime.stability}.
+An URD object with cell visitation frequencies stored in \code{@diff.data}, calculated pseudotimes stored in \code{@pseudotime}, and subsampled data in \code{@pseudotime.stability}.
 }
 \description{
-Process random walks from all tips
+This processes random walks from several tips automatically. See
+\code{\link{processRandomWalks}} for more information. This function can be
+run directly with the output of \code{\link{simulateRandomWalksFromTips}}.
+}
+\examples{
+# Determine the parameters of the logistic used to bias the transition probabilities. The procedure
+# is relatively robust to this parameter, but the cell numbers may need to be modified for larger
+# or smaller data sets.
+axial.ptlogistic <- pseudotimeDetermineLogistic(axial, "pseudotime", optimal.cells.forward=20, max.cells.back=40, do.plot = T)
+
+# Bias the transition matrix acording to pseudotime
+axial.biased.tm <- as.matrix(pseudotimeWeightTransitionMatrix(axial, "pseudotime", logistic.params=axial.ptlogistic))
+
+# Simulate the biased random walks from each tip
+axial.walks <- simulateRandomWalksFromTips(axial, tip.group.id="tip.clusters", root.cells=root.cells, transition.matrix = axial.biased.tm, n.per.tip = 25000, root.visits = 1, max.steps = 5000, verbose = F)
+
+# Process the biased random walks into visitation frequencies
+axial <- processRandomWalksFromTips(axial, axial.walks, verbose = F)
+
 }
