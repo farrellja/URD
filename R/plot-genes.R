@@ -46,7 +46,7 @@ plotDot <- function(object, genes, clustering, clusters.use=NULL, min.exp=.05, m
 #' @importFrom reshape2 melt
 #' 
 #' @param object An URD object
-#' @param labels.plot (Character vector)
+#' @param labels.plot (Character vector) Data to use for coloring points (e.g. a metadata name, group ID from clustering, or a gene name)
 #' @param clustering (Character) Name of clustering to use (i.e. a column name of \code{@@group.ids})
 #' @param clusters.use (Character vector) Names of clusters to display (default NULL uses all clusters)
 #' @param legend (Logical) Display a legend?
@@ -170,4 +170,50 @@ plotScatter <- function(object, label.x, label.y, label.color=NULL, label.x.type
   return(the.plot)
 
 }
+
+#' Plot distributions
+#' 
+#' This will plot the distribution of a continuous label across discrete classes.
+#' For instance, it can be used to plot the distribution of pseudotime in each
+#' developmental stage.
+#' 
+#' @param object An URD object
+#' @param label (Character) Data to use for distributions (e.g. "pseudotime", a metadata name, or a gene name). Must be continuous.
+#' @param category.label (Character) Data to use for dividing into separate curves (e.g. developmental stage or a clustering). Must be discrete.
+#' @param label.type (Character) Type of data to search for the label. Default is "search" which checks several data types in order. For more information: \code{\link{data.for.plot}}
+#' @param category.label.type (Character) Type of data to search for category.label. Default is "search" which checks several data types in order. For more information: \code{\link{data.for.plot}}
+#' @param legend (Logical) Show a legend?
+#' @param plot.title (Character) Title of the plot
+#' 
+#' @examples 
+#' 
+#' @return A ggplot2 object. If used in a loop, plot(plotDists(...)) must be used.
+#' 
+#' @export
+plotDists <- function(object, label, category.label, label.type="search", category.label.type="search", legend=T, plot.title="") {
+  # Get the data
+  label.data <- data.for.plot(object, label = label, label.type = label.type, as.discrete.list = T)
+  category.data <- data.for.plot(object, label = category.label, label.type=category.label.type, as.discrete.list=T)
+
+  # Make sure label is continuous and category is discrete
+  if (label.data$discrete | !category.data$discrete) stop("label must be a continuous variable and category.label must be a discrete variable.")
+  
+  # Make a data frame for ggplot.
+  gg.data <- data.frame(
+    label=label.data$data,
+    category=category.data$data,
+    stringsAsFactors=F,
+    row.names = names(label.data$data)
+  )
+  
+  # Make the plot
+  the.plot <- ggplot(data=gg.data, aes(x=label, color=category, fill=category)) + geom_density(alpha=0.4) + theme_bw() + labs(x=label, fill=category.label, color=category.label, title=plot.title)
+  
+  # Get rid of legends if desired
+  if (!legend) the.plot <- the.plot + guides(color=F, fill=F)
+  
+  # Return the plot
+  return(the.plot)
+}
+
 

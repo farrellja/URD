@@ -10,7 +10,7 @@ plotViolin(object, labels.plot, clustering, clusters.use = NULL, legend = T,
 \arguments{
 \item{object}{An URD object}
 
-\item{labels.plot}{(Character vector)}
+\item{labels.plot}{(Character vector) Data to use for coloring points (e.g. a metadata name, group ID from clustering, or a gene name)}
 
 \item{clustering}{(Character) Name of clustering to use (i.e. a column name of \code{@group.ids})}
 
