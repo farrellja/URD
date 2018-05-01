@@ -4,7 +4,7 @@
 
 ### 1. Install R and RStudio
 
-*URD* is a package written in R and designed to be used in the RStudio interactive environment.
+**URD** is a package written in R and designed to be used in the RStudio interactive environment.
 
 R can be obtained and installed from [https://cran.rstudio.com](https://cran.rstudio.com). 
 
