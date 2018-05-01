@@ -6,7 +6,7 @@
 
 * To install, follow the instructions in [INSTALL.md](INSTALL.md)
 
-* To get started, check out the Quick Start Tutorial: ([View](Analyses/QuickStart/URD-QuickStart-AxialMesoderm.md)) ([Download](Analyses/QuickStart/URD-QuickStart-AxialMesoderm.rmd))
+* To get started, check out the Quick Start Tutorial: ([View](Analyses/QuickStart/URD-QuickStart-AxialMesoderm.md)) ([Download](Analyses/QuickStart/URD-QuickStart-AxialMesoderm.Rmd))
 
 * The processed zebrafish embryogenesis URD object from the manuscript can be downloaded from the [Broad Single-cell Portal](https://portals.broadinstitute.org/single_cell/data/public/single-cell-reconstruction-of-developmental-trajectories-during-zebrafish-embryogenesis?filename=URD_Zebrafish_Object.rds) (requires log-in).
 
