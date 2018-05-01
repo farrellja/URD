@@ -1,0 +1,332 @@
+---
+title: "URD: Quick Start"
+author: "Jeff Farrell"
+date: "4/26/2018"
+output: html_document
+---
+
+```{r setup, warnings=F}
+# Load packages
+suppressPackageStartupMessages(library(rgl))
+suppressPackageStartupMessages(library(URD))
+
+knitr::opts_chunk$set(echo = TRUE)
+rgl::setupKnitr()
+```
+
+# Introduction
+
+This is a quick walkthrough of how to use **URD** to analyze a data set. The zebrafish data
+has been subset, and only cells belonging to two cell-type lineages (the notochord and
+prechordal plate) are included, in order to make this quick and easy to run. These two
+cell types are part of the axial mesoderm, and so they share a common progenitor type.
+This analysis should run on an average laptop in under an hour. For analyses with more
+cells, processing time will be longer, and it can be advantageous to offload some steps
+to a computing cluster. This process is more detailed in the supplementary analysis,
+where we analyzed the full zebrafish dataset. Additionally, the supplementary analysis
+contains much more information about optimizing some steps of the analysis.
+
+# Create URD object
+
+All information associated with a reconstruction project is stored in an URD object. 
+Most functions in the URD package take an URD object as input, and many of them return
+an URD object that has been operated on or had results stored in one of its slots. 
+You can learn more about URD objects with `?URDclass`.
+
+```{r, results='hold'}
+# Read axial mesoderm count data and metadata
+# count.data must be provided as a matrix, not a data.frame
+count.axial <- as.matrix(read.table("data/count.axial.txt.gz")) 
+meta.axial <- read.table("data/meta.axial.txt.gz")
+
+# Create an URD object, which will filter the data, then normalize and log-transform it.
+axial <- createURD(count.data = count.axial, meta = meta.axial, min.cells=3, min.counts=3)
+```
+
+# Calculate variable genes
+
+Single-cell RNAseq data is noisy, so we perform our analyses using only those genes that exhibit greater variability than those of similar expression levels. In theory, those genes have biological variability across cells in addition to their technical variability.
+
+```{r, fig.height=2.5, warning=F}
+# Copy stage from @meta to @group.ids 
+axial@group.ids$stage <- as.character(axial@meta[rownames(axial@group.ids),"stage.nice"])
+
+# Get variable genes for each group of 3 stages
+# (Normally would do this for each stage, but there are not very many cells in this subset of the data)
+# diffCV.cutoff can be varied to include more or fewer genes.
+stages <- sort(unique(axial@group.ids$stage))
+var.by.stage <- lapply(seq(3,12,3), function(n) {
+  findVariableGenes(axial, cells.fit=cellsInCluster(axial, "stage", stages[(n-2):n]), set.object.var.genes=F, diffCV.cutoff=0.3, mean.min=.005, mean.max=100, main.use=paste0("Stages ", stages[n-2], " to ", stages[n]), do.plot=T)
+})
+
+# Combine the results from each group of stages into a single list of variable genes and load into the URD object
+var.genes <- sort(unique(unlist(var.by.stage)))
+axial@var.genes <- var.genes
+```
+
+# Calculate PCA and tSNE
+
+PCA and tSNE are not strictly required for building a tree using URD, but remain useful tools for exploring the data.
+
+```{r}
+# Calculate PCA and consider those PCs that with standard deviation 2x expected by noise as significant
+axial <- calcPCA(axial, mp.factor = 2)
+pcSDPlot(axial)
+
+# Calculate tSNE
+set.seed(19)
+axial <- calcTsne(object = axial)
+```
+
+In this small subset of the data, even the tSNE projection can visualize the branching structure between the two cell populations, though this is not true in the full data.
+
+```{r}
+plotDim(axial, "stage.nice", plot.title = "tSNE: Stage")
+plotDim(axial, "NOTO", plot.title="tSNE: noto expression (Notochord marker)")
+plotDim(axial, "GSC", plot.title="tSNE: gsc expression (Prechordal plate marker)")
+```
+
+# Calculate Diffusion Map
+
+In order to find trajectories through the data, we calculate transition probabilities
+between cells in the data. This is part of the construction of a diffusion map, and 
+the diffusion map is a handy way to visualize whether good transition probabilities
+have been calculated. Thus, we use the *destiny* package to calculate a diffusion map.
+
+This is a critical step in the construction of a branching tree using URD; bad parameters
+will result in non-sensical results. Important parameters to optimize are: (1) the number of
+nearest neighbors (`knn`) (a good starting point is the square root of the number of cells in the
+data, but this may need to be increased or decreased depending on the frequency of different
+cell types in your data), and (2) the width of the Gaussian used to transform cell-cell distances
+into transition probabilities (`sigma`). `"local"` can be a good starting point that tries to
+predict the right sigma for each cell in the data, but often global parameters work better; 
+`NULL` will attempt to auto-determine sigma, but it frequently overestimates the optimal
+setting. The supplementary analysis from our mansucript includes examples 
+of changing the parameters for the diffusion maps on a more complicated data set that may be helpful.
+
+```{r}
+# In this case, knn=100 (larger than sqrt(n.cells)) works well because there are not many cell types.
+# Sigma 16 is slightly smaller than the sigma auto-determined by using NULL parameter.
+axial <- calcDM(axial, knn = 100, sigma=16)
+```
+
+The diffusion map can be inspected visually by plotting several pairs of dimensions. In small data sets, the structure of differentiation may already be very apparent in the diffusion map (as it is here). When more cell types are present, it is more challenging, but usually a couple of decisions are readily visible and can be helpful for optimizing parameters.
+
+```{r}
+plotDimArray(axial, reduction.use = "dm", dims.to.plot = 1:8, outer.title = "Diffusion Map (Sigma 16, 100 NNs): Stage", label="stage", plot.title="", legend=F)
+```
+
+The transitions can also be visualized on the tSNE projection if there is recognizable structure in that representation that might help determine whether `sigma` and `knn` are set correctly.
+
+```{r}
+plotDim(axial, "stage.nice", transitions.plot = 10000, plot.title="Developmental stage (with transitions)")
+```
+
+# Calculate pseudotime
+
+We calculate pseudotime by starting with a group of root cells, and then performing
+a probabilistic breadth-first graph search using the transition probabilities. This moves
+step-wise outward from the root cells, until the entire graph has been visited. Several
+simulations are run, and then pseudotime is calculated as the average iteration that
+visited each cell.
+
+```{r}
+# Here we use all cells from the first stage as the root
+root.cells <- cellsInCluster(axial, "stage", "A-HIGH")
+
+# Then we run 'flood' simulations
+axial.floods <- floodPseudotime(axial, root.cells = root.cells, n=50, minimum.cells.flooded = 2, verbose=F)
+
+# The we process the simulations into a pseudotime
+axial <- floodPseudotimeProcess(axial, axial.floods, floods.name="pseudotime")
+```
+
+We can make sure that enough simulations have been performed by looking at the change in cell pseudotime as more simulations are added. Here, we can see that an asymptote was reached around 30 simulations, so 50 was enough.
+
+```{r}
+pseudotimePlotStabilityOverall(axial)
+```
+
+We can also plot pseudotime on the tSNE (to confirm that it makes sense). 
+
+```{r}
+plotDim(axial, "pseudotime")
+```
+
+More helpful is to investigate the distribution of pseudotime for each developmental stage. In this
+case it looks pretty good. The stages are in the correct order, and there is
+overlap between neighboring stages (as expected), but they do not completely collapse
+on top of each other (which often indicates that sigma is too large in the diffusion map).
+(**Note:** the curve for High stage looks weird because these cells were
+used as the root, which means they all have pseudotime 0, which disrupts the density plot
+kernel.)
+
+```{r}
+plotDists(axial, "pseudotime", "stage", plot.title="Pseudotime by stage")
+```
+
+# Find tips
+
+URD requires that the terminal cell populations are defined. In our case, we used clusters
+from the final developmental stage as the terminal cell populations. Here we make a sub-setted
+URD object that just contains those cells from the last stage, and then perform PCA, tSNE, and
+cluster those cells.
+
+```{r, results='hold'}
+# Create a subsetted object of just those cells from the final stage
+axial.6somite <- urdSubset(axial, cells.keep=cellsInCluster(axial, "stage", "L-6S"))
+
+# Use the variable genes that were calculated only on the final group of stages (which
+# contain the last stage).
+axial.6somite@var.genes <- var.by.stage[[4]]
+
+# Calculate PCA and tSNE
+axial.6somite <- calcPCA(axial.6somite, mp.factor = 1.5)
+pcSDPlot(axial.6somite)
+set.seed(20)
+axial.6somite <- calcTsne(axial.6somite)
+
+# Calculate graph clustering of these cells
+axial.6somite <- graphClustering(axial.6somite, num.nn = 50, do.jaccard=T, method="Louvain")
+```
+
+By plotting the expression of marker genes, we can determine that cluster 1 is the notochord
+and cluster 2 is the prechordal plate.
+
+```{r}
+plotDim(axial.6somite, "Louvain-50", plot.title = "Louvain (50 NN) graph clustering", point.size=3)
+plotDim(axial.6somite, "HE1A", plot.title="HE1A (Differentiated prechordal plate marker)")
+plotDim(axial.6somite, "SHHA", plot.title="SHHA (Notochord marker)")
+```
+
+# Biased random walks
+
+In order to find the developmental trajectories in the data, we then perform biased random
+walks that start from each tip. Each walk starts from a random cell in a given tip, and
+then hops between cells based on the transition probabilities; however, the transition
+probabilities are first biased so that transitions are only permitted to cells with
+younger or similar pseudotimes, ensuring that the trajectory between the root and the
+cell type is found (and that walks do not turn down branches toward other tips).
+
+```{r}
+# Copy cluster identities from axial.6somite object to a new clustering ("tip.clusters") in the full axial object.
+axial@group.ids[rownames(axial.6somite@group.ids), "tip.clusters"] <- axial.6somite@group.ids$`Louvain-50`
+
+# Determine the parameters of the logistic used to bias the transition probabilities. The procedure
+# is relatively robust to this parameter, but the cell numbers may need to be modified for larger
+# or smaller data sets.
+axial.ptlogistic <- pseudotimeDetermineLogistic(axial, "pseudotime", optimal.cells.forward=20, max.cells.back=40, do.plot = T)
+
+# Bias the transition matrix acording to pseudotime
+axial.biased.tm <- as.matrix(pseudotimeWeightTransitionMatrix(axial, "pseudotime", logistic.params=axial.ptlogistic))
+
+# Simulate the biased random walks from each tip
+axial.walks <- simulateRandomWalksFromTips(axial, tip.group.id="tip.clusters", root.cells=root.cells, transition.matrix = axial.biased.tm, n.per.tip = 25000, root.visits = 1, max.steps = 5000, verbose = F)
+
+# Process the biased random walks into visitation frequencies
+axial <- processRandomWalksFromTips(axial, axial.walks, verbose = F)
+```
+
+We can then visualize the tips and the visitation of cells from each tip on the dataset.
+
+```{r}
+plotDim(axial, "tip.clusters", plot.title="Cells in each tip")
+plotDim(axial, "visitfreq.log.1", plot.title="Visitation frequency from tip 1 (log10)", transitions.plot=10000)
+plotDim(axial, "visitfreq.log.2", plot.title="Visitation frequency from tip 2 (log10)", transitions.plot=10000)
+```
+
+# Build tree
+
+We can then build the URD tree structure. This starts from each tip and agglomeratively
+joins trajectories when they visit the same cells (which indicates an earlier cell type
+that potentially gives rise to both downstream cell populations). There are several
+parameters that can be modified in the tree, including the method of determining whether
+groups of cells are different (`divergence.method`), the p-value threshold used (`p.thresh`),
+and the number of cells in each window (`cells.per.pseudotime.bin` and `bins.per.pseudotime.window`).
+In general, adjusting the p-value threshold will make all branchpoints slightly earlier or later.
+Adjusting the number of cells in each window may be important to make sure that
+the procedure is buffered from noise (too small windows can cause bizarre fusion results),
+but if it is too large, cell populations that split near the end of your timecourse may
+immediately fuse.
+
+**Important note:** Currently, `buildTree` is destructive, so it cannot be run twice on the
+same object. Thus, we usually save the output of buildTree as a new URD object (here, `axial.tree`).
+
+```{r}
+# Load the cells used for each tip into the URD object
+axial.tree <- loadTipCells(axial, "tip.clusters")
+
+# Build the tree
+axial.tree <- buildTree(axial.tree, pseudotime = "pseudotime", tips.use=1:2, divergence.method = "preference", cells.per.pseudotime.bin = 25, bins.per.pseudotime.window = 8, save.all.breakpoint.info = T, p.thresh=0.001)
+
+# Name the segments based on our previous determination of the identity of tips 1 and 2.
+axial.tree <- nameSegments(axial.tree, segments=c("1","2"), segment.names = c("Notochord", "Prechordal Plate"), short.names = c("Noto", "PCP"))
+```
+
+We can then plot any metadata or gene expression on the dendrogram recovered by URD.
+(Admittedly, it's not all that impressive when there are only 2 cell types...)
+
+```{r, fig.width=4.5, fig.height=4}
+plotTree(axial.tree, "stage", title="Developmental Stage")
+plotTree(axial.tree, "GSC", title="GSC (early prechordal plate marker)")
+plotTree(axial.tree, "NOTO", title="NOTO (early notochord marker)")
+plotTree(axial.tree, "HE1A", title="HE1A (prechordal plate differentiation marker")
+plotTree(axial.tree, "COL8A1A", title="COL8A1A (notochord differentiation marker")
+```
+
+Additionally, we can refer back to the tSNE representation to see where the branchpoint
+was found.
+
+```{r}
+plotTree(axial.tree, "segment", title="URD tree segment")
+plotDim(axial.tree, "segment", plot.title="URD tree segment")
+```
+
+# Force-directed layout
+
+In addition to the dendrogram-style layout, URD can generate a force-directed layout
+that is useful for visualizing the data. This generates a k-nearest neighbor network
+based on cells' visitation by random walks from each tip, then refines that network
+based on the recovered dendrogram structure, and finally uses that as input into
+a force-directed layout.
+
+In these layouts, optimizing the number of nearest neighbors (`num.nn`) and the
+degree of refinement by the dendrogram (`cut.unconnected.segments`) can affect the
+layout and be used to optimize it.
+
+```{r}
+# Generate the force-directed layout
+axial.tree <- treeForceDirectedLayout(axial.tree, num.nn=100, cut.unconnected.segments=2, verbose=T)
+```
+
+We can then plot various gene expression on the tree. Normally, after running one plot and rotating
+it to a good orientation, the function `plotTreeForceStore3DView` can be used to set
+the view for future plots, but that cannot be done in Markdown analysis.
+
+```{r, rgl=T, fig.width=3, fig.height=3}
+plotTreeForce(axial.tree, "GSC", title = "GSC", title.cex = 2, title.line=2.5)
+```
+
+```{r, rgl=T, fig.width=3, fig.height=3}
+plotTreeForce(axial.tree, "HE1A", title = "HE1A", title.cex=2, title.line=2.5)
+```
+
+```{r, rgl=T, fig.width=3, fig.height=3}
+plotTreeForce(axial.tree, "COL8A1A", title="COL8A1A", title.cex=2, title.line=2.5)
+```
+
+# Conclusion
+
+We hope URD will be useful for your own analyses!
+
+If you find our software useful, please cite it: Farrell JA, Wang YW, Riesenfeld SJ, Shekhar K, Regev A, and Schier AF. Single-cell reconstruction of developmental trajectories during zebrafish embryogenesis. *Science* 10.1126/science.aar3131 (2018).
+
+# Session Info
+
+```{r}
+sessionInfo()
+```
+
+
+
+
