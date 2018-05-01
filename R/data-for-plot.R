@@ -128,7 +128,7 @@ data.for.plot <- function(object, label, label.type=c("search", "meta", "group",
       #data <- colors[data.to.color]
       data.to.color <- sort(unique(data))
       if (is.null(colors.use)) colors <- scales::hue_pal()(length(data.to.color)) else colors <- colors.use
-      if (is.null(names(colors))) names(colors) <- levels(data.to.color)
+      if (is.null(names(colors))) names(colors) <- data.to.color
       legend <- colors
       data <- colors[data]
     } else {
