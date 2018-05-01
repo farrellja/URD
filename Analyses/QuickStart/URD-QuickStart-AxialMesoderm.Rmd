@@ -2,11 +2,7 @@
 title: "URD: Quick Start"
 author: "Jeff Farrell"
 date: "4/26/2018"
-<<<<<<< HEAD
 output: github_document
-=======
-output: html_document
->>>>>>> 5aa78b1821f9e976a8f5758837df2fe27071b5f3
 ---
 
 ```{r setup, warnings=F}
