@@ -95,7 +95,7 @@ URD <- methods::setClass("URD", slots = c(
 #' @param object An URD object
 #' @name show
 #' @docType methods
-#'
+#' @keywords internal
 setMethod(
   f = "show",
   signature = "URD",
@@ -209,6 +209,10 @@ createURD <- function(count.data, meta=NULL, min.cells=3, min.genes=500, min.cou
 #' Default URD continuous colors
 #' 
 #' @return Vector of default colors
+#' 
+#' @export
+#' 
+#' @keywords internal
 defaultURDContinuousColors <- function(with.grey=F) {
   if (with.grey) {
     return(c("#B2B2B2", "#9BABC2", "#7D9FD1", "#5A90E0", "#307DF0", "#0065FF", 

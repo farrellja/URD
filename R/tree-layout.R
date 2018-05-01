@@ -10,6 +10,8 @@
 #' @return An URD object with a dendrogram layout of segments stored in \code{object@tree$segment.layout}.
 #' 
 #' @export
+#' 
+#' @keywords internal
 treeLayoutDendrogram <- function(object) {
   # Convert edge list to igraph format
   object@tree$tree.igraph <- graph_from_edgelist(el=as.matrix(object@tree$segment.joins[,1:2]))
@@ -33,6 +35,8 @@ treeLayoutDendrogram <- function(object) {
 #' each node stored in \code{object@tree$tree.layout}.
 #' 
 #' @export
+#' 
+#' @keywords internal
 treeLayoutElaborate <- function(object) {
   # Grab igraph layout
   igraph.layout <- object@tree$segment.layout
@@ -103,6 +107,8 @@ treeLayoutElaborate <- function(object) {
 #' @return An URD object with cell locations added to \code{object@tree$cell.layout}.
 #' 
 #' @export
+#' 
+#' @keywords internal
 treeLayoutCells <- function(object, pseudotime, jitter=0.15, jitter.push=0.05) {
   # Grab tree layout
   tl <- object@tree$tree.layout

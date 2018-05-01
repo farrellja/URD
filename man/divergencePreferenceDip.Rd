@@ -25,3 +25,4 @@ bin each cell belongs to)}
 Calculates the preference of each cell for the two tips, tests for unimodality using Hartigan's dip test, and
 if unimodal, tests the mean to make sure that it's
 }
+\keyword{internal}

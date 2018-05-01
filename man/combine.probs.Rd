@@ -15,3 +15,4 @@ combine.probs(x)
 \description{
 Calculates cumulative probability
 }
+\keyword{internal}

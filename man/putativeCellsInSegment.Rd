@@ -21,3 +21,4 @@ data.frame Rows are cells, columns are segments, values are logical and encode w
 \description{
 Putative Cells in Segment
 }
+\keyword{internal}

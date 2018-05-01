@@ -12,3 +12,4 @@ Vector of default colors
 \description{
 Default URD continuous colors
 }
+\keyword{internal}

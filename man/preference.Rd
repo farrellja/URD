@@ -16,3 +16,4 @@ preference(x, y, signed = F)
 \description{
 Determining preference between a pair of values
 }
+\keyword{internal}

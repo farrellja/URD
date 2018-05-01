@@ -9,3 +9,4 @@ impulse.start.double(x, y, k, limit.shape = c("none", "concave", "convex"))
 \description{
 Function to determine k sets of initial starting conditions for impulse fitting
 }
+\keyword{internal}

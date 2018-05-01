@@ -23,3 +23,4 @@ impulse.llrtest(x, y, I1, I2, sd.bg, df = 3)
 Determines whether additional degrees of freedom in double sigmoid impulse fit are
 warranted by improved fit to the data
 }
+\keyword{internal}

@@ -43,7 +43,7 @@ neighbor graph, remove any cells that remain connected to fewer than this many o
 
 \item{start.temp}{(Numeric) Starting temperature for the force-directed layout (if \code{method="fr"}), which controls how much cells can move in the initial iterations of the algorithm. Default (\code{NULL}) is the square root of the number of cells.}
 
-\item{density.neighbors}{(Numeric) Distance to this nearest neighbor (default is 10th nearest neighbor) is used as a proxy for local density in the force-directed layout. This is used by \code{\link{plotTreeForce}} if \code{density.alpha=T} for increasing transparency in more high density regions of the layout. This can be adjusted after generating the layout by re-running the \code{\link{fdl.density}} function.}
+\item{density.neighbors}{(Numeric) Distance to this nearest neighbor (default is 10th nearest neighbor) is used as a proxy for local density in the force-directed layout. This is used by \code{\link{plotTreeForce}} if \code{density.alpha=T} for increasing transparency in more high density regions of the layout. This can be adjusted after generating the layout by re-running the \code{\link{fdlDensity}} function.}
 
 \item{plot.outlier.cuts}{(Logical) If \code{cut.outlier.cells=T} or \code{cut.outlier.edges=T}, this displays the}
 

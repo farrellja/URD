@@ -4,7 +4,10 @@
 #' @param segments (Character vector) Segment names to potentially assign cells to 
 #' @param minimum.visits (Numeric) Minimum number of times a cell was visited 
 #' @param visit.threshold (Numeric) Proportion of maximum visit frequency to use as cut-off for assignment to a segment
+#' 
 #' @return data.frame Rows are cells, columns are segments, values are logical and encode whether a cell might be part of a given segment
+#' 
+#' @keywords internal
 putativeCellsInSegment <- function(object, segments, minimum.visits, visit.threshold) {
   # Get visit data
   visit.data <- object@diff.data[, paste0("visitfreq.raw.", segments)]
@@ -41,7 +44,7 @@ putativeCellsInSegment <- function(object, segments, minimum.visits, visit.thres
 #' @param breakpoint.decision.plots (Path) Path to save plots summarizing (default is NULL, which does not save plots as they are somewhat slow)
 #' @param cache (Logical) Used cached values? This will check \code{object@@tree$segment.divergence} and only calculate values for new segments.
 #' @param verbose (Logical) Report on progress?
-#' @return SOMETHING!
+#' @keywords internal
 allSegmentDivergenceByPseudotime <- function(object, pseudotime, segments, divergence.method=c("ks","preference"), pseudotime.cuts=80, window.size=5, minimum.visits=10, visit.threshold=0.7, p.thresh=.01, pref.thresh=0.5, breakpoint.decision.plots=NULL, cache=T, verbose=F) {
   if (length(divergence.method) > 1) divergence.method=divergence.method[1]
   if (!(divergence.method %in% c("ks", "preference"))) stop("Divergence method must be 'ks' or 'preference'.")
@@ -120,8 +123,11 @@ allSegmentDivergenceByPseudotime <- function(object, pseudotime, segments, diver
 #' @param pseudotime.max (Numeric) Maximum pseudotime of cells to compare
 #' @param p.thresh (Numeric) p-value threshold to use in determining whether visitation is significantly different from pairs of tips
 #' @param pref.thresh (Numeric) Maximum mean preference within a window to be considered 'different' if \code{divergence.method=="preference"}
+#' 
 #' @return (List) Number of cells considered ("cells.considered"), the determined pseudotime breakpoint ("breakpoint"), and the
 #' details of the calculation for each window ("details"), which is a data.frame: Rows are pseudotime windows, columns are KS-test p-value adjusted for multiple hypotheses ("p"), pseudotime of cells in the window ("mean.pseudotime", "min.pseudotime", "max.pseudotime"), number of cells considered from each segment ("cells.visited.seg1", "cells.visited.seg2"), and whether the window passed the p-value threshold for significance ("different")
+#' 
+#' @keywords internal
 visitDivergenceByPseudotime <- function(object, pseudotime, segment.1, segment.2, cells.in.segments=NULL, cells.segment.1=NULL, cells.segment.2=NULL, divergence.method=c("ks","preference"), pseudotime.cuts=80, window.size=5, pseudotime.min=NULL, pseudotime.max=NULL, p.thresh=.01, pref.thresh=0.5, verbose=T) {
   # If method left as default, cull down.
   if (length(divergence.method) > 1) divergence.method <- divergence.method[1]
@@ -190,7 +196,9 @@ visitDivergenceByPseudotime <- function(object, pseudotime, segment.1, segment.2
 #' @param pseudotime.windows (matrix) Rows are pseudotime windows, and the columns in each row represent the pseudotime bins that belong to that window.
 #' @param cells.segment.1 (Character vector) Cells in segment 1
 #' @param cells.segment.2 (Character vector) Cells in segment 2
+#'
 #' @return (data.frame) Rows are pseudotime windows, columns are KS-test p-value ("p"), pseudotime of cells in the window ("mean.pseudotime", "min.pseudotime", "max.pseudotime"), and number of cells considered from each segment ("cells.visited.seg1", "cells.visited.seg2")
+#' @keywords internal
 divergenceKSVisitation <- function(visit.data, pseudotime.windows, cells.segment.1, cells.segment.2) {
   # Kolmogorov-Smirnov Test to determine likelihood that visitation distribution is different in each pseudotime group
   div.pseudotime <- as.data.frame(t(as.data.frame(lapply(1:dim(pseudotime.windows)[1], function(pseudotime.window) {
@@ -212,68 +220,6 @@ divergenceKSVisitation <- function(visit.data, pseudotime.windows, cells.segment
   return(div.pseudotime)
 }
 
-## Test whether center bin frequency > outer bin frequency.
-## Report p-values of 0 and 1 to kludge through the rest of your code without needing to re-write.
-#' Calculate visitation divergence based on bimodality of visitation preference
-#' 
-#' @param visit.data (data.frame) Rows are cells, columns are: "segment.1" and "segment.2" (visitation frequency from random walks
-#' initiated in segment 1 and 2), "pseudotime" (the pseudotime of each cell), and "pseudotime.group" (the number of the pseudotime
-#' bin each cell belongs to)
-#' @param pseudotime.windows (matrix) Rows are pseudotime windows, and the columns in each row represent the pseudotime bins that belong to that window.
-#' @param cells.segment.1 (Character vector) Cells in segment 1
-#' @param cells.segment.2 (Character vector) Cells in segment 2
-#' @param pref.width (Numeric) Width of segment to consider preferential (For instance, if this is 0.2, then cells between -0.2 and 0.2)
-#' @param plot.preference.dists (Path) (If NULL, don't plot)
-#' @return (data.frame) Rows are pseudotime windows, columns are a numeric representation of whether (0 or 1) ("p"), pseudotime of cells in the window ("mean.pseudotime", "min.pseudotime", "max.pseudotime"), and number of cells considered from each segment ("cells.visited.seg1", "cells.visited.seg2")
-divergenceBimodPreference <- function(visit.data, pseudotime.windows, cells.segment.1, cells.segment.2, pref.width=0.1, plot.preference.dists=NULL) {
-  
-  # Determine vector of cell preferences in each pseudotime window
-  preference.per.pt.window <- lapply(1:dim(pseudotime.windows)[1], function(pseudotime.window) {
-    cells.in.pt.group <- rownames(visit.data)[which(visit.data$pseudotime.group %in% pseudotime.windows[pseudotime.window,])]
-    preference(x=visit.data[cells.in.pt.group, "segment.1"], y=visit.data[cells.in.pt.group, "segment.2"], signed=T)
-  })
-  
-  # Determine ratio of 'preferential' to 'non-preferential' cells.
-  pref.ratio <- unlist(lapply(preference.per.pt.window, function(prefs) {
-    sum(abs(prefs) > (1-pref.width)) / sum(abs(prefs) < pref.width)
-  }))
-  
-  # Build div.pseudotime data frame
-  div.pseudotime <- as.data.frame(t(as.data.frame(lapply(1:dim(pseudotime.windows)[1], function(pseudotime.window) {
-    # Get cells for this pseudotime moving window
-    cells.in.pt.group <- rownames(visit.data)[which(visit.data$pseudotime.group %in% pseudotime.windows[pseudotime.window,])]
-    # Calculate mean pseudotime of this window
-    mean.pt <- mean(visit.data[cells.in.pt.group, "pseudotime"])
-    min.pt <- min(visit.data[cells.in.pt.group, "pseudotime"])
-    max.pt <- max(visit.data[cells.in.pt.group, "pseudotime"])
-    # Cells in each segment
-    cells.seg1.pt.group <- length(intersect(cells.segment.1, cells.in.pt.group))
-    cells.seg2.pt.group <- length(intersect(cells.segment.2, cells.in.pt.group))
-    return(c(mean.pt, min.pt, max.pt, cells.seg1.pt.group, cells.seg2.pt.group))
-  }))))
-  colnames(div.pseudotime) <- c("mean.pseudotime", "min.pseudotime", "max.pseudotime", "cells.visited.seg1", "cells.visited.seg2")
-  rownames(div.pseudotime) <- NULL
-  
-  div.pseudotime$p <- as.numeric(pref.ratio < 1)
-  
-  if (!is.null(plot.preference.dists)) {
-    # Preference plots
-    r <- ceiling(sqrt(length(preference.per.pt.window)))
-    c <- ceiling(length(preference.per.pt.window)/r)
-    pdf(plot.preference.dists, width=r*1.5, height=c*1.5)
-    par(mfrow=c(r,c))
-    lapply(1:length(preference.per.pt.window), function(window) {
-      h.title.pt <- as.character(round(as.numeric(div.pseudotime[window,c("min.pseudotime","max.pseudotime")]), digits=3))
-      h.title.ratio <- as.character(round(pref.ratio[window], digits=2))
-      h.title <- paste0(paste0(h.title.pt[1:2], collapse="-"), ": ", h.title.ratio)
-      hist(preference.per.pt.window[[window]], main=h.title, xlab="Preference", xlim=c(-1,1))
-    })
-    dev.off()
-  }
-  
-  return(div.pseudotime)
-}
-
 #' Calculate visitation divergence based on bimodality of visitation preference
 #' 
 #' Calculates the preference of each cell for the two tips, tests for unimodality using Hartigan's dip test, and
@@ -287,7 +233,9 @@ divergenceBimodPreference <- function(visit.data, pseudotime.windows, cells.segm
 #' @param cells.in.windows (List) List of character vectors, giving names of cells in each pseudotime window.
 #' @param cells.segment.1 (Character vector) Cells in segment 1
 #' @param cells.segment.2 (Character vector) Cells in segment 2
+#' 
 #' @return (data.frame) Rows are pseudotime windows, columns are a numeric representation of whether (0 or 1) ("p"), pseudotime of cells in the window ("mean.pseudotime", "min.pseudotime", "max.pseudotime"), and number of cells considered from each segment ("cells.visited.seg1", "cells.visited.seg2")
+#' @keywords internal
 divergencePreferenceDip <- function(visit.data, cells.in.windows, cells.segment.1, cells.segment.2) {
   
   # Calculate visitation preference for each cell in visit.data
@@ -364,6 +312,9 @@ pseudotimeBreakpointByStretchV1 <- function(div.pseudotime, segment.1, segment.2
   return(pt.break)
 }
 
+#' Pseudotime Breakpoint By Stretch
+#' 
+#' @keywords internal
 pseudotimeBreakpointByStretch <- function(div.pseudotime, segment.1, segment.2, visit.data, pseudotime.windows, verbose=T) {
   # Find the longest stretches of all-different and all-not-significantly-different pseudotime windows, and find the area in between
   pt.rle <- rle(div.pseudotime$different)
@@ -429,7 +380,7 @@ pseudotimeBreakpointByStretch <- function(div.pseudotime, segment.1, segment.2, 
 #' list by segments, and in \code{object@diff.data$segment}, which allows them \code{"segment"}
 #' to be used as a plotting label.
 #' 
-#' @export
+#' @keywords internal
 assignCellsToSegments <- function(object, pseudotime, verbose=T) {
   # Get rid of the old 'cells.in.segments' data.frame now that you're done
   if (!is.null(object@tree$cells.in.segments)) object@tree$cells.in.segments <- NULL
@@ -461,6 +412,8 @@ assignCellsToSegments <- function(object, pseudotime, verbose=T) {
 #' Reformat Segment Joins
 #' 
 #' @importFrom gdata interleave
+#' 
+#' @keywords internal
 reformatSegmentJoins <- function(object) {
   sj.c1 <- object@tree$segment.joins[,c("parent","child.1","pseudotime")]
   sj.c2 <- object@tree$segment.joins[,c("parent","child.2","pseudotime")]
@@ -480,7 +433,7 @@ reformatSegmentJoins <- function(object) {
 #' @param min.pseudotime.per.segment (Numeric) Remove segments shorter than this in pseudotime
 #' @param collapse.root (Logical) Is the very root most segment OK to delete? (Sometimes it would have no segments, but be important not to collapse)
 #' 
-#' @export
+#' @keywords internal
 collapseShortSegments <- function(object, min.cells.per.segment=1, min.pseudotime.per.segment=0.01, collapse.root=F) {
   # Figure out how many cells and how long (in pseudotime) each segment is
   n.cells.segment <- unlist(lapply(object@tree$cells.in.segment, length))
@@ -524,6 +477,7 @@ collapseShortSegments <- function(object, min.cells.per.segment=1, min.pseudotim
 # Function to combine segments when a parent has only one child
 # (i.e. "middleman" segments)
 #' Remove Unitary Segments
+#' @keywords internal
 removeUnitarySegments <- function(object) {
   # Which segments have only one child
   unitary.segments <- names(which(table(object@tree$segment.joins$parent) == 1))
@@ -567,7 +521,7 @@ removeUnitarySegments <- function(object) {
 #' @param node.size (Numeric) Number of cells per node
 #' @param pseudotime (Character) Pseudotime to use (i.e. a column name of \code{@@pseudotime})
 #' 
-#' @export
+#' @keywords internal
 assignCellsToNodes <- function(object, node.size=100, pseudotime) {
   # Initialize edgelist and node.pseudotime
   edgelist <- NULL

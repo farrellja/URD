@@ -24,3 +24,4 @@ bin each cell belongs to)}
 \description{
 Calculate visitation divergence using KS-test
 }
+\keyword{internal}

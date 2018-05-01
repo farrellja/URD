@@ -9,3 +9,4 @@ impulse.start.single(x, y, k, limit.slope)
 \description{
 Function to determine k sets of initial starting conditions for impulse fitting
 }
+\keyword{internal}

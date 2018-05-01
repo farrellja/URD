@@ -16,3 +16,4 @@ each node stored in \code{object@tree$tree.layout}.
 \description{
 This function is called automatically by \code{\link{buildTree}}.
 }
+\keyword{internal}

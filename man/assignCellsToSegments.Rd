@@ -22,3 +22,4 @@ the most often, out of those segments that exist at that cell's pseudotime. This
 function is called automatically by \code{\link{buildTree}}, but can be re-run
 if necessary.
 }
+\keyword{internal}

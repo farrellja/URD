@@ -23,3 +23,4 @@ Double-sigmoid impulse function with parameters b1, b2, h0, h1, h2, t1, t2, as e
 \description{
 Chechik et al. 2008 Nat Biotech, with Michal's help
 }
+\keyword{internal}

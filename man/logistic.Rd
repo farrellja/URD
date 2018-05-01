@@ -18,3 +18,4 @@ logistic(x, x0, k, c = 1)
 \description{
 Logistic function
 }
+\keyword{internal}

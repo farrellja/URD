@@ -19,3 +19,4 @@ n x 3 matrix of rotated coordinates
 \description{
 Rotate coordinates in 3D
 }
+\keyword{internal}

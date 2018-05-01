@@ -34,3 +34,4 @@ nrows x 3 data.frame, where > 3 dimensions have been interpolated to produce a 3
 \description{
 Allows for fitting more than three dimensions into a dimensionality reduction plot.
 }
+\keyword{internal}

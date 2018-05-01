@@ -18,3 +18,4 @@ inv.logistic(x, x0, k, c = 1)
 \description{
 Inverse logistic function
 }
+\keyword{internal}

@@ -18,3 +18,4 @@ impulse.fit.single(x, y, k = 20, limit.slope = c("none", "on", "off"))
 \description{
 Fit Impulse Model (Single sigmoid)
 }
+\keyword{internal}

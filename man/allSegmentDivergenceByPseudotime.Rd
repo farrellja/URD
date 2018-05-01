@@ -38,9 +38,7 @@ at least this fraction of their maximum visitation from a single tip}
 
 \item{verbose}{(Logical) Report on progress?}
 }
-\value{
-SOMETHING!
-}
 \description{
 All Segment Divergence By Pseudotime
 }
+\keyword{internal}

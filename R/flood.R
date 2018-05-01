@@ -28,8 +28,12 @@ floodBuildTM <- function(object=NULL, dm=NULL) {
 #' Combine probabilities
 #' 
 #' Calculates cumulative probability
+#' 
 #' @param x (Numeric Vector) Probabilities
+#' 
 #' @return (Numeric) Cumulative probability
+#' 
+#' @keywords internal
 combine.probs <- function(x) {
   1-prod(1-x)
 }
@@ -46,6 +50,8 @@ combine.probs <- function(x) {
 #' @param verbose.freq (Numeric) Report progress after this many iterations. 0 is silent.
 #' 
 #' @return (Numeric vector) The iteration that newly visited each cell.
+#' 
+#' @keywords internal
 floodPseudotimeCalc <- function(object, start.cells, minimum.cells.flooded=2, tm.flood=NULL, verbose.freq=0) {
   # Build a normalized transition matrix for flooding, unless it's passed to the function.
   if (is.null(tm.flood)) {
@@ -253,7 +259,9 @@ floodPseudotimeProcess <- function(object, floods, floods.name="pseudotime", max
 #' @param nn.dist.range (Numeric vector, length 2) The range of nearest neighbor distances to consider.
 #' @param pseudotime.name (Character) Output as saved in \code{@@pseudotime} under this column name.
 #' @param cell.dist (Matrix) Distance between cells (see \code{\link{cellDistByExpression}}; if NULL, will be calculated automatically.)
-#' @return An URD object with \code{@@pseudotime$pseudotime.name} set to the potential for cells to be part of a tip. 
+#' 
+#' @return An URD object with \code{@@pseudotime$pseudotime.name} set to the potential for cells to be part of a tip.
+#'  
 #' @export
 tipPotential <- function(object, pseudotime, range.function=prop.nonexp, genes.use=object@var.genes, nn.dist.range=c(20,22), pseudotime.name="tip.potential", cell.dist=NULL) {
   # Get distance between all cells
@@ -293,6 +301,7 @@ tipPotential <- function(object, pseudotime, range.function=prop.nonexp, genes.u
 #' @return An URD object with a column in \code{@@pseudotime} named according to \code{name.store}.
 #' 
 #' @export
+#' @keywords internal
 clusterTipPotential <- function(object, pseudotime, clustering, name.store="tip.potential") {
   # List of clusters
   clusters <- sort(unique(object@group.ids[,clustering]))

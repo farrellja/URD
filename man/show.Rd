@@ -14,3 +14,4 @@
 Prevents R from crashing by trying to print all slots of an URD object
 if a returned object is not stored in a variable.
 }
+\keyword{internal}

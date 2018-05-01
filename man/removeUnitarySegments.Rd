@@ -9,3 +9,4 @@ removeUnitarySegments(object)
 \description{
 Remove Unitary Segments
 }
+\keyword{internal}

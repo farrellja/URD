@@ -21,3 +21,4 @@ llrtest.dof(y, M0, M, sd.bg, df)
 Determines whether additional degrees of freedom in double sigmoid impulse fit are
 warranted by improved fit to the data
 }
+\keyword{internal}

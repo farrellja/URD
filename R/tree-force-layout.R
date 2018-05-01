@@ -51,7 +51,7 @@
 #' @param tips (Character vector) Tips for which walk visitation data should be used in the construction of the nearest neighbor graph. (Default is all tips )
 #' @param coords (Matrix: Cells as rows, 2 columns) Starting coordinates for the force directed layout. Default (\code{"auto"}) takes them from the cell layout of the dendrogram.
 #' @param start.temp (Numeric) Starting temperature for the force-directed layout (if \code{method="fr"}), which controls how much cells can move in the initial iterations of the algorithm. Default (\code{NULL}) is the square root of the number of cells.
-#' @param density.neighbors (Numeric) Distance to this nearest neighbor (default is 10th nearest neighbor) is used as a proxy for local density in the force-directed layout. This is used by \code{\link{plotTreeForce}} if \code{density.alpha=T} for increasing transparency in more high density regions of the layout. This can be adjusted after generating the layout by re-running the \code{\link{fdl.density}} function.
+#' @param density.neighbors (Numeric) Distance to this nearest neighbor (default is 10th nearest neighbor) is used as a proxy for local density in the force-directed layout. This is used by \code{\link{plotTreeForce}} if \code{density.alpha=T} for increasing transparency in more high density regions of the layout. This can be adjusted after generating the layout by re-running the \code{\link{fdlDensity}} function.
 #' @param plot.outlier.cuts (Logical) If \code{cut.outlier.cells=T} or \code{cut.outlier.edges=T}, this displays the 
 #' @param verbose (Logical) Print progress and time stamps?
 #' 
@@ -226,7 +226,7 @@ treeForceDirectedLayout <- function(object, num.nn=NULL, method=c("fr", "drl", "
     
     # Calculate local density for adjusting alpha
     if (verbose) print(paste0(Sys.time(), ": Calculating local density."))
-    object <- fdl.density(object, neighbor=density.neighbors)
+    object <- fdlDensity(object, neighbor=density.neighbors)
     
   } else if (dim==3) {
     object@tree$walks.force.layout.3d <- as.data.frame(igraph.walk.layout, stringsAsFactors=F)
@@ -282,7 +282,7 @@ plotTreeForce2D <- function(object, label=NULL, label.type="search", title=label
 #' density regions of the plot are made more transparent, which is controlled by
 #' the \code{density.alpha} parameter (and the local density is determined by
 #' the \code{density.neighbors} parameter of \code{\link{treeForceDirectedLayout}},
-#' and can be adjusted after the fact by re-running \code{\link{fdl.density}}).
+#' and can be adjusted after the fact by re-running \code{\link{fdlDensity}}).
 #' 
 #' Plots can be easily saved using \code{\link{rgl:rgl.snapshot}} and plots 
 #' can be closed with \code{\link{rgl:rg.close}} if plotting many genes
@@ -659,7 +659,7 @@ treeForcePositionLabels <- function(object, label.spacing=5) {
 #' @param object An URD object
 #' @param neighbor (Numeric) Distance to \code{neighbor}th nearest neighbor is used for
 #' density adjustment of point transparency on force-directed layout plots.
-fdl.density <- function(object, neighbor=10, knn=NULL) {
+fdlDensity <- function(object, neighbor=10, knn=NULL) {
   knn <- RANN::nn2(object@tree$walks.force.layout[,c("x","y","telescope.pt")], k = neighbor, treetype = 'kd')
   object@tree$walks.force.layout$n.dist <- knn$nn.dists[,neighbor]
   return(object)
@@ -702,6 +702,8 @@ plotTreeForceStore3DView <- function(object, view.name) {
 #' @param axis (Character) Which axis to rotate around
 #' 
 #' @return n x 3 matrix of rotated coordinates
+#' 
+#' @keywords internal
 rotateCoords3d <- function(m, a, axis=c("x","y","z")) {
   if (length(axis) > 1) axis <- axis[1]
   if (dim(m)[2] != 3) stop("Supply an n x 3 matrix.")
@@ -719,6 +721,8 @@ rotateCoords3d <- function(m, a, axis=c("x","y","z")) {
 #' @param z (Numeric) Distance to move in z
 #' 
 #' @return n x 3 matrix of translated coordinates
+#' 
+#' @keywords internal
 translateCoords3d <- function(m, x, y, z) {
   if (dim(m)[2] != 3) stop("Supply an n x 3 matrix.")
   sweep(m, 2, c(x, y, z), "+")

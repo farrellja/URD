@@ -10,3 +10,4 @@ pseudotimeMovingWindow(object, pseudotime, cells, moving.window,
 \description{
 Moving window through pseudotime
 }
+\keyword{internal}

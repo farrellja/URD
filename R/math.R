@@ -81,6 +81,8 @@ prop.nonexp <- function(x) {
 #' @param x0 (Numeric) Inflection point
 #' @param k (Numeric) Slope
 #' @param c (Numeric) Max value (default: 1)
+#' 
+#' @keywords internal
 logistic <- function(x, x0, k, c=1) {
   c / (1 + exp(-1*k*(x-x0)))
 }
@@ -91,6 +93,8 @@ logistic <- function(x, x0, k, c=1) {
 #' @param x0 (Numeric) Inflection point
 #' @param k (Numeric) Slope
 #' @param c (Numeric) Max value (default: 1)
+#' 
+#' @keywords internal
 inv.logistic <- function(x, x0, k, c=1) {
   log(c/x-1)/(-1*k)+x0
 }
@@ -100,6 +104,8 @@ inv.logistic <- function(x, x0, k, c=1) {
 #' @param x (Numeric vector) 
 #' @param y (Numeric vector) 
 #' @param signed (Logical)
+#' 
+#' @keywords internal
 preference <- function(x, y, signed=F) {
   z <- as.data.frame(cbind(x, y))
   if (signed) {
@@ -114,6 +120,7 @@ preference <- function(x, y, signed=F) {
 
 #' Arithmetic Mean of As Numeric
 #' 
+#' @keywords internal
 num.mean <- function(x) mean(as.numeric(x))
 
 sigmoid <- function(x, a, b, c, d) {

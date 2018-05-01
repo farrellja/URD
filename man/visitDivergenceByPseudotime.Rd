@@ -47,3 +47,4 @@ details of the calculation for each window ("details"), which is a data.frame: R
 \description{
 Visitation Divergence for Pseudotime Windows
 }
+\keyword{internal}

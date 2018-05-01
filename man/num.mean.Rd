@@ -9,3 +9,4 @@ num.mean(x)
 \description{
 Arithmetic Mean of As Numeric
 }
+\keyword{internal}

@@ -35,7 +35,7 @@ calcPCA <- function(object, genes.use=object@var.genes, pcs.store=NULL, store.th
   
             # Get z-scored data for using in PCA.
             if (verbose) print(paste0(Sys.time(), ": Centering and scaling data."))
-            data.use <- get.z.data(object, genes=genes.use)
+            data.use <- getZData(object, genes=genes.use)
             pc.genes <- intersect(genes.use, rownames(data.use))
             
             # Remove genes with zero variation

@@ -21,3 +21,4 @@ n x 3 matrix of translated coordinates
 \description{
 Translate coordinates in 3D
 }
+\keyword{internal}

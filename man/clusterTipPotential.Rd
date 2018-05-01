@@ -30,3 +30,4 @@ the cumulative transition probability from all cells in the cluster to all cells
 is calculated. Then, the pseudotime difference between each cell and the mean of the cluster is calculated,
 and a weighted average is performed according to the cumulative transition probability.
 }
+\keyword{internal}

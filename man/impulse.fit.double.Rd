@@ -19,3 +19,4 @@ impulse.fit.double(x, y, k = 20, limit.shape = c("none", "convex",
 \description{
 Fit Impulse Model (Double sigmoid)
 }
+\keyword{internal}

@@ -154,6 +154,7 @@ plotDim3D <- function(object, label, label.type="search", reduction.use=c("dm", 
 #' 
 #' @return nrows x 3 data.frame, where > 3 dimensions have been interpolated to produce a 3-dimensional embedding.
 #' 
+#' @keywords internal
 interpolate.points <- function(raw.coordinates, coord.prefix="DC", dim.1, dim.2, dim.3, w.1=rep(1/length(dim.1),length(dim.1)), w.2=rep(1/length(dim.2),length(dim.2)), w.3=rep(1/length(dim.3),length(dim.3)), rows.subset=NULL) {
   # If subset of rows to do is not provided, then do all rows
   if (is.null(rows.subset)) rows.subset <- rownames(raw.coordinates)

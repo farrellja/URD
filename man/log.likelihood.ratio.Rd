@@ -18,3 +18,4 @@
 \description{
 Log-likelihood ratio test
 }
+\keyword{internal}

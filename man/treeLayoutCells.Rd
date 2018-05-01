@@ -21,3 +21,4 @@ An URD object with cell locations added to \code{object@tree$cell.layout}.
 \description{
 This function is called automatically by \code{\link{buildTree}}.
 }
+\keyword{internal}

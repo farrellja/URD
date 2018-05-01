@@ -25,3 +25,4 @@ floodPseudotimeCalc(object, start.cells, minimum.cells.flooded = 2,
 This runs a single iteration of flood pseudotime. This function is meant to 
 be called by \code{\link{floodPseudotime}} to run many iterations.
 }
+\keyword{internal}

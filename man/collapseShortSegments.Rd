@@ -20,3 +20,4 @@ collapseShortSegments(object, min.cells.per.segment = 1,
 This refines the dendrogram structure found by URD by removing overly short segments.
 It is automatically called by \code{\link{buildTree}}, but can be re-run if needed.
 }
+\keyword{internal}

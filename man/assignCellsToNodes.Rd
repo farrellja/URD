@@ -16,3 +16,4 @@ assignCellsToNodes(object, node.size = 100, pseudotime)
 \description{
 Assign Cells to Nodes
 }
+\keyword{internal}

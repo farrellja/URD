@@ -15,3 +15,4 @@ An URD object with a dendrogram layout of segments stored in \code{object@tree$s
 \description{
 This function is called automatically by \code{\link{buildTree}}.
 }
+\keyword{internal}

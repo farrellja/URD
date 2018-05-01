@@ -9,3 +9,4 @@ reformatSegmentJoins(object)
 \description{
 Reformat Segment Joins
 }
+\keyword{internal}

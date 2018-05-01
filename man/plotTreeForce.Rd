@@ -71,7 +71,7 @@ low expression are made more transparent, which is controlled through the
 density regions of the plot are made more transparent, which is controlled by
 the \code{density.alpha} parameter (and the local density is determined by
 the \code{density.neighbors} parameter of \code{\link{treeForceDirectedLayout}},
-and can be adjusted after the fact by re-running \code{\link{fdl.density}}).
+and can be adjusted after the fact by re-running \code{\link{fdlDensity}}).
 
 Plots can be easily saved using \code{\link{rgl:rgl.snapshot}} and plots 
 can be closed with \code{\link{rgl:rg.close}} if plotting many genes
