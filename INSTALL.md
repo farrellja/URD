@@ -1,4 +1,4 @@
-# Installing URD (Mac OS X):
+# Installing URD:
 
 ## Quick Installation
 
@@ -10,19 +10,24 @@ R can be obtained and installed from [https://cran.rstudio.com](https://cran.rst
 
 Following installation of R, Rstudio can be obtained and installed from [https://www.rstudio.com/products/rstudio/download/](https://www.rstudio.com/products/rstudio/download/). The free version of RStudio Desktop is sufficient.
 
-### 2. Install an X11 window client
+### 2. Install an X11 window client (Mac only)
 
-3D plots produced by URD require an X11 windowing client to display. Our favorite for Mac is XQuartz ([https://www.xquartz.org](https://www.xquartz.org)). After installation, restart your computer.
+3D plots produced by URD require an X11 windowing client to display. Windows can do this natively, but Mac requires additional software. Our favorite for Mac is XQuartz ([https://www.xquartz.org](https://www.xquartz.org)). After installation, restart your computer.
 
-### 3. Start RStudio
+### 3. Install required R packages and URD
 
-### 4. Install required R packages and URD
-
-We wrote a script that will attempt to install all requirements for URD and then URD itself.
+We wrote a script that will attempt to install all requirements for URD and then URD itself. Start RStudio and then run the installation script from the console:
 
 ```source("https://raw.githubusercontent.com/farrellja/URD/master/URD-Install.R")```
 
 ## Troubleshooting
+
+### DLL error
+
+R has limit on the number of DLLs that can be loaded by linked packages. If you receive a **maximal number of DLLs reached** error during installation, then you can increase the number of simultaneously allowed DLLs from 100 to 200 by modifying the *.Renviron* file.
+
+On Mac, from the terminal, run:
+```echo "R_MAX_NUM_DLLS=200" >> ~/.Renviron```
 
 ### Manual installation
 
@@ -56,9 +61,4 @@ If installing on a cluster, where you do not have write permissions to the main 
 ```library(devtools)```
 ```install_github(repo="farrellja/URD")```
 
-### Increase number of DLLs available to R
-
-R has limit on the number of DLLs that can be loaded by linked packages. If you receive a **maximal number of DLLs reached** error during installation, then you can increase the number of simultaneously allowed DLLs from 100 to 150 by modifying the *.Renviron* file.
-
-From terminal, run:
-```echo "R_MAX_NUM_DLLS=150" >> ~/.Renviron```	
+	
