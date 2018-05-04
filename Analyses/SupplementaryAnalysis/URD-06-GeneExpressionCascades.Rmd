@@ -1,0 +1,322 @@
+---
+title: "URD 6: Gene Expression Cascades"
+linestretch: 0.5
+output:
+ pdf_document:
+   latex_engine: xelatex
+ html_notebook: default
+---
+
+\fontsize{8}{18}
+
+```{r knit_prep, echo=F, results='hide', message=F, warning=F}
+library("knitr")
+opts_chunk$set(tidy.opts=list(width.cutoff=80),tidy=TRUE,dev="png",dpi=150)
+```
+
+```{r load-packages, message=F, warning=F}
+library(URD)
+```
+
+```{r, include=F}
+setwd("~/Dropbox/Jeff-Yiqun/URD-walkthrough/")
+```
+
+# Load previous saved object
+
+```{r load-object}
+object <- readRDS("obj/object_6_tree.rds")
+```
+
+# Differential expression with precision-recall along URD dendrogram
+
+For each population, we worked backward along that population's trajectory, starting at the tip. We compared cells in each segment pairwise with cells from each of that segment's siblings and children (cropped to the same pseudotime limits as the segment under consideration). Genes were considered differentially expressed if they were expressed in at least 10% of cells in the trajectory segment under consideration, their mean expression was upregulated 1.5x compared to the sibling and the gene was 1.25x better than a random classifier for the population as determined by the area under a precision-recall curve. Genes were considered part of a population's cascade if, at any given branchpoint, they were considered differential against at least 60% of their siblings, and they were not differentially upregulated in a different trajectory downstream of the branchpoint (i.e. upregulated in a shared segment, but really a better marker of a different population).
+
+### Precision-recall tests along tree
+
+We performed tests along the tree for all blastoderm trajectories. Segment 64 was skipped, as it contained only 25 cells, and was too sensitive to random variations in expression level.
+
+```{r, eval=T, results='hold'}
+# Determine tips to run DE for
+tips.to.run <- setdiff(as.character(object@tree$segment.names), c("Primoridal Germ Cells", "EVL/Periderm"))
+genes.use <- NULL # Calculate for all genes
+
+# Calculate the markers of each other population.
+gene.markers <- list()
+for (tipn in 1:length(tips.to.run)) {
+  tip <- tips.to.run[tipn]
+  print(paste0(Sys.time(), ": ", tip))
+  markers <- aucprTestAlongTree(object, pseudotime="pseudotime", tips=tip, log.effect.size=0.4, auc.factor = 1.25, max.auc.threshold = 0.85, frac.must.express = 0.1, frac.min.diff = 0, genes.use=genes.use, root="81", only.return.global=F, must.beat.sibs=0.6, report.debug=T, segs.to.skip = "64")
+  saveRDS(markers, file=paste0("cascades/aucpr/", tip, ".rds"))
+  gene.markers[[tip]] <- markers
+}
+```
+
+Segment 75 gave numerous markers that did not appear to be overall markers of the trajectories that pass through segment 75 when plotted on the tree. Thus, we excluded markers that were solely upregulated in segment 75.
+
+```{r, eval=T}
+# Segment 75 was giving very bizarre differential expression results, so we removed any markers that were only markers in segment 75.
+pops.fix <- c("Endoderm Pharyngeal", "Endoderm Pancreatic+Intestinal", "Hematopoeitic (ICM)", "Hematopoeitic (RBI)+Pronephros")
+for (pop in pops.fix) {
+  mc <- gene.markers[[pop]]$marker.chain 
+  seg.good <- grep("75", names(mc), value=T, invert=T)
+  mark.ok <- unique(unlist(lapply(mc[seg.good], rownames)))
+  mark.keep <- intersect(mark.ok, rownames(gene.markers[[pop]]$diff.exp))
+  gene.markers[[pop]]$diff.exp <- gene.markers[[pop]]$diff.exp[mark.keep,]
+  saveRDS(gene.markers[[pop]], file=paste0("cascades/aucpr/", pop, ".rds"))
+}
+
+```
+
+### Precision-recall tests by stage for PGCs and EVL
+
+The primordial germ cells (PGCs) and enveloping layer cells (EVL) are distinct from the beginning of our tree. Thus, they are not divided up into small segments, and our differential expression test along the tree performed poorly for them. So, instead, we divided cells into five groups, based on their developmental stage, and performed pairwise comparisons at each stage using the precision-recall approach, and kept those genes that were markers of at least 3 groups.
+
+```{r, eval=T}
+# Define cell populations
+evl.cells <- cellsInCluster(object, "segment", "38")
+pgc.cells <- cellsInCluster(object, "segment", "40")
+blastoderm.cells <- cellsInCluster(object, "segment", segChildrenAll(object, "81", include.self=T))
+
+# Copy STAGE to group.ids for the TestByFactor function
+object@group.ids$STAGE <- object@meta[rownames(object@group.ids), "STAGE"]
+
+# Define stage groups
+groups <- list(
+  c("ZFHIGH", "ZFOBLONG"),
+  c("ZFDOME", "ZF30"),
+  c("ZF50", "ZFS", "ZF60"),
+  c("ZF75", "ZF90"),
+  c("ZFB", "ZF3S", "ZF6S")
+)
+
+# Calculate markers
+evl.markers.bystage <- aucprTestByFactor(object, cells.1=evl.cells, cells.2=list(pgc.cells, blastoderm.cells),
+                              label="STAGE", groups=groups, 
+                              log.effect.size=0.5, auc.factor=1, min.auc.thresh=0.1, max.auc.thresh=Inf,
+                              frac.must.express=0.1, frac.min.diff=0, genes.use=genes.use, min.groups.to.mark=3, report.debug=T)
+pgc.markers.bystage <- aucprTestByFactor(object, cells.1=pgc.cells, cells.2=list(evl.cells, blastoderm.cells),
+                              label="STAGE", groups=groups, 
+                              log.effect.size=0.5, auc.factor=1, min.auc.thresh=0.1, max.auc.thresh=Inf,
+                              frac.must.express=0.1, frac.min.diff=0, genes.use=genes.use, min.groups.to.mark=3, report.debug=T)
+
+# Save them
+saveRDS(evl.markers.bystage, "cascades/aucpr/EVL/Periderm.rds")
+saveRDS(pgc.markers.bystage, "cascades/aucpr/Primordial Germ Cells.rds")
+```
+
+```{r, eval=F, include=F}
+# Actually, since this takes a long time to run, we loaded the previously-run ones.
+tips.to.run <- as.character(object@tree$segment.names)
+
+gene.markers <- lapply(tips.to.run, function(tip) readRDS(paste0("cascades/aucpr/", tip, ".rds")))
+names(gene.markers) <- tips.to.run
+```
+
+```{r}
+# Separate actual marker lists from the stats lists
+gene.markers.de <- lapply(gene.markers, function(x) x[[1]])
+gene.markers.stats <- lapply(gene.markers[1:23], function(x) x[[2]])
+names(gene.markers.de) <- names(gene.markers)
+names(gene.markers.stats) <- names(gene.markers)[1:23]
+```
+
+```{r, eval=T}
+# Add them PGC and EVL to gene markers DE
+gene.markers.de[["Primordial Germ Cells"]] <- pgc.markers.bystage$diff.exp
+gene.markers.de[["EVL/Periderm"]] <- evl.markers.bystage$diff.exp
+```
+
+# Differential expression should not be biased by library complexity
+
+Since the size of our cells varies with developmental stage, so does the RNA content, and generally the number of recovered transcripts and detected genes. Since genes could be detected as differentially expressed due to technical effects where they were detected in higher complexity transcriptomes, but dropped out of more sparse transcriptomes, we wanted to make sure this was not a problem with our differential expression testing. Thus, we tracked the average number of transcripts and genes per cell in each of the differential expression tests performed during construction of the gene expression cascades. We find that, because cell populations are matched in pseudotime prior to calculating differential expression, they are also largely matched in number of transcripts and genes detected, so we do not expect this to pose a problem.
+
+```{r, fig.width=5, fig.height=5, out.width="3in", out.height="3in"}
+# Compile all comparison stats into a single table
+all.de.stats <- do.call("rbind", gene.markers.stats)
+
+# Do a few plots
+ggplot(all.de.stats, aes(x=pt.1.mean, y=pt.2.mean)) + geom_point() + theme_bw() + geom_abline(slope = 1, intercept=0, col='red', lty=2) + labs(x="Mean Pseudotime (Group 1)", y="Mean Pseudotime (Group 2)")
+ggplot(all.de.stats, aes(x=genes.1.mean, y=genes.2.mean)) + geom_point() + theme_bw() + geom_abline(slope = 1, intercept=0, col='red', lty=2) + labs(x="Mean Detected Genes (Group 1)", y="Mean Detected Genes (Group 2)")
+ggplot(all.de.stats, aes(x=trans.1.mean, y=trans.2.mean)) + geom_point() + theme_bw() + geom_abline(slope = 1, intercept=0, col='red', lty=2) + labs(x="Mean Transcripts (Group 1)", y="Mean Transcripts (Group 2)")
+```
+
+# NMF module comparison along tree
+
+We also identified chains of connected NMF modules that were upregulated at branchpoints in the data, and considered the top 25 genes loaded in the module to also be part of the gene cascade for that trajectory.
+
+### Load the NMF data
+
+```{r, eval=T}
+# Load the data
+cm <- read.csv("~/Dropbox/Jeff-Yiqun/DE modules/AllModuleByAllCell.csv", row.names = 1)
+```
+
+```{r}
+# Load top genes for each module
+what.loaded <- load("~/Dropbox/Jeff-Yiqun/DE modules/Module_top_25genes.Robj")
+mod.genes.top25 <- top_25genes
+what.loaded <- load("~/Dropbox/Jeff-Yiqun/DE modules/module_lineages.Robj")
+ml <- all_lineages
+rm(list=c("what.loaded", "all_lineages", "top_25genes"))
+```
+
+We evaluated each segment of unbranched modules in the connected module tree.
+
+```{r}
+# Create a list of segments of connected modules without branches.
+mod.lin.segs <- list(
+  ZF3S_22=ml[["3S_22"]][1:5],
+  ZF6S_29="6S_29",
+  ZF6S_9="6S_9",
+  ZF3S_23=c("3S_23", "B_16"),
+  ZFB_24="B_24",
+  ZF6S_35=ml[["6S_35"]][1:3],
+  ZF6S_14=c("6S_14", "3S_13"),
+  ZF6S_16=c("6S_16", "3S_14"),
+  ZFB_13=c("B_13", "90_16"),
+  ZF90_26="90_26",
+  ZF90_8="90_8",
+  ZF75_9=c("75_9", "60_20"),
+  ZFS_5=c("S_5"),
+  ZF50_11="50_11",
+  ZF6S_15=ml[["6S_15"]][1:4],
+  ZF6S_13="6S_13",
+  ZF6S_34="6S_34",
+  ZF3S_12=c("3S_12","B_9","90_13"),
+  ZF75_14="75_14",
+  ZF6S_23=ml[["6S_23"]][1:5],
+  ZF60_16=c("60_16","S_14"),
+  ZF90_5="90_5",
+  ZF6S_10=ml[["6S_10"]][1:8],
+  ZF6S_1="6S_1",
+  ZF6S_27="6S_27",
+  ZF3S_1=ml[["6S_1"]][2:8],
+  ZF6S_40=ml[["6S_40"]][1:3],
+  ZF6S_20=ml[["6S_20"]][1:3],
+  ZF90_27=ml[["90_27"]][1:3],
+  ZF90_25=ml[["6S_20"]][4:6],
+  ZFS_3=c("S_3","50_6"),
+  ZF6S_3=ml[["6S_3"]][1:8],
+  ZF6S_2=ml[["6S_2"]][1:3],
+  ZF6S_17=ml[["6S_17"]][1:3],
+  ZF90_1=c("90_1","75_1"),
+  ZF6S_18="6S_18",
+  ZF6S_5="6S_5",
+  ZF3S_15=ml[["6S_5"]][2:5],
+  ZF60_1="60_1",
+  ZF6S_22=c("6S_22","3S_19"),
+  ZF6S_7=c("6S_7", "3S_9"),
+  ZFB_14=c("B_14","90_20"),
+  ZF6S_21=ml[["6S_21"]][1:4],
+  ZF75_11=c("75_11","60_18"),
+  ZFS_1="S_1",
+  ZF50_2="50_2",
+  ZF6S_26=ml[["6S_26"]][1:7],
+  ZF6S_4=ml[["6S_4"]][1:8],
+  ZF75_22=ml[["75_22"]][1:4],
+  ZF90_28=ml[["90_28"]][1:5]
+)
+```
+
+And then used t-tests along the structure of the URD dendorgram to find modules that were enriched in particular trajectories.
+
+```{r, eval=T, results='hold'}
+# Create a module matrix that only includes those modules that are in the segments you just defined.
+cm.goodtree <- cm[unlist(mod.lin.segs),]
+
+# Do the tests for everything except the EVL & PGCs, which need a different root parameter.
+tips.to.run <- as.character(object@tree$segment.names)
+root.to.use <- c(rep("81", 23), "82", NA) # Use different root for PGC & EVL, because they're hooked up outside the blastoderm tree.
+nmf.markers <- list()
+for (tipn in 1:length(tips.to.run)) {
+  tip <- tips.to.run[tipn]
+  root <- root.to.use[tipn]
+  if (is.na(root)) root <- NULL
+  print(paste0(Sys.time(), ": Starting ", tip))
+  markers <- moduleTestAlongTree(object, tips = tip, data = cm.goodtree, genelist=mod.genes.top25, pseudotime="pseudotime", exclude.upstream = T, effect.size=log(4), p.thresh=0.01, root=root, min.expression = 0.05)
+  saveRDS(markers, file=paste0("cascades/nmf/", tip, ".rds"))
+  nmf.markers[[tip]] <- markers
+}
+```
+
+```{r, eval=F, include=F, echo=F, results='hide'}
+# To speed this up, just load the already calculated markers.
+tips.to.run <- as.character(object@tree$segment.names)
+nmf.markers <- lapply(tips.to.run, function(tip) readRDS(paste0("cascades/nmf/", tip, ".rds")))
+names(nmf.markers) <- tips.to.run
+```
+
+# Combine the two sets of markers
+
+We combined genes identified by URD's differential expression testing and by NMF module loading into a single set of markers for each trajectory.
+
+```{r}
+### Combine the two sets of markers
+tips.to.run <- as.character(object@tree$segment.names)
+combined.gene.markers <- lapply(tips.to.run, function(tip) {
+  gm <- rownames(gene.markers.de[[tip]])
+  nm <- nmf.markers[[tip]]$genes
+  return(unique(c(gm,nm)))
+})
+names(combined.gene.markers) <- tips.to.run
+```
+
+# Impulse fits
+
+We then fit the expression of each marker gene in each trajectory using an impulse model to determine the timing of onset and offset of its expression to order genes in the cascade. Cells in each trajectory are grouped using a moving window through pseudotime; then, mean gene expression is then calculated in each window, and scaled to the maximum mean expression observed in the trajectory. Then, a linear model, single onset sigmoid model, and convex and concave double sigmoid models are fit to the data, and the best fit is chosen by minimizing the sum of squared residuals, penalized according to the complexity of the model. The parameters of the chosen model (for instance, the inflection point of a sigmoid) are then used to calculate genes' onset time, which is then used to order genes. Importantly, the double sigmoid models allow for accurate fitting of genes that are expressed in a brief pulse (a convex double sigmoid, or "impulse"), or that are maternally loaded, decrease over time, and then are re-expressed in particular trajectories (a concave double sigmoid).
+
+```{r, eval=T, warning=F, results='hold'}
+# Generate impulse fits
+gene.cascades.combined <- lapply(tips.to.run, function(tip) {
+  print(paste0(Sys.time(), ": Impulse Fit ", tip))
+  seg.cells <- cellsAlongLineage(object, tip, remove.root=F)
+  casc <- geneCascadeProcess(object = object, pseudotime='pseudotime', cells = seg.cells, genes=combined.gene.markers[[tip]], moving.window=5, cells.per.window=18, limit.single.sigmoid.slopes = "on", verbose = F)
+  tip.file.name <- gsub("/", "_", tip)
+  saveRDS(casc, file=paste0("cascades/impulse/casc_", tip.file.name, ".rds"))
+  return(casc)
+})
+names(gene.cascades.combined) <- tips.to.run
+```
+
+```{r, eval=T, echo=F, include=F, results='hide'}
+# Since this takes forever, load pre-run impulse fits
+tip.file.names <- gsub("/", "_", tips.to.run)
+gene.cascades.combined <- lapply(tip.file.names, function(tip) {
+  readRDS(paste0("cascades/impulse/casc_", tip, ".rds"))
+})
+names(gene.cascades.combined) <- tips.to.run
+```
+
+# Heatmaps
+
+We then plotted each trajectory's gene cascade in a heatmap. Genes are ordered along the y-axis, according to our determined time of expression onset. Along the x-axis is the progression of pseudotime. Plotted is the scaled mean expression within each pseudotime moving window. We determined which genes were recovered from differential expression testing by URD, or were members of a connected NMF gene module that was upregulated in a particular trajectory. This is plotted next to the heatmap, colored red for genes exclusively identified by NMF, blue for genes exclusively identified by URD, and purple for genes identified by both approaches. (These plots were output to a PDF, but we show an example of one below.)
+
+```{r}
+# Generate color bars for NMF vs. URD found markers
+urd.nmf.markers <- lapply(tips.to.run, function(tip) {
+  gm <- rownames(gene.markers.de[[tip]])
+  nm <- nmf.markers[[tip]]$genes
+  return(list(
+    red=setdiff(nm,gm),
+    purple=intersect(nm,gm),
+    dodgerblue1=setdiff(gm,nm)
+  ))
+})
+names(urd.nmf.markers) <- tips.to.run
+```
+
+```{r, eval=T}
+# Make a heatmap of every cascade in a single PDF.
+pdf(file="cascades/cascades.pdf", width=7.5, height=10)
+for (tip in tips.to.run) {
+  geneCascadeHeatmap(cascade=gene.cascades.combined[[tip]], color.scale=RColorBrewer::brewer.pal(9, "YlOrRd"), add.time="HPF", times.annotate=c(3.3,3.8,4.3,4.7,5.3,6,7,8,9,10,11,12), title=tip, annotation.list=urd.nmf.markers[[tip]])
+}
+dev.off()
+```
+
+```{r, fig.width=7, fig.height=9}
+tip <- "Heart Primordium"
+geneCascadeHeatmap(cascade=gene.cascades.combined[[tip]], color.scale=RColorBrewer::brewer.pal(9, "YlOrRd"), add.time="HPF", times.annotate=c(3.3,3.8,4.3,4.7,5.3,6,7,8,9,10,11,12), title=tip, annotation.list=urd.nmf.markers[[tip]])
+```
+

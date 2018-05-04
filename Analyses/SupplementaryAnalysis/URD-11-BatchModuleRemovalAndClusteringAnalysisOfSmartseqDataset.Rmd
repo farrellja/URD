@@ -1,0 +1,288 @@
+---
+title: "Batch module removal and Clustering analysis of SMART-seq dataset"
+linestretch: 0.5
+output:
+  pdf_document:
+    latex_engine: xelatex
+  html_notebook: default
+  html_document:
+    code_folding: hide
+---
+\fontsize{8}{20}
+
+
+```{r read_functions, results='hide', message=F, warning=F}
+library("knitr")
+opts_chunk$set(tidy.opts=list(width.cutoff=80),tidy=TRUE,dev="png",dpi=150)
+```
+
+# Read in the NMF result object
+NMF was run using function `NMF` from `sklearn.decomposition` in Python *scikit-learn* library. The results were then integrated into an R object, which we read in below. We varied the number of modules (`n_components` argument in NMF function) from 5 to 25, and eventually chose to use the result from K=18, because it resulted in a low inconsistency and a high cophenetic coefficient when repeated 10 times with random initial conditions. 
+
+```{r}
+load_obj <- function(file.path){
+  temp.space <- new.env()
+  obj<-load(file.path, temp.space)
+  obj2<-get(obj, temp.space)
+  rm(temp.space)
+  return(obj2)
+}
+nmf_res=load_obj("NMF/Results/P2_use/result_tbls.Robj")
+nmf_K18=nmf_res$`K=18`$rep0
+```
+
+`nmf_K18` contains the genes by modules matrix (G) and the modules by cells matrix (C) resulted from running NMF with `n_components=18`.
+
+
+# Find gene modules that are good predictors for experimental batches
+### First look at the PCA plot for all transcriptomes with all gene modules (using matrix C)
+```{r, out.height="3.5in", out.width="5.5in", message=F, warning=F}
+library("Seurat")
+ALL_C18=new("seurat",raw.data=nmf_K18$C)
+ALL_C18=Setup(ALL_C18,project="allC18",min.cells = 2, names.field = 1,names.delim = "_",do.logNormalize = F,is.expr = 0.01,min.genes = 1)
+ident=ALL_C18@ident
+levels(ident)<-c(levels(ident),"MZoep","mix")
+ident[grep("wt",ident)]="mix"
+ident[grep("oep",ident)]="mix"
+ident[grep("oep_p0",names(ident))]="MZoep"
+ALL_C18@ident=ident
+
+ALL_C18=PCA(ALL_C18,do.print = F,pcs.print = 3,genes.print = 6,pc.genes = rownames(ALL_C18@data))
+PCAPlot(ALL_C18,1,2,pt.size = 0.75)
+```
+
+### Then separate transcriptomes from the two genotypes (wild-type and MZoep) and find batch modules for each genotype
+```{r}
+wt_cells=c(grep("wt",ALL_C18@cell.names),grep("zf",ALL_C18@cell.names))
+oep_cells=c(grep("oep",ALL_C18@cell.names))
+ALL_C18wt=SubsetData(ALL_C18,cells.use = ALL_C18@cell.names[wt_cells])
+ALL_C18oep=SubsetData(ALL_C18,cells.use = ALL_C18@cell.names[oep_cells])
+
+batch_modulewt=BatchGene(ALL_C18wt,idents.use=c("zf1","zf2","zf3"),genes.use=rownames(ALL_C18wt@data),auc.cutoff = 0.67)
+batch_moduleoep=BatchGene(ALL_C18oep,idents.use=c("MZoep","mix"),genes.use=rownames(ALL_C18oep@data),auc.cutoff = 0.67)
+
+batch_modules18=union(batch_moduleoep,batch_modulewt)
+print("Batch modules:")
+print(batch_modules18)
+```
+
+```{r,results='asis'}
+batch_genes=nmf_K18$top30genes[,paste0("Module.",batch_modules18)]
+#knitr::kable(batch_genes,caption = "Top 30 genes in batch modules")
+print(xtable::xtable(batch_genes,caption = "Top 30 genes in batch modules"),type="latex",scalebox=0.55)
+```
+
+
+### Generate PCA plot for all cells with all the non-batch gene modules
+```{r,out.height="3.5in", out.width="5.5in"}
+ALL_C18=PCA(ALL_C18,do.print = F,pcs.print = 3,genes.print = 6,pc.genes = setdiff(rownames(ALL_C18@data),batch_modules18))
+PCAPlot(ALL_C18,1,2,pt.size = 0.75)
+```
+
+Cells are now much less separated by batch in the plot.
+
+# Remove batch effects from the original expression matrix 
+
+This batch effect removed expression matrix will be used later for spatial mapping.
+
+### read in the expression matrix used for running NMF
+```{r}
+tbl.dir="./NMF/Datasets/"
+dataset=read.table(paste0(tbl.dir,"ALL_noBatchCorrection_var.txt"))
+dataset_scl=read.csv("./NMF/Results/P2_use/tables/scaled_data.csv",row.names = 1)
+```
+
+### Removed batch effect
+
+This is done by subtracting the product of the batch matrices (portions of matrix G and C with the batch modules) from the original data matrix.
+
+```{r}
+rmNMFbatch <- function(batch_modules, G, C, dataset_scl, dataset){
+  #multiply the matrices to calculate batch effect:
+  batch_scl=as.matrix(G[,paste0("X",batch_modules)]) %*% as.matrix(C[batch_modules,])
+  
+  #subtract it from the dataset used for running NMF
+  batchRM_scl=dataset_scl-batch_scl ##dataset_scl is the nonzero-median scaled dataset
+  
+  #correct for negative values
+  batchRM_scl[batchRM_scl<0]=0
+  
+  #calculate non-zero median of each gene in the original dataset
+  binaryData=dataset>0 ##dataset is the original log dataset (before median scaling)
+  dataset_2=expm1(dataset)
+  scl_fac=unlist(lapply(rownames(dataset_2), function(x) median(as.numeric(dataset_2[x,binaryData[x,]]))))
+  
+  #calculate non-zero median of the scaled dataset
+  binaryData=dataset_scl>0
+  dataset_2=expm1(dataset_scl)
+  scl_med=unlist(lapply(rownames(dataset_2), function(x) median(as.numeric(dataset_2[x,binaryData[x,]]))))
+  
+  #calculate non-zero median of the scaled dataset with batch effect subtracted
+  #binaryData=batchRM_scl>0 ##
+  dataset_2=expm1(batchRM_scl)
+  batchRM_scl_med=unlist(lapply(rownames(dataset_2), function(x) median(as.numeric(dataset_2[x,binaryData[x,]]))))  
+  
+  med_fac=batchRM_scl_med/scl_med
+  final_scl_fac=scl_fac*med_fac/scl_med
+  #final_scl_fac=scl_fac/scl_med
+  
+  #the medians in the scaled dataset is adjusted to the median of the non-zero medians
+  #transform the batch corrected dataset to its (more or less) original scale
+  ##batchRM_unscl=log1p(sweep(expm1(batchRM_scl),1,scl_fac/median(scl_fac),"*"))
+  batchRM_unscl=log1p(sweep(expm1(batchRM_scl),1,final_scl_fac,"*"))
+  return(batchRM_unscl)
+}
+K18_noBatch=rmNMFbatch(batch_modules18,nmf_K18$G,nmf_K18$C,dataset_scl,dataset)
+```
+
+### Compare datasets before and after batch correction
+PCA plots are used to visualize transcriptomes in gene space before and after batch effect removal.
+
+```{r,out.height="3.5in", out.width="5.5in"}
+data_raw=new("seurat",raw.data=dataset)
+K18_noBatch=new("seurat",raw.data=K18_noBatch)
+
+data_raw=Setup(data_raw,project="pre_batch_rm",min.cells = 1, names.field = 1,names.delim = "_",do.logNormalize = F,is.expr = 0.1,min.genes = 10)
+K18_noBatch=Setup(K18_noBatch,project="post_batch_rm",min.cells = 1, names.field = 1,names.delim = "_",do.logNormalize = F,is.expr = 0.1,min.genes = 10)
+
+ident=data_raw@ident
+levels(ident)<-c(levels(ident),"MZoep","mix")
+ident[grep("wt",ident)]="mix"
+ident[grep("oep",ident)]="mix"
+ident[grep("oep_p0",names(ident))]="MZoep"
+data_raw@ident=ident
+K18_noBatch@ident=ident
+
+data_raw=PCA(data_raw,pcs.print = 3,genes.print = 6,pc.genes = rownames(data_raw@data))
+PCAPlot(data_raw,1,2,pt.size = 0.75)
+K18_noBatch=PCA(K18_noBatch,pcs.print = 3,genes.print = 6,pc.genes = rownames(K18_noBatch@data))
+PCAPlot(K18_noBatch,1,2,pt.size = 0.75)
+```
+
+### Save the dataset with batch effect removed for spatial mapping with Seurat
+```{r}
+save.dir="./Datasets/"
+write.table(K18_noBatch@data,file=paste0(save.dir,"Batch_corrected_var.txt"),quote=FALSE,sep="\t")
+```
+
+
+# Clustering analysis of cells based on non-batch gene modules
+### First, Scale matrix C and assign names to modules
+The C matrix (non-batch modules by cells) is scaled such that each row has the same maximum value before clustering. Modules are assigned names according to knowledge about their top ranked genes. 
+
+```{r}
+maxScl <- function(df, dir='row', max_value=NULL, log_space=F){
+  if(dir=='row'){
+    dir=1
+  }else if(dir=='col'){
+    dir=2
+  }else{
+    print("dir must be 'row' or 'col'.")
+    return
+  }
+  if(is.null(max_value)){
+    max_value=median(apply(df,dir,max))
+  }
+  if(log_space){
+    df=expm1(df)
+    max_value=expm1(max_value)
+  }
+  df_scl=sweep(df,dir,apply(df,dir,max),"/")
+  df_scl=df_scl*max_value
+  if(log_space){
+    df_scl=log1p(df_scl)
+  }
+  return(df_scl)
+}
+
+scld_C=maxScl(nmf_K18$C)
+rownames(scld_C)=c("0","1","2","Marginal","EVL","5","6","7","Marginal Dorsal","Dorsal","10","Apoptotic-like","YSL","13","PGC","Ventral Animal","Dorsal Animal","Ventral")
+```
+
+### Apply hierarchical clustering
+Davies-Bouldin index is used to determin the optimal number of clusters (as the number that gives the lowest DB index). Clustering result is shown as heatmaps, with color bars on top indicating genotype (dark blue = wt; light blue = MZoep) or cluster membership.
+
+```{r,out.height="4.55in", message=F, warning=F}
+library(gplots)
+library(RColorBrewer)
+library(clusterSim)
+cluster_map <- function(scld_C,genos=NULL,group=c("cluster","geno"),group_colors=NULL,den_cut=0.75,metric=c("cor","dist"),method="complete",DB=F){
+  if(metric=="cor"){
+    stds=apply(scld_C,2,sd)
+    zero_var=which(stds==0)
+    if(length(zero_var)>0){
+      print(paste("removing ",length(zero_var),"zero-variance cell(s) from dataframe:"))
+      print(colnames(scld_C)[zero_var])
+      scld_C=scld_C[,-zero_var]
+    }
+    hc <- hclust(as.dist(1-cor(as.matrix(scld_C))), method=method)
+  }else if(metric=="dist"){
+    hc <- hclust(dist(as.matrix(t(scld_C)),method="euclidean"), method=method)
+  }
+  if("cluster"%in%group){
+    if(den_cut<1){
+      mycl <- cutree(hc, h=max(hc$height)*den_cut)
+    }else{
+      mycl <- cutree(hc, k = den_cut)
+    }
+    if(is.null(group_colors)){
+      mycolhc <- topo.colors(length(unique(mycl)))
+      mycolhc <- mycolhc[as.vector(mycl)]
+    }else{
+      mycolhc <- group_colors[as.vector(mycl)]
+    }
+    cluster=mycolhc
+  }
+  if("geno"%in%group){
+    geno_code=vector("numeric",length=dim(scld_C)[2])
+    geno_code=geno_code*0+1
+    i=1
+    for(geno in genos){
+      geno_code[grep(geno,colnames(scld_C))]=i*2
+      i=i+1
+    }
+    if(is.null(group_colors)){
+      mycolgeno <- topo.colors(2*length(genos))
+      mycolgeno <- mycolgeno[geno_code]
+    }else{
+      mycolgeno <- group_colors[geno_code]
+    }
+    geno=mycolgeno
+  }
+  hmcol <- colorRampPalette(brewer.pal(9, "YlGnBu"))(100)
+  if(DB){
+    DBs=c()
+    for(i in c(3:20)){
+      mycl <- cutree(hc, k=i)
+      if(metric=='cor'){
+        DB=index.DB(t(scld_C), mycl,dist(1-cor(as.matrix(scld_C))), centrotypes="centroids")
+      }else if(metric=='dist'){
+        DB=index.DB(t(scld_C), mycl,dist(as.matrix(t(scld_C)),method="euclidean"), centrotypes="centroids")
+      }
+      DBs=c(DBs,DB$DB)
+    }
+    plot(c(3:20),DBs,type = 'b',main = "Davies-Bouldin Index",xlab = "K")
+  }
+  for(grp in group){
+    heatmap.2(as.matrix(scld_C), Colv = as.dendrogram(hc), ColSideColors=get(grp), col=hmcol,dendrogram ="column",sepwidth=0,trace='none',labCol = "",cexRow = 0.65)
+  }
+  return(mycl)
+}
+
+cluster_info=cluster_map(as.matrix(scld_C[setdiff(rownames(scld_C),batch_modules18),]),group = c("geno","cluster"),genos = c("oep"),metric="cor",den_cut=10,DB=T)
+```
+
+### Repeat cluster without cells expressing high levels of YSL module
+YSL is intensinally removed in our sample collecting procedure. The YSL module detected is likely resulted from incomplete yolk removal or contamination from YSL.
+
+```{r,out.height="3.5in",out.width="4.5in"}
+hist(as.numeric(scld_C['YSL',]),breaks=50, main="", xlab = "YSL module expression in cell")
+#length(which(scld_C['YSL',]>1)) #=9
+C_noYSL=scld_C[,colnames(scld_C)[which(scld_C['YSL',]<0.7)]]
+```
+
+Again, we use Davies-Bouldin index to determin the optimal number of clusters, and show clustering result as heatmaps, with color bars on top indicating genotype (dark blue = wt; light blue = MZoep) or cluster membership.
+
+```{r,out.height="4.5in"}
+cluster_info=cluster_map(as.matrix(C_noYSL[setdiff(rownames(C_noYSL),c("YSL",batch_modules18)),]),group = c("geno","cluster"),genos = c("oep"),metric="cor",den_cut=9,DB=T)
+```

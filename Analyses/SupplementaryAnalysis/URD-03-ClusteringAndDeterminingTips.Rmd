@@ -1,0 +1,563 @@
+---
+title: "URD 3: Determining Tips"
+linestretch: 0.5
+output:
+ pdf_document:
+   latex_engine: xelatex
+ html_notebook: default
+---
+
+\fontsize{8}{18}
+
+```{r knit_prep, echo=F, results='hide', message=F, warning=F}
+library("knitr")
+opts_chunk$set(tidy.opts=list(width.cutoff=80),tidy=TRUE, dev="png", dpi=150)
+```
+
+```{r, message=F, warning=F}
+library(URD)
+library(scran) # Batch correction using MNN
+library(gridExtra) # grid.arrange
+```
+
+```{r, include=F}
+setwd("~/Dropbox/Jeff-Yiqun/URD-walkthrough/")
+```
+
+# Load previous saved object
+
+```{r load-object}
+object <- readRDS("obj/object_3_withDMandPT.rds")
+```
+
+# Trim to cells from final stage
+
+URD requires users to define the 'tips' of the developmental tree (i.e. the terminal populations). To do this, we clustered the data from the final stage of our timecourse, and decided which clusters to use as tips.
+
+The first step is to trim the data to the cells from the final stage.
+
+```{r subset-object}
+# Subset the object
+cells.6s <- grep("ZF6S", colnames(object@logupx.data), value=T)
+object.6s <- urdSubset(object, cells.keep=cells.6s)
+```
+
+# Perform PCA / tSNE on final stage cells
+
+Then, we loaded the variable genes specific to this stage from our earlier calculations (see Part 1), and performed PCA, graph-based clustering, and tSNE (to easily visualize the clustering).
+
+```{r pca-tsne-clustering}
+# Load the variable genes specific to this stage
+var.genes.6s <- scan("var_genes/var_ZF6S.txt", what="character")
+object.6s@var.genes <- var.genes.6s
+
+# Calculate PCA
+object.6s <- calcPCA(object.6s)
+
+# Calculate tSNE
+set.seed(18)
+object.6s <- calcTsne(object.6s, dim.use="pca", perplexity = 30, theta=0.5)
+```
+
+We noticed that, in this context, there was a noticeable batch effect between our two samples, and it sometimes drove cluster boundaries in the data, which was not desired.
+
+```{r}
+# Look at batch information 
+plotDim(object.6s, "BATCH", plot.title = "BATCH (Uncorrected)")
+```
+
+# Batch correct data
+
+Therefore, we batch-corrected the data. We used MNN (https://doi.org/10.1101/165118), a single-cell aware batch correction algorithm that finds mutually nearest neighbors between batches, and uses them to calculate correction vectors.
+
+```{r}
+# Make a copy of the object
+object.6s.mnn <- object.6s
+
+# Generate expression matrices from each batch
+cells.1 <- rownames(object.6s.mnn@meta)[which(object.6s.mnn@meta$BATCH=="DS5")]
+cells.2 <- rownames(object.6s.mnn@meta)[which(object.6s.mnn@meta$BATCH=="DS5b")]
+exp.1 <- as.matrix(object.6s.mnn@logupx.data[,cells.1])
+exp.2 <- as.matrix(object.6s.mnn@logupx.data[,cells.2])
+
+# Batch correct using MNN, correcting all genes, but using the 
+# variable genes to determine mutual nearest neighbors.
+logupx.6s.mnn <- mnnCorrect(exp.1, exp.2, subset.row=object.6s.mnn@var.genes, k=20, sigma=1, svd.dim=0, cos.norm.in=T, cos.norm.out=F)
+
+# Combine the resultant corrected matrices and return to
+# original order of cells
+logupx.6s.mnn <- do.call("cbind", logupx.6s.mnn[[1]])
+logupx.6s.mnn <- logupx.6s.mnn[,colnames(object.6s.mnn@logupx.data)]
+
+# Re-sparsify the matrix, by turning anything less than 0 or near 0 back
+# to 0.
+logupx.6s.mnn[logupx.6s.mnn < 0.05] <- 0
+object.6s.mnn@logupx.data <- as(logupx.6s.mnn, "dgCMatrix")
+
+# Re-calculate PCA
+object.6s.mnn <- calcPCA(object.6s.mnn)
+
+# Re-calculate tSNE
+set.seed(18)
+object.6s.mnn <- calcTsne(object.6s.mnn, dim.use="pca", perplexity = 30, theta=0.5)
+```
+
+We found that this ameliorated the batch effect in the data.
+
+```{r}
+# Look at batch information 
+plotDim(object.6s.mnn, "BATCH", plot.title = "BATCH (MNN Corrected)")
+```
+
+# Cluster cells from final stage
+
+### Do graph-based clustering
+
+```{r}
+# Do graph clustering with Louvain-Jaccard
+object.6s.mnn <- graphClustering(object.6s.mnn, num.nn = c(5,8,10,15), method="Louvain", do.jaccard = T)
+
+# Do graph clustering with Infomap-Jaccard
+object.6s.mnn <- graphClustering(object.6s.mnn, num.nn = c(10,15,20,30,40), method="Infomap", do.jaccard = T)
+```
+
+### Plot individual clusterings
+
+Many of these parameter choices seems fairly valid. Infomap-20 and Infomap-30 clusterings have a resolution that seems reasonable, given our expectations for the number of cell populations present in this stage, and seem to draw boundaries that agree with the most dramatic boundaries in the tSNE plot.
+
+```{r, fig.height=5,fig.width=8.5}
+clusterings <- c(paste0("Louvain-", c(5,8,10,15)), paste0("Infomap-", c(10,15,20,30,40)))
+for (c in clusterings) {
+  plot(plotDim(object.6s.mnn, c, legend=F))
+}
+```
+
+# Markers of each cluster
+
+We calculated the top markers of each cluster in the data, and assigned cluster identities based on the known expression patterns of some of these top markers.
+
+```{r}
+clusters <- unique(object.6s.mnn@group.ids$`Infomap-30`)
+```
+
+```{r, eval=F}
+# Precision-recall markers to find the best 'markers' of each cluster.
+pr.markers <- lapply(clusters, function(c) markersAUCPR(object.6s.mnn, clust.1 = c, clustering="Infomap-30", genes.use=object.6s.mnn@var.genes))
+names(pr.markers) <- clusters
+```
+
+# Assign clusters
+
+A totally independent clustering could be attempted here, but since there is so much prior knowledge in zebrafish, we use it to evaluate and annotate our clustering.
+
+First, we created data.frames to keep track of our cluster assignments.
+
+```{r}
+# Make a set of data.frames to keep track during cluster assignment.
+I30.n <- length(unique(object.6s.mnn@group.ids$`Infomap-30`))
+I30.cluster.assignments <- data.frame(
+  cluster=1:I30.n,
+  name=rep(NA, I30.n),
+  tip=rep(NA, I30.n),
+  row.names=1:I30.n
+)
+
+I20.n <- length(unique(object.6s.mnn@group.ids$`Infomap-20`))
+I20.cluster.assignments <- data.frame(
+  cluster=1:I20.n,
+  name=rep(NA, I20.n),
+  tip=rep(NA, I20.n),
+  row.names=1:I20.n
+)
+```
+
+### Endoderm
+
+Markers of cluster 21 and 33 include the endoderm markers PRDX5, FOXA1, and FOXA2. 21 expresses pharyngeal endoderm markers NKX2.7 and IRX7, while 33 expresses the posterior marker CDX4, marking it as the pancreatic and interstinal endoderm.
+
+```{r, fig.width=12, fig.height=4}
+plotDot(object.6s.mnn, genes = c("PRDX5", "FOXA1", "FOXA2", "NKX2.7", "IRX7", "CDX4"), clustering="Infomap-30")
+```
+
+```{r}
+I30.cluster.assignments["21","name"] <- "Endoderm Pharyngeal"
+I30.cluster.assignments["33","name"] <- "Endoderm Pancreatic/Intestinal"
+```
+
+### Axial mesoderm
+
+Cluster 38 is the prechordal plate, based on its expression of hatching enzymes (HE1A, HE1B, and CTSLB/HGG1). Clusters 37 and 41 are the notochord, based on their expression of the collagens (COL2A1A, COL8A1A), collagen synthesis related enzymes (P4HA1B), and classic notochord genes (TA/NTL, NOTO/FLH, and NTD5).
+
+```{r, fig.width=12, fig.height=4}
+plotDot(object.6s.mnn, genes=c("CTSLB", "HE1A", "HE1B", "P4HA1B", "COL2A1A", "COL8A1A", "TA", "NOTO", "NTD5"), clustering="Infomap-30")
+```
+
+```{r}
+# 38 is Prechordal plate due to expression of hatching enzymes HE1B, HE1A, CTSLB (hgg1)
+I30.cluster.assignments["38","name"] <- "Prechordal Plate"
+
+# 38 and 41 are the notochord (NOTO, NTD5)
+# 41 seems like the real tip, because its strongest markers are the differentiation genes
+#  (P4HA1B, COL8A1A, COL9A3, PLOD1A, COL2A1A) -- all involved in collagen synthesis
+I30.cluster.assignments["37","name"] <- "Notochord Posterior" # Don't use as tip
+I30.cluster.assignments["41","name"] <- "Notochord Anterior" # Use as a tip
+```
+
+### Intermediate/lateral mesoderm
+
+Cluster 22 is the cephalic mesoderm, based on its expression of the markers FOXF2A and FSTA. Clusters 27 and 43 are both hematopoietic lineages, based on their expression of TAL1 and LMO2. Cluster 27 is likely the Intermediate Cell Mass (erythroid lineage) based on its expression of GATA1A, whereas cluster 43 is likely the Rostral Blood Island (myeloid lineage) based on its expression of SPI1B, an early macrophage marker. Cluster 40 is the pronephric progenitors, based on its expresion of FOXJ1A and PAX2A. Finally, cluster 7 is the heart primordium, based on its expression of the classic marker HAND2.
+
+```{r, fig.width=12, fig.height=4}
+plotDot(object.6s.mnn, genes=c("FSTA", "FOXF2A", "TAL1", "LMO2", "GATA1A", "MORC3B", "SPI1B", "PAX2A", "FOXJ1A", "HAND2"), clustering="Infomap-30")
+```
+
+However, the boundary of cluster 27 doesn't agree with the boundary of expression of the classic markers of this cell type (GATA1A and MORC3B, for instance). Cluster 56 from the finer resolution Infomap-20 clustering agrees with gene expression more, so we will use that for Hematopoietic (ICM).
+
+```{r, fig.width=7, fig.height=7}
+grid.arrange(grobs=list(
+  plotDimHighlight(object.6s.mnn, "Infomap-30", "27", legend=F),
+  plotDim(object.6s.mnn, "GATA1A"),
+  plotDim(object.6s.mnn, "MORC3B"),
+  plotDimHighlight(object.6s.mnn, "Infomap-20", "56", legend=F)
+))
+```
+
+```{r}
+# 22 is cephalic mesoderm?? FSTA, FOXF2A 
+I30.cluster.assignments["22","name"] <- "Cephalic Mesoderm"
+
+# 43 is Hematopoietic (TAL1, LMO2), Rostral Blood Island (SPI1B)
+I30.cluster.assignments["43","name"] <- "Hematopoeitic (RBI)"
+
+# Infomap-20 Cluster 56 seems to be a better GATA1A+ cluster.
+I20.cluster.assignments["56", "name"] <- "Hematopoeitic (ICM)"
+
+# 40 seems to be pronephros (PAX2A + FOXJ1A)
+I30.cluster.assignments["40","name"] <- "Pronephros"
+
+# 7 is clearly the heart primordium (expression of HAND2, GATA6, and GATA5)
+I30.cluster.assignments["7","name"] <- "Heart Primordium"
+```
+
+### Paraxial mesoderm
+
+Clusters 32 and 45 are the adaxial cells, based on their expression of MYL10, MYOD1, and MYOG. (Based on MYOG, cluster 45 is the more differentiated group of adaxial cells.) Clusters 10 and 15 are the somites, based on expression of MEOX1, RIPPLY1 and ALDH1A2. Cluster 10 is likely the forming simutes, based on its continued expression of MESPBA, RIPPLY2 (which is expressed in S-II and S-I), and continued expression of TBX6. Clusters 25, 18, 5, and 29 are the pre-somitic mesoderm, based on their expression of TBX6L. Finally, clusters 4 and 16 are tailbud, based on their overlapping expression of SOX2, TA, NOTO, FGF8A, and WNT8A.
+
+```{r, fig.width=12, fig.height=5}
+plotDot(object.6s.mnn, genes=c("MYL10", "MYOD1", "MYOG", "MYF5", "MEOX1", "RIPPLY1", "ALDH1A2", "RIPPLY2", "MESPBA", "TBX6", "TBX6L", "WNT8A", "FGF8A", "NOTO", "TA", "SOX2"), clustering = "Infomap-30")
+```
+
+```{r}
+# 45 and 32 are the adaxial cells; 45 seems like the real tip.
+# (ACTA1A, MYL10, ACTC1B, ACTC1A, MEF2D, MYOG)
+I30.cluster.assignments["32","name"] <- "Adaxial Cells" # Don't use as tip
+I30.cluster.assignments["45","name"] <- "Adaxial Cells" # Use as the tip
+
+# 10 and 15 is the formed somites (MEOX1, RIPPLY1, ALDH1A2)
+markers.10v15 <- markersAUCPR(object.6s.mnn, clust.1="10", clust.2="15", clustering="Infomap-30")
+  # Ripply1 mostly in formed somites, Ripply2 mostly in S-I and S-II
+  # MESPBA in future anterior half of S-II and S-I
+I30.cluster.assignments["10","name"] <- "Somites Forming" # Don't use as tip
+I30.cluster.assignments["15","name"] <- "Somites Formed" # Use as a tip
+
+# 25/18/5/29 are the PSM.
+I30.cluster.assignments["25","name"] <- "PSM Maturation Zone" # Not a tip
+I30.cluster.assignments["18","name"] <- "PSM Posterior" # Not a tip
+I30.cluster.assignments["5","name"] <- "PSM Intermediate" # Not a tip
+I30.cluster.assignments["29","name"] <- "PSM Intermediate" # Not a tip
+
+# Clusters 4 and 16 seems to be the tailbud, based on its expression
+# of WNT8A, FGF8A, NOTO, TA, SOX2. They represent, to some degree the
+# more neural inclined and more mesoderm inclined tissues (i.e. I 
+# think some of the early differentiation is also in there.)
+I30.cluster.assignments["4","name"] <- "Tailbud" # Use as a tip
+I30.cluster.assignments["16","name"] <- "Tailbud" # Use as a tip
+```
+
+### Neural
+
+Clusters 26, 41, and 31 are the neural crest, based on their expression of FOXD3, SOX9B, and SOX10. Cluster 39 seems to be the floor plate, based on its combined expression of SHHA, SHHB, FOXJ1A, and FOXA2.
+
+```{r, fig.width=12, fig.height=4}
+plotDot(object.6s.mnn, genes=c("SOX10", "SOX9B", "FOXD3", "FOXJ1A", "SHHA", "SHHB", "FOXA2"), clustering="Infomap-30")
+```
+
+```{r}
+# 26, 46, 31 are neural crest lineages given their high expression of SOX10 and FOXD3.
+I30.cluster.assignments["26","name"] <- "Neural Crest" # Tip
+I30.cluster.assignments["46","name"] <- "Neural Crest Forming" # Not tip
+I30.cluster.assignments["31","name"] <- "Neural Crest Forming" # Not tip
+
+# Cluster 39 -- floor plate???
+# (FOXJ1A, SHHA, SHHB, FOXA2)
+I30.cluster.assignments["39","name"] <- "Floor Plate" # Try as a tip?
+```
+
+#### Spinal Cord
+
+Clusters 48, 11, and 14 are spinal cord. 48 and 11 are the more differenciated, given their high expression of ELAVL3, NEUROD1, NEUROD4, and NEUROG4.
+
+```{r, fig.width=12, fig.height=4}
+plotDot(object.6s.mnn, genes=c("ELAVL3", "ISL2B", "NEUROD1", "NEUROD4", "NEUROG1", "DLA", "OLIG4", "PRDM8", "NKX1.2LA"), clustering="Infomap-30")
+```
+
+```{r}
+# Cluster 48 -- Spinal Cord
+# ELAVL3, ISL2B, NEUROD1
+I30.cluster.assignments["48","name"] <- "Spinal Cord Differentiated" # Tip?
+
+# Cluster 11 -- Also spinal cord
+# NEUROD4, NEUROG1, ELAVL3, DLA
+# Difference vs. 48 = higher SOX3, SOX19A (just more progenitor like)
+I30.cluster.assignments["11","name"] <- "Spinal Cord" # Tip?
+
+# Cluster 14 -- Spinal Cord Progenitors
+# CHD, HER3, OLIG4, PRDM8, NKX1.2LA
+I30.cluster.assignments["14","name"] <- "Spinal Cord Progenitors" # Not tip
+```
+
+#### Fore/mid-brain
+
+Clusters 28 and 8 are the midbrain, given their expression of ENG2A, ENG2B, HER5, HER11, and PAX2A. Cluster 20 is the telencephalon, given its expression of FOXG1A and EMX3. Clusters 12 and 2 are the optic cup, given their expression of RX3, RX2, and PAX6B. Cluster 23 is the ventral diencephalon, given its expression of DBX1A, DBX1B, and NKX2.2B. Finally, clusters 17 and 34 are the dorsal diencephalon, given their expression of LHX5, PAX6A, FOXD1, and OLIG3.
+
+```{r, fig.width=12, fig.height=5}
+plotDot(object.6s.mnn, genes=c("ENG2B", "ENG2A", "HER5", "HER11", "PAX2A", "FOXG1A", "EMX3", "DBX1A", "DBX1B", "NKX2.2B", "LHX5", "PAX6A", "FOXD1", "OLIG3", "RX3", "RX2", "PAX6B"), clustering="Infomap-30")
+```
+
+```{r}
+# Cluster 28 & 8 Midbrain
+# ENG2B, ENG2A, HER5, HER11, PAX2A
+I30.cluster.assignments["28","name"] <- "Midbrain" # Use as tip
+I30.cluster.assignments["8","name"] <- "Midbrain" # Don't use as tip
+
+# 20  - Telencephalon
+# FOXG1A / EMX3
+I30.cluster.assignments["20","name"] <- "Telencephalon" # Use as a tip
+
+# 23 - Ventral Diencephalon
+# NKX2.4B / NKX2.4A / NKX2.1 / DBX1A / DBX1B / SHHA / NKX2.2B
+I30.cluster.assignments["23","name"] <- "Diencephalon Ventral" # Don't use as a tip
+
+# 34 / 17 - Dorsal Diencephalon
+# ARX / LHX5 / PAX6A / FOXD1 / OLIG3 / OLIG2
+# Major differences between the clusters seem to be cell cycle,
+# translation related, so think these clusters should be combined.
+I30.cluster.assignments["34","name"] <- "Dorsal Diencephalon" # Use as a tip
+I30.cluster.assignments["17","name"] <- "Dorsal Diencephalon" # Use as a tip
+
+# 12 / 2 - Optic Vesicle
+# RX3 / RX2 / HMX4 / PAX6B / MAB21L2
+# Differential markers are cell cycle related; think these clusters
+# should be combined.
+I30.cluster.assignments["12","name"] <- "Optic Cup" # Use as a tip, but combined
+I30.cluster.assignments["2","name"] <- "Optic Cup" # Use as a tip
+```
+
+#### Hindbrain
+
+It seems that for the hindbrain, Infomap-30 doesn't have enough resolution, based on the cluster boundaries and the boundaries of expression of the best cluster markers. Going to use Infomap-20 for clustering in this region.
+
+It seems that cluster 21 is rhombomeres 5 & 6 (given its expression of MAFBA/VAL). Thus cluster 52 must be rhombomere 3 (given its expression of EGR2B/KROX20 and that cluster 21 contains rhombomere 5). Cluster 41 is rhombomere 4, since it expresses FGF8A. Clusters 6 and 22 are rhombomere 7, given their expression of HOXD4A and HOXA3A.
+
+```{r, fig.width=12, fig.height=4}
+i20.hb.clusters <- c("21", "52", "41", "2", "24", "6", "22")
+
+# Try Infomap-20 clusters for hindbrain?
+plotDot(object.6s.mnn, genes = c("HOXB1A", "HOXA2B", "HOXB2A", "HOXA3A", "HOXB3A", "HOXB4A", "HOXD4A", "EGR2B", "MAFBA", "FGF8A", "FGFR3", "EFNB2A"), clustering = "Infomap-20", mean.expressing.only = T, clusters.use = i20.hb.clusters)
+```
+
+```{r}
+# 21 is rhombomere 5/6
+I20.cluster.assignments["21","name"] <- "Hindbrain R5+6"
+
+# 52 is rhombomere 3
+I20.cluster.assignments["52","name"] <- "Hindbrain R3"
+
+# 41 is rhombomere 4
+I20.cluster.assignments["41","name"] <- "Hindbrain R4"
+
+I20.cluster.assignments["2","name"] <- "Hindbrain" # Don't use as tip 
+# (What exactly is this? Some kind of as yet unpatterned hindbrain progenitors?)
+
+# 6 and 22 are rhombomere 7?
+I20.cluster.assignments["6","name"] <- "Hindbrain R7"
+I20.cluster.assignments["22","name"] <- "Hindbrain R7"
+```
+
+### Non-neural ectoderm
+
+Cluster 47 is the integument, given its expression of FOXI3A, FOXI3B, MYB, and GCM2. Cluster 13 is the neural plate border, given its expression of CRABP2A and DLX3B. Cluster 1 is the epidermis given its expression of GATA2A, TBX2B, and CYP2K16.
+
+```{r, fig.width=12, fig.height=4}
+plotDot(object.6s.mnn, genes=c("FOXI3A", "FOXI3B", "MYB", "GCM2", "DLX3B", "CRABP2A", "GATA2A", "TBX2B", "CYP2K16"), clustering="Infomap-30")
+```
+
+```{r}
+# 47 is integument?
+# FOXI3A / FOXI3B / MYB / GCM2
+I30.cluster.assignments["47","name"] <- "Integument" # Use as a tip
+
+# Non-neural ectoderm
+# Cluster 13 is the neural plate border
+I30.cluster.assignments["13","name"] <- "Neural Plate Border" # Use as a tip
+
+# Cluster 1 is the epidermis
+I30.cluster.assignments["1","name"] <- "Epidermis" # Use as a tip
+```
+
+#### Pre-placodal ectoderm
+
+Down in the pre-placodal ectoderm / placode territory, it seems like Infomap-30 doesn't really have enough resolution, based on the cluster boundaries vs. the expression domains of the top markers of those clusters. Thus, going to use Infomap-20 clusters for this region.
+
+Cluster 49 is the lens placode (PITX3+). Cluster 74 is olfactory placode (FOXN4+, EBF2/COE+, SIX3B+, DLX4B+). Cluster 46 is the adenohypophyseal placode (stronger SIX3B, DLX4B, HESX1). Cluster 28 is the epibranchial placode (FOXI1+, PAX8+). Cluster 54 is the otic placode (ATOH1B, TBX2B, PAX2A). Cluster 33 is the trigeminal placode (KLF17, IRX1A, P2RX3A).
+
+```{r, fig.width=12, fig.height=5}
+plotDot(object.6s.mnn, genes=c("PITX3", "PITX1", "FOXE3", "FOXN4", "EBF2", "SIX3B", "DLX4B", "HESX1", "PAX8", "FOXI1", "TBX2B", "ATOH1B", "MCF2LB", "PAX2A", "P2RX3A",  "IRX1A", "KLF17"), clustering="Infomap-20", clusters.use=c("49", "74", "46", "28", "54", "33"))
+```
+
+```{r}
+# Looks like 49 really is the lens.
+# (PITX3, PITX1, SIX7, FOXE3)
+I20.cluster.assignments["49","name"] <- "Placode Lens"
+
+# 74 is olfactory 
+# (FOXN4, EBF2, PRDM8, GATAD2B)
+I20.cluster.assignments["74","name"] <- "Placode Olfactory"
+
+# 46 is adenohypophyseal 
+# SIX3B, DLX4B, DLX3B, HESX1,
+I20.cluster.assignments["46","name"] <- "Placode Adenohypophyseal"
+
+# 28 is/includes epibranchial -- seems right from PAX8 FOXI1, 
+# PAX8, FOXI1, PRDM12B, NKX2.3, GBX2
+I20.cluster.assignments["28","name"] <- "Placode Epibranchial"
+
+# 54 is otic
+# ATOH1B? MCF2LB? STC2A? GBX2? ROBO4? DLX3B? SOX9A?
+# (otic) (otic)
+# TBX2B ATOH1B PAX2A SOX9A
+I20.cluster.assignments["54","name"] <- "Placode Otic"
+
+# 33 is trigeminal placode
+#  P2RX3A  IRX1A KLF17
+I20.cluster.assignments["33","name"] <- "Placode Trigeminal"
+```
+
+### Non-blastoderm
+
+Cluster 53 is the EVL / Periderm (all of the keratins!). Cluster 55 is the PGCs (DDX4, H1M, NANOS3). Cluster 54 seems to be mostly YSL-related markers, and should not be used in tree-building.
+
+```{r, fig.width=12, fig.height=4}
+plotDot(object.6s.mnn, genes=c("KRT17", "KRT5", "KRT4", "KRT92", "KRT18", "LYE", "DDX4", "DND1", "H1M", "NANOS3"), clustering="Infomap-30")
+```
+
+The EVL population seems to need to be cleaned up however -- some cells are really good expressers of the EVL markers, whereas others are not.
+
+```{r}
+evl.score <- apply(object@logupx.data[c("LYE", "KRT18", "KRT92", "KRT4", "KRT5", "KRT17"), cellsInCluster(object.6s.mnn, "Infomap-30", "53")], 2, sum.of.logs)
+
+new.evl <- names(which(evl.score > 9))
+remove.evl <- names(which(evl.score <= 9))
+```
+
+```{r}
+# 53 - EVL/Periderm
+# KRT17, KRT5, KRT4, KRT92, KRT18, LYE
+# FOXI3A / FOXI3B / MYB / GCM2
+I30.cluster.assignments["53","name"] <- "EVL/Periderm" # Use as a tip
+
+# 55 - PGCs
+# DDX4 / H1M / NANOS3
+I30.cluster.assignments["55","name"] <- "Primordial Germ Cells"
+
+# 54 - YSL/yolk
+# APOA1B / PVALB9 / SEPP1A / CTSLL
+# Top markers are not particularly great markers and are either
+# ubiquitous or yolk-associated. This is contamination.
+I30.cluster.assignments["54","name"] <- "YSL" # Don't use as a tip
+```
+
+### Generate final clusterings
+
+```{r}
+# Combine clustering assignments from two clusterings
+I30.cluster.assignments$clustering <- "Infomap-30"
+I20.cluster.assignments$clustering <- "Infomap-20"
+cluster.assignments <- rbind(I30.cluster.assignments, I20.cluster.assignments)
+
+# Remove any clusters that weren't assigned an identity
+cluster.assignments <- cluster.assignments[!is.na(cluster.assignments$name),]
+
+# Renumber clusters
+cluster.assignments$cluster.new <- 1:nrow(cluster.assignments)
+
+# Create blank clusterings in the 6-somite object
+object.6s.mnn@group.ids$clusters.6s.name <- NA
+object.6s.mnn@group.ids$clusters.6s.num <- NA
+
+# Copy cell identities over for each cluster
+for (i in 1:nrow(cluster.assignments)) {
+  cells <- cellsInCluster(object.6s.mnn, clustering = cluster.assignments[i,"clustering"], cluster = cluster.assignments[i,"cluster"])
+  object.6s.mnn@group.ids[cells,"clusters.6s.name"] <- cluster.assignments[i,"name"]
+  object.6s.mnn@group.ids[cells,"clusters.6s.num"] <- as.character(cluster.assignments[i,"cluster.new"])
+}
+
+# Remove the bad cells from cluster 53 that aren't EVL.
+object.6s.mnn@group.ids[remove.evl, "clusters.6s.name"] <- NA
+object.6s.mnn@group.ids[remove.evl, "clusters.6s.num"] <- NA
+
+```
+
+# Transfer clusterings to main object
+
+Need to transfer cluster identities from the 6-somite only object to the full object.
+
+```{r}
+object@group.ids$`ZF6S-Infomap-30` <- NA
+object@group.ids[rownames(object.6s.mnn@group.ids), "ZF6S-Infomap-30"] <- object.6s.mnn@group.ids$`Infomap-30`
+
+object@group.ids$`ZF6S-Infomap-20` <- NA
+object@group.ids[rownames(object.6s.mnn@group.ids), "ZF6S-Infomap-20"] <- object.6s.mnn@group.ids$`Infomap-20`
+
+object@group.ids$`ZF6S-Cluster` <- NA
+object@group.ids[rownames(object.6s.mnn@group.ids), "ZF6S-Cluster"] <- object.6s.mnn@group.ids$`clusters.6s.name`
+
+object@group.ids$`ZF6S-Cluster-Num` <- NA
+object@group.ids[rownames(object.6s.mnn@group.ids), "ZF6S-Cluster-Num"] <- object.6s.mnn@group.ids$`clusters.6s.num`
+```
+
+# Save objects
+
+We save here the 6-somite object, the full object with our 6-somite clustering added to it, and also a data.frame of the tips that can be used during further inspection to annotate which tips should be used in the tree building.
+
+```{r, eval=F}
+saveRDS(object, file="obj/object_4_withTips.rds")
+saveRDS(object.6s.mnn, file="obj/object_6s.rds")
+write.csv(cluster.assignments, file="dm-plots/tips-use.csv")
+```
+
+# Plot tips in diffusion map
+
+Not all clusters from the final stage should really comprise tips of the developmental tree -- progenitor populations that remain should be excluded. For instance, embryos at 6-somite stage contain both somites (a terminal population) and pre-somitic mesoderm that will give rise to additional somites later; the pre-somitic mesoderm should not be a separate tip in the tree.
+
+Here, we show a couple of good plots. For 'bad' clusters that shouldn't be used as tips, all combinations of diffusion components will not separate the cells significantly.
+
+```{r, out.height='70%',out.width='50%'}
+object@group.ids$pop <- NA
+object@group.ids[cellsInCluster(object, "ZF6S-Cluster", "Epidermis"), "pop"] <- "1"
+plotDim(object, label = "pop", plot.title="Epidermis, DCs 17 vs. 18", reduction.use = "dm", dim.x = 17, dim.y=18, legend=F, alpha=0.35)
+
+object@group.ids$pop <- NA
+object@group.ids[cellsInCluster(object, "ZF6S-Cluster", "Cephalic Mesoderm"), "pop"] <- "1"
+plotDim(object, label = "pop", plot.title="Cephalic Mesoderm, DCs 15 vs. 16", reduction.use = "dm", dim.x = 15, dim.y=16, legend=F, alpha=0.35)
+
+object@group.ids$pop <- NA
+object@group.ids[cellsInCluster(object, "ZF6S-Cluster", "Heart Primordium"), "pop"] <- "1"
+plotDim(object, label = "pop", plot.title="Heart Primordium, DCs 25 vs. 26", reduction.use = "dm", dim.x = 25, dim.y=26, legend=F, alpha=0.35)
+```
+
+
+
+
+
+

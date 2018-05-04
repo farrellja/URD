@@ -1,0 +1,149 @@
+---
+title: "URD 1: Creating URD Object and Finding Variable Genes"
+linestretch: 0.5
+output:
+ pdf_document:
+   latex_engine: xelatex
+ html_notebook: default
+---
+
+\fontsize{8}{18}
+
+```{r knit_prep, echo=F, results='hide', message=F, warning=F}
+library("knitr")
+opts_chunk$set(tidy.opts=list(width.cutoff=80),tidy=TRUE,dev="png",dpi=150)
+```
+
+```{r, message=F, warning=F}
+library(URD)
+library(gridExtra) # grid.arrange function
+```
+
+```{r, include=F}
+setwd("~/Dropbox/Jeff-Yiqun/URD-walkthrough/")
+```
+
+# Load filtered data
+
+We load `zf.dropseq.counts`, which is a *genes X cells* data.frame of unnormalized, unlogged transcripts detected per gene per cell. We also load `zf.dropseq.meta`, which is a *cells X metadata* data.frame of metadata about each cell (*e.g.* number of genes detected, number of cells detected, sequencing batch, developmental stage, and so on.).
+
+```{r load-filtered-data}
+zf.dropseq.counts <- readRDS(file="data/zf.dropseq.counts.rds")
+zf.dropseq.meta <- readRDS(file="data/zf.dropseq.meta.rds")
+```
+
+# Create an URD object
+
+```{r create-URD-object, results='hold'}
+# Create URD object
+object <- createURD(count.data=zf.dropseq.counts, meta=zf.dropseq.meta, min.cells = 20, min.counts=20, gene.max.cut = 5000)
+
+# Delete the original data
+rm(list=c("zf.dropseq.counts", "zf.dropseq.meta"))
+
+# Perform garbage collection to free RAM.
+shhhh <- gc()
+```
+
+# Find variable genes
+
+Because scRNA-seq data is noisy, gene expression exhibits high variability due to technical effects, and the amount of technical variability is linked to mean expression level in scRNA-seq data. To identify genes that are likely to encode biologically relevant information, we look for those that exhibit more variability than other similarly expressed genes. We use only those highly variable genes for calculating distance between cells in gene expression space, for calculating the diffusion map, for building the tree, and we also privilege them during differential expression with lower thresholds (as they are more likely to be interesting cell-type specific markers).
+
+As the genes that encode biological information may change over developmental time, we calculate variable genes separately for each stage, and then take the union of them.
+
+```{r, warning=F, fig.width=7, fig.height=3}
+# Find a list of cells from each stage.
+stages <- unique(object@meta$STAGE)
+cells.each.stage <- lapply(stages, function(stage) rownames(object@meta)[which(object@meta$STAGE == stage)])
+
+# Compute variable genes for each stage.
+var.genes.by.stage <- lapply(1:length(stages), function(n) findVariableGenes(object, cells.fit=cells.each.stage[[n]], set.object.var.genes=F, diffCV.cutoff=0.3, mean.min=.005, mean.max=100, main.use=stages[[n]], do.plot=T))
+names(var.genes.by.stage) <- stages
+
+# Take union of variable genes from all stages
+var.genes <- sort(unique(unlist(var.genes.by.stage)))
+
+# Set variable genes in object
+object@var.genes <- var.genes
+
+# Save variable gene lists
+for (stage in stages) {
+  write(var.genes.by.stage[[stage]], file=paste0("var_genes/var_", stage, ".txt"))
+}
+write(var.genes, file="var_genes/var_genes.txt")
+```
+
+# Perform PCA and calculate a tSNE projection
+
+These steps are not strictly necessary for building a tree using URD, but they are a common visualization and can be useful for inspecting the data. The PCA is also required for graph-based clustering which we use below to remove some populations that would confound the discovery of developmental trajectories.
+
+```{r pca}
+object <- calcPCA(object)
+```
+
+```{r tsne}
+set.seed(18)
+object <- calcTsne(object, perplexity = 30, theta=0.5)
+```
+
+```{r clustering}
+set.seed(17)
+object <- graphClustering(object, dim.use="pca", num.nn=c(15,20,30), do.jaccard=T, method="Louvain")
+```
+
+```{r plot-tsne}
+# Need to make a new version of stage names that is alphabetical.
+object@meta$stage.nice <- plyr::mapvalues(x=object@meta$STAGE, from=c("ZFHIGH", "ZFOBLONG", "ZFDOME", "ZF30", "ZF50", "ZFS", "ZF60", "ZF75", "ZF90", "ZFB", "ZF3S", "ZF6S"), to=c("A-HIGH", "B-OBLONG", "C-DOME", "D-30", "E-50", "F-S", "G-60", "H-75", "I-90", "J-B", "K-3S", "L-6S"))
+stage.colors <- c("#CCCCCC", RColorBrewer::brewer.pal(9, "Set1")[9], RColorBrewer::brewer.pal(12, "Paired")[c(9,10,7,8,5,6,3,4,1,2)])
+
+plotDim(object, "stage.nice", discrete.colors = stage.colors, legend=T, plot.title="Developmental Stage", alpha=0.5)
+
+plotDim(object, "Louvain-15", legend=T, plot.title="Louvain-Jaccard Graph-based Clustering (15 NNs)", alpha=1)
+```
+
+# Remove outliers
+
+### Identify cells that are poorly connected
+
+Since the diffusion map is calculated on a k-nearest neighbor graph in gene expression space, cells that are unusually far from their nearest neighbors in a k-nearest neighbor graph often result in poor diffusion maps because many of the highly ranked diffusion components will primarily represent variability of individual outlier cells. Thus, cropping cells based on their distance to their nearest neighbor, and cropping cells that have unusually large distances to an nth nearest neighbor (given the distance to their nearest neighbor) generally produces better, more connected diffusion maps.
+
+```{r}
+# Calculate a k-nearest neighbor graph
+object <- calcKNN(object, nn=100)
+```
+
+We cropped cells to the right of the green line (those that are unusually far from their nearest neighbor) and cells above the blue or red lines (those that are unusually far from their 20th nearest neighbor, given their distance to their 1st nearest neighbor).
+
+```{r}
+# Plot cells according to their distance to their nearest and 20th nearest neighbors, and identify those with unusually large distances.
+outliers <- knnOutliers(object, nn.1=1, nn.2=20, x.max=40, slope.r=1.1, int.r=2.9, slope.b=0.85, int.b=10, title = "Identifying Outliers by k-NN Distance.")
+```
+
+## Identify apoptotic-like cells
+
+A group of cells had very strong expression for the 'apoptotic-like' program that was identified in our prior work (Satija and Farrell, Gennert, Schier and Regev; Nature Biotechnology 2015). These cells seem to arise from many different cell types, and express both a cell-type specific program, as well as the 'apoptotic-like' program. We removed them from further analysis, because we reasoned that their shared state would create 'short-circuits' in the developmental trajectories; cells from already-distinct cell types could be connected in gene expression space through their common expression of this strong cell-type-independent program. These cells primarily occupied a single cluster in Louvain-Jaccard clustering on the entire data set (identified through expression of this cell state's markers isg15, foxo3b, and gadd45aa). Cells in this cluster were removed from further analysis. 
+
+```{r, fig.width=7, fig.height=7}
+gridExtra::grid.arrange(grobs=list(
+  # Plot some apoptotic-like markers
+  plotDim(object, "ISG15", alpha=0.4, point.size=0.5),
+  plotDim(object, "FOXO3B", alpha=0.4, point.size=0.5),
+  plotDim(object, "GADD45AA", alpha=0.4, point.size=0.5),
+  # Figure out which cluster corresponds to these cells
+  plotDimHighlight(object, clustering="Louvain-15", cluster="24", legend=F)
+))
+apoptotic.like.cells <- cellsInCluster(object, "Louvain-15", "24")
+```
+
+## Subset object to eliminate outliers
+
+```{r}
+cells.keep <- setdiff(colnames(object@logupx.data), c(outliers, apoptotic.like.cells))
+object <- urdSubset(object, cells.keep=cells.keep)
+```
+
+# Save object
+
+```{r}
+saveRDS(object, file="obj/object_2_trimmed.rds")
+```

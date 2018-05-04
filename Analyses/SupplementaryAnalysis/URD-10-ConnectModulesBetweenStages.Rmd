@@ -1,0 +1,712 @@
+---
+title: "Connect modules between stages"
+linestretch: 0.5
+output:
+  pdf_document:
+    latex_engine: xelatex
+  html_notebook: default
+  html_document:
+    code_folding: hide
+---
+\fontsize{8}{18}
+
+```{r read_functions, results='hide', message=F, warning=F}
+suppressWarnings(library("knitr"))
+suppressWarnings(library("gplots"))
+suppressWarnings(library("igraph"))
+opts_chunk$set(tidy.opts=list(width.cutoff=80),tidy=TRUE,dev="png",dpi=150)
+```
+
+# Load the NMF results for each of the 12 stages
+A best K (number of modules or `n_component` argument used for running NMF) is picked for each stage based on the stability of the results from 10 NMF runs with random initial conditions. The results are then organized into two lists: one contains all the matrices Cs (modules by cells), and one for all the matrices Gs (genes by modules).
+
+```{r}
+load_obj <- function(file.path){
+  temp.space <- new.env()
+  obj<-load(file.path, temp.space)
+  obj2<-get(obj, temp.space)
+  rm(temp.space)
+  return(obj2)
+}
+
+DSHIGH_k=c(10)
+DSOBLONG_k=c(11)
+DSDOME_k=c(17)
+DS30_k=c(15)
+DS50_k=c(20)
+DSS_k=c(25)
+DS60_k=c(25)
+DS75_k=c(24)
+DS90_k=c(45)
+DSB_k=c(40)
+DS3S_k=c(31)
+DS6S_k=c(42)
+
+stages=c("HIGH","OBLONG","DOME","30","50","S","60","75","90","B","3S","6S")
+
+NMF_list=list()
+for(stage in stages){
+  stage_k=get(paste0("DS",stage,"_k"))[1]
+  NMF_obj=load_obj(paste0("./DS_ZF",stage,"/result_tbls.Robj"))
+  NMF_list[[paste0("DS",stage)]]=NMF_obj[[paste0("K=",stage_k)]][["rep0"]]
+}
+
+DS_C<-list()
+DS_G<-list()
+
+ds_genes=c()
+for(stage in stages){
+  DS_C[[stage]]<-NMF_list[[paste0("DS",stage)]][["C"]]
+  DS_G[[stage]]<-NMF_list[[paste0("DS",stage)]][["G"]]
+  colnames(DS_G[[stage]])=rownames(DS_C[[stage]])
+  ds_genes=c(ds_genes,rownames(DS_G[[stage]]))
+}
+```
+
+
+# Find and remove modules that are primarily driven by batch and noise from each stage
+Batch modules are found using the `BatchGene` function in *Seurat* package. Noise modules are defined as the ones that are primarily driven by a single gene (the top ranked gene has a weight more than 3 times the weight of the second ranked gene). Matrices G and C with the batch and noise modules removed were again saved in two lists.
+
+```{r}
+library("Seurat")
+DS_C_use <- list()
+DS_G_use <- list()
+
+maxScl <- function(df, dir='row', max_value=NULL, log_space=TRUE){
+  if(dir=='row'){
+    dir=1
+  }else if(dir=='col'){
+    dir=2
+  }else{
+    print("dir must be 'row' or 'col'.")
+    return
+  }
+  if(is.null(max_value)){
+    max_value=median(apply(df,dir,max))
+  }
+  if(log_space){
+    df=expm1(df)
+    max_value=expm1(max_value)
+  }
+  df_scl=sweep(df,dir,apply(df,dir,max),"/")
+  df_scl=df_scl*max_value
+  if(log_space){
+    df_scl=log1p(df_scl)
+  }
+  return(df_scl)
+}
+
+rmByCell <- function(scData,low=1){
+  bData=scData>0
+  #sum up each row in the binary matrix for cell numbers
+  num.cell=apply(bData,1,sum)
+  rm.ind=which(num.cell<=low)
+  scData.f=scData
+  #print(paste("removing",length(rm.ind),"genes..."))
+  if (length(rm.ind)>0){
+    scData.f=scData[-rm.ind,]
+  }
+  #now there could be cells with no gene detection. remove them
+  rmByGenes(scData.f,lmt=0)
+  return(scData.f)
+}
+
+rmByGenes <- function(scData,lmt){
+  #first creat a binary matrix for gene detection
+  cptr=scData>0
+  #then sum up each column in the binary matrix for gene numbers
+  num.cptr=apply(cptr,2,sum)
+  rm.ind=which(num.cptr<=lmt)
+  scData.f=scData
+  if (length(rm.ind)>0){
+    #print(paste("removing",length(rm.ind),"cells with fewer than",lmt,"genes..."))
+    scData.f=scData[,-rm.ind]
+  }
+  #now there could be genes with no detection in any cells. remove them
+  cptr=scData.f>0
+  num.cell=apply(cptr,1,sum)
+  rm.ind=which(num.cell==0)
+  if (length(rm.ind)>0){
+    scData.f=scData.f[-rm.ind,]
+  }
+  return(scData.f)
+}
+
+for(stage in stages){
+  ZF_seurat=new("seurat",raw.data=DS_C[[stage]])
+  ZF_seurat=Setup(ZF_seurat,project="ds",min.cells = 2, names.field = 3,names.delim = "_",do.logNormalize = F,is.expr = 0.01,min.genes = 1)
+  cut_off=0.73
+  if(stage %in% c("B")){
+    cut_off=0.75
+  }
+  batch_module=BatchGene(ZF_seurat,idents.use=levels(ZF_seurat@ident),genes.use=rownames(ZF_seurat@data),auc.cutoff = cut_off)
+  print(paste("Stage:", stage))
+  print(paste("number of batches:", length(levels(ZF_seurat@ident))))
+  print("Batch modules:")
+  print(batch_module)
+  weigh_st=apply(DS_G[[stage]],2,sort)
+  weigh_rat=weigh_st[dim(weigh_st)[1],]/weigh_st[dim(weigh_st)[1]-1,]
+  nois=weigh_rat[which(weigh_rat>3)]
+  if(length(nois)>0){
+    print("Noise modules:")
+    print(names(nois))
+  }
+  batch_module=union(batch_module,names(nois))
+  #print(batch_module)
+  DS_C_use[[stage]] <- DS_C[[stage]][setdiff(rownames(DS_C[[stage]]),batch_module),]
+  DS_C_use[[stage]] <- maxScl(DS_C_use[[stage]],log_space=F)
+  DS_G_use[[stage]] <- DS_G[[stage]][,setdiff(colnames(DS_G[[stage]]),batch_module)]
+  DS_G_use[[stage]] <- rmByCell(DS_G_use[[stage]],low = 0)
+  DS_G_use[[stage]] <- maxScl(DS_G_use[[stage]],dir = 'col',log_space = F)
+}
+```
+
+### Print out the size of matrix G at each stage (we will use these matrices to build the tree of connected modules)
+```{r}
+for(stage in stages){
+  print(stage)
+  #print(dim(DS_C_use[[stage]]))
+  print(dim(DS_G_use[[stage]]))
+}
+```
+
+
+# Calculate the weighted overlap between pairs of gene modules in adjacent stages
+Only the top 25 genes in each module were used in this calculation (see methods in the paper). The results of the overlap scores are visualized in heat maps.
+
+```{r,fig.height=4, fig.width=7}
+Weigh_intersect <- function(M.ind,Data1,Data2,numGene){
+  i=M.ind[1]
+  j=M.ind[2]
+  Data1M=Data1[,i,drop=F]
+  Data2M=Data2[,j,drop=F]
+  topGenes1=rownames(Data1)[order(Data1M,decreasing=T)[1:numGene]]
+  topGenes2=rownames(Data2)[order(Data2M,decreasing=T)[1:numGene]]
+  inter_genes=intersect(topGenes1,topGenes2)
+  weighted_inter=(sum(Data1M[inter_genes,])+sum(Data2M[inter_genes,]))/(sum(Data1M[topGenes1,])+sum(Data2M[topGenes2,]))
+  return(weighted_inter)
+}
+Calc_intersect <- function(Data1,Data2,num_top=25,weigh=F){
+  Data1=sweep(Data1,2,apply(Data1,2,max),'/')
+  Data2=sweep(Data2,2,apply(Data2,2,max),'/')
+  
+  genes.com=intersect(rownames(Data1),rownames(Data2))
+  Data1=Data1[genes.com,]
+  Data2=Data2[genes.com,]
+  num.spl1=dim(Data1)[2]
+  num.spl2=dim(Data2)[2]
+  cor.M=matrix(0,nrow=num.spl2,ncol=num.spl1)
+  num.ind=num.spl1*num.spl2
+  M.ind=vector("list",length=num.ind)
+  k=1
+  for (i in 1:num.spl1){
+    for (j in 1:num.spl2) {
+      M.ind[[k]]=c(i,j)
+      k=k+1
+    }
+  }
+
+  if(weigh){
+    cor.M.vec=lapply(1:num.ind, function(x) Weigh_intersect(M.ind[[x]],Data1,Data2,num_top))
+  }else{
+    cor.M.vec=lapply(1:num.ind, function(x) length(intersect(rownames(Data1)[order(Data1[,M.ind[[x]][1]],decreasing=T)[1:num_top]],rownames(Data2)[order(Data2[,M.ind[[x]][2]],decreasing=T)[1:num_top]]))/num_top)
+  }
+
+  for (i in 1:num.ind){
+    ind1=M.ind[[i]][1]
+    ind2=M.ind[[i]][2]
+    cor.M[ind2,ind1]=unlist(cor.M.vec[i])
+  }
+  corDF=data.frame(cor.M,row.names =colnames(Data2))
+  colnames(corDF)=colnames(Data1)
+  return(corDF)
+}
+
+G_int <- list()
+for(i in 1:(length(stages)-1)){
+  stage=stages[i]
+  stage_next=stages[i+1]
+  gene_use=intersect(rownames(DS_G_use[[stage]]),rownames(DS_G_use[[stage_next]]))
+  G_stage=DS_G_use[[stage]][gene_use,]
+  G_stage_next=DS_G_use[[stage_next]][gene_use,]
+  num_module=dim(G_stage)[2]
+  num_module_next=dim(G_stage_next)[[2]]
+  G_int[[stage]] <- Calc_intersect(G_stage,G_stage_next,num_top = 25, weigh = T) 
+  ##returns overlap scores in a matrix, colnames are modules at this stage, rownames are modules at next stage
+  xval <- formatC(as.matrix(G_int[[stage]]), format="f", digits=2)
+  heatmap.2(as.matrix(G_int[[stage]]), Rowv=FALSE, Colv=FALSE, dendrogram="none", xlab=stage, ylab=stage_next, trace="none", cellnote=xval, notecol="black",notecex=0.5)
+}
+```
+
+### Filter out modules that have poor connection to modules in both adjacent stages
+Modules that have <20% overlap with every module in the two adjacent stages are removed. Most of these modules are enriched with ubiquitously or lowly expressed genes.
+
+```{r}
+mod_kp=list()
+for(i in 1:length(stages)){
+  stage=stages[i]
+  if(i>1){
+    stage_pre=stages[i-1]
+  }
+  if(i<length(stages)){
+    stage_next=stages[i+1]
+    G_cor_stage=G_int[[stage]]
+    G_dim=dim(G_cor_stage)
+    ##if a module has poor correlation with all modules in the next stage and previous stage, it is eliminated from the correlation matrix to reduce later
+    G_cor_max=apply(G_cor_stage,2,max)
+    with_des=colnames(G_cor_stage)[which(G_cor_max>0.2)]
+    no_des=setdiff(colnames(G_cor_stage),with_des)
+  }
+  if(i>1){
+    G_cor_stage_pre=G_int[[stage_pre]]
+    G_cor_max_pre=apply(G_cor_stage_pre,1,max)
+    with_ans=rownames(G_cor_stage_pre)[which(G_cor_max_pre>0.2)]
+    no_ans=setdiff(rownames(G_cor_stage_pre),with_ans)
+    if(i<length(stages)){
+      mod_kp[[stage]]=union(with_des,with_ans)
+      mod_rm=intersect(no_des,no_ans)
+    }else{
+      mod_kp[[stage]]=with_ans
+      mod_rm=no_ans
+    }
+  }else{
+    mod_kp[[stage]]=with_des
+    mod_rm=no_des
+  }
+  if(length(mod_rm)>0){
+    print(stage)
+    print(mod_rm)
+  }
+}
+
+G_int_use <- list()
+for(i in 1:(length(stages)-1)){
+  stage=stages[i]
+  stage_next=stages[i+1]
+  G_cor_stage=G_int[[stage]]
+  G_int_use[[stage]]=G_cor_stage[mod_kp[[stage_next]],mod_kp[[stage]]]
+}
+```
+
+# Calculate overlap between modules in every other stage
+If a stage was not deeply or comprehensively sampled and sequenced, we might not be able to recover certain modules from that stage. This could potentially create dis-connections in the module lineages. In order to produce continuous module lineages when there is potential occasional drop-out of modules, we allow modules separated by one stage to connect to each other when connection to immediate neighbouring stage is not found.
+
+```{r,fig.height=4, fig.width=7}
+G_int2 <- list()
+for(i in 1:(length(stages)-2)){
+  stage=stages[i]
+  stage_next=stages[i+2]
+  gene_use=intersect(rownames(DS_G_use[[stage]]),rownames(DS_G_use[[stage_next]]))
+  G_stage=DS_G_use[[stage]][gene_use,]
+  G_stage_next=DS_G_use[[stage_next]][gene_use,]
+  num_module=dim(G_stage)[2]
+  num_module_next=dim(G_stage_next)[[2]]
+  G_int2[[stage]] <- Calc_intersect(G_stage,G_stage_next, num_top = 25, weigh = T) 
+  ##returns matrix of overlap scores, colnames are modules at this stage, rownames are modules at next stage
+  xval <- formatC(as.matrix(G_int2[[stage]]), format="f", digits=2)
+  heatmap.2(as.matrix(G_int2[[stage]]), Rowv=FALSE, Colv=FALSE, dendrogram="none", xlab=stage, ylab=stage_next, trace="none", cellnote=xval, notecol="black",notecex=0.5)
+}
+```
+
+# Connect modules using the overlap scores calculated above
+### Build tables that record potential connections
+For each module, find its most overlaped module in each of the two previous stages. Only modules with >20% overlaps are taken into account.
+
+```{r}
+## for each module at one stage, want to find max correlated one in the two previous stages
+connect_module <- function(thres1=0.15, thres2=0.25,G_cor_use,G_cor_use2){
+  G_connect <- list()
+  for(i in 1:(length(stages)-1)){
+    stage=stages[i]
+    stage_next=stages[i+1]
+    G_cor_stage=G_cor_use[[stage]]
+    Max_pre=apply(G_cor_stage,1,order)
+    Max_pre_ind=Max_pre[dim(Max_pre)[1],]
+    Max_pre_M=colnames(G_cor_stage)[Max_pre_ind]
+    Max_value=apply(G_cor_stage,1,max)
+    has_pre_ind=which(Max_value>thres1)
+    has_pre_M=rownames(G_cor_stage)[has_pre_ind]
+    if(i==1){
+      G_connect[[stage_next]]=data.frame(matrix(NA, nrow = 1, ncol = dim(G_cor_stage)[1]),row.names=stage)
+      colnames(G_connect[[stage_next]])=rownames(G_cor_stage)
+      G_connect[[stage_next]][,has_pre_M]=Max_pre_M[has_pre_ind]
+      G_connect[[stage_next]]=G_connect[[stage_next]][,has_pre_M]
+    }else{
+      stage_pre=stages[i-1]
+      G_cor_stage2=G_cor_use2[[stage_pre]]
+      all_M=union(rownames(G_cor_stage2),rownames(G_cor_stage))
+      G_connect[[stage_next]]=data.frame(matrix(NA, nrow = 2, ncol = length(all_M)),row.names=c(stage,stage_pre))
+      colnames(G_connect[[stage_next]])=all_M
+      G_connect[[stage_next]][1,has_pre_M]=Max_pre_M[has_pre_ind]
+      G_cor_stage=G_cor_use2[[stage_pre]]
+      Max_pre=apply(G_cor_stage,1,order)
+      Max_pre_ind=Max_pre[dim(Max_pre)[1],]
+      Max_pre_M=colnames(G_cor_stage)[Max_pre_ind]
+      Max_value=apply(G_cor_stage,1,max)
+      has_pre_ind=which(Max_value>thres2)
+      has_pre_M2=rownames(G_cor_stage)[has_pre_ind]
+      G_connect[[stage_next]][2,has_pre_M2]=Max_pre_M[has_pre_ind]
+      G_connect[[stage_next]]=G_connect[[stage_next]][,union(has_pre_M,has_pre_M2)]
+    }
+  }
+  return(G_connect)
+}
+G_int_connect=connect_module(G_cor_use = G_int_use, G_cor_use2 = G_int2, thres1 = 0.2,thres2 = 0.2)
+```
+
+
+### Build an adjacency matrix to record the final connections between modules
+We start from modules in the oldest stage (6-somites). Each module is first connected to its most overlaped module in the immediate previous stage. If no potential connection is recorded (in `G_int_connect`) for the immediate previous stage, it will then be connected to the module recorded for the stage earlier (if there is one). When the overlap between a module and its most overlapped module in the immediate previous stage is less than 30%, and at the same time it has more than 50% overlap with its most overlapped module two stages earlier, we then directly connect this module to the more previous module, and cut its connection to the one in the immidiate previous stage.
+
+```{r}
+build_netM <- function(G_connect,G_cor_use,G_cor_use2,thres=NULL,thres_pre=NULL){
+  nodes_names=c()
+  for(i in 1:(length(stages)-1)){
+    stage=stages[i+1]
+    G_ans=G_connect[[stage]]
+    nodes_names=union(nodes_names,paste0(stage,'_',colnames(G_ans)))
+    nodes_names=union(nodes_names,paste0(stages[i],"_",G_ans[stages[i],which(!is.na(G_ans[stages[i],]))]))
+    if(i>1){
+      nodes_names=union(nodes_names,paste0(stages[i-1],"_",G_ans[stages[i-1],which(!is.na(G_ans[stages[i-1],]))]))
+    }
+  }
+  num_nodes=length(nodes_names)
+  net_M=matrix(0,ncol = num_nodes,nrow = num_nodes)
+  rownames(net_M)=nodes_names
+  colnames(net_M)=nodes_names
+  
+  for(i in 1:(length(stages)-1)){
+    stage_pre=stages[i]
+    stage=stages[i+1]
+    G_ans=G_connect[[stage]]
+    for(j in colnames(G_ans)){
+      to_name=paste0(stage,'_',j)
+      if(!is.na(G_ans[stage_pre,j])){
+        from_M=G_ans[stage_pre,j]
+        from_name=paste0(stage_pre,'_',from_M)
+        ##get the correlation score to put in the connection matirx
+        net_M[from_name,to_name]=G_cor_use[[stage_pre]][j,from_M]
+      }
+      if(i!=1){
+        stage_pre2=stages[i-1]
+        if(!is.na(G_ans[stage_pre2,j])){
+          from_M2=G_ans[stage_pre2,j]
+          from_name2=paste0(stage_pre2,"_",from_M2)
+          if(is.na(G_ans[stage_pre,j])){
+            net_M[from_name2,to_name]=G_cor_use2[[stage_pre2]][j,from_M2]
+          }else if(!is.null(thres)){
+            G_cor=G_cor_use[[stage_pre]][j,from_M]
+            G_cor_pre=G_cor_use2[[stage_pre2]][j,from_M2]
+            if(G_cor<thres && G_cor_pre>thres_pre){
+              print(paste0("add ",from_name2," to ",to_name))
+              net_M[from_name2,to_name]=G_cor_use2[[stage_pre2]][j,from_M2]
+              print(paste0("delete ", from_name," to ",to_name))
+              net_M[from_name,to_name]=0
+              }
+            }
+          }
+        }
+      }
+    }
+  return(net_M)
+}
+
+net_int=build_netM(G_int_connect,G_int_use,G_int2,thres = 0.3,thres_pre = 0.5)
+```
+
+### Visualize the connections using igraph
+```{r,fig.height=10, fig.width=10}
+draw.net=function(net_M,circular=T,label.size=0.5){
+  ind_use=union(which(apply(net_M,1,sum)>0),which(apply(net_M,2,sum)>0))
+  net_M=net_M[ind_use,ind_use]
+  net=graph.adjacency(net_M,mode="directed",weighted=TRUE,diag=TRUE)
+  plot(net,vertex.label=V(net)$name, vertex.label.color="black",edge.width=E(net)$weight*1, edge.arrow.size=0.2,edge.curved=TRUE,vertex.size=2,vertex.label.cex=label.size,vertex.color="snow2",vertex.frame.color="gray",layout=layout_as_tree(net,mode="all",circular = circular))
+}
+draw.net(net_int,circular = F,label.size = 0.37)
+```
+
+
+# Trim path with poor quality
+```{r}
+get_downstream <- function(net_M,start_M,exclude=c("")){
+  all_ds=c(start_M)
+  M_ds=colnames(net_M)[which(net_M[start_M,]>0)]
+  M_ds=M_ds[which(!M_ds%in%exclude)]
+  if(length(M_ds)>0){
+    all_ds=unique(c(all_ds,M_ds))
+    for(M_d in M_ds){
+      all_ds=unique(c(all_ds,get_downstream(net_M,M_d,exclude=exclude)))
+    }
+  }
+  return(all_ds)
+}
+
+get_upstream <- function(net_M,start_M,exclude=c(""),mean_score=F,start_score=0,start_num_ans=0){
+  all_as=c(start_M)
+  M_as=rownames(net_M)[which(net_M[,start_M]>0)]
+  M_as=M_as[which(!M_as%in%exclude)]
+  num_ans=start_num_ans
+  tot_score=start_score
+  if(length(M_as)>0){
+    all_as=unique(c(all_as,M_as))
+    num_ans=num_ans+length(M_as)
+    #print(num_ans)
+    tot_score=tot_score+sum(net_M[M_as,start_M])
+    #print(tot_score)
+    
+    for(M_a in M_as){
+      if(mean_score){
+        in_result_list=get_upstream(net_M,M_a,exclude=exclude,mean_score = T,start_score=tot_score,start_num_ans = num_ans)
+        all_as=unique(c(all_as,in_result_list$upstream))
+        #print(all_as)
+        #print(in_result_list$score)
+        tot_score=in_result_list$score[1]
+        num_ans=in_result_list$score[2]
+      }else{
+        all_as=unique(c(all_as,get_upstream(net_M,M_a,exclude=exclude)))
+      }
+    }
+  }
+  if(mean_score){
+    return_list=list()
+    return_list$upstream=all_as
+    return_list$score=c(tot_score,num_ans)
+    return(return_list)
+  }else{
+    return(all_as)
+  }
+}
+
+calc_path_qual <- function(net_M,path="all",exclude=c("")){
+  ##calculate the mean overlap level along the path end at the specified node(s)
+  if(path=="all"){
+    end_nodes=rownames(net_M)[which(apply(net_M,1,max)==0)]
+  }else{
+    end_nodes=path
+  }
+  score_vec=c(1:length(end_nodes))*0
+  names(score_vec)=end_nodes
+  for(node in end_nodes){
+    node_score=get_upstream(net_M,node,mean_score=T,exclude=exclude)
+    score_vec[node]=node_score$score[1]/node_score$score[2]
+  }
+  return(score_vec)
+}
+```
+
+### Calculate the average overlap score along each chain of connected gene modules
+```{r,out.height="4in", out.width="5in"}
+path_score=calc_path_qual(net_int)
+hist(path_score,breaks = 30, main="average weighted overlap")
+```
+
+### Keep only the paths with >0.45 average weighted overlap. 
+
+Most of the path with <0.45 average overlap were short or consist of either ubiquitous or lowly expressed genes.
+
+```{r,fig.height=10, fig.width=10}
+end_nodes_good=names(path_score[path_score>=0.45])
+all_nodes_good=c()
+for(node in end_nodes_good){
+  all_nodes_good=c(all_nodes_good,get_upstream(net_int,node))
+}
+all_nodes_good=unique(all_nodes_good)
+
+net_int_good=net_int[all_nodes_good,all_nodes_good]
+draw.net(net_int_good, circular = F,label.size = 0.37)
+```
+
+# Save this adjacency matrix for more customed visualization in *yed*
+```{r}
+write.csv(net_int_good,file = "../Module Tree/knit_final_adj_M.csv")
+```
+
+# Save connected module information for overlaying on URD tree
+### For each module at the end (oldest developmental stage) of a connected chain, find all its upstream modules, and store them as an entry in one list
+```{r}
+all_end_nodes=rownames(net_int_good)[which(apply(net_int_good,1,sum)==0)]
+all_lineages<-list()
+for(end_node in all_end_nodes){
+  all_lineages[[end_node]]=get_upstream(net_int_good,end_node)
+}
+save(all_lineages,file="../Module Tree/knit_module_lineages.Robj")
+```
+
+### For modules that are in the same connected chain, sum up their levels in each cell to represent the expression of that lineage program. This results is a lineage by cell matrix
+```{r}
+all_cells=c()
+all_genes=c()
+for(stage in stages){
+  C_use=DS_C_use[[stage]]
+  all_cells=c(all_cells,colnames(C_use))
+  G_use=DS_G_use[[stage]]
+  all_genes=c(all_genes,rownames(G_use))
+}
+
+all_genes=unique(all_genes)
+all_Ms=rownames(net_int_good)
+allM_allCell=data.frame(matrix(0,ncol = length(all_cells),nrow = length(all_Ms)),row.names = all_Ms)
+allGene_allM=data.frame(matrix(0,ncol = length(all_Ms),nrow = length(all_genes)),row.names = all_genes)
+colnames(allM_allCell)=all_cells
+colnames(allGene_allM)=all_Ms
+## look stage by stage, fill in the expression matrix with MAX NORMALIZED gene module expression 
+for(stage in stages){
+  G_use=DS_G_use[[stage]]
+  G.max=apply(G_use, 2, max)
+  G_norm=sweep(G_use, 2, G.max, '/') ## now each module's top gene has weight 1
+  colnames(G_norm)=paste0(stage,"_",colnames(G_norm))
+  M_use=intersect(colnames(G_norm),all_Ms)
+  
+  C_use=DS_C_use[[stage]]
+  C.max=apply(C_use, 1, max)
+  C_norm=sweep(C_use,1,C.max,'/')
+  rownames(C_norm)=paste0(stage,"_",rownames(C_norm))
+  
+  if(length(M_use)>0){
+    ## fill in gene matrix
+    allGene_allM[rownames(G_norm),M_use]=G_norm[rownames(G_norm),M_use]
+    ## fill in cell matrix
+    allM_allCell[M_use,colnames(C_use)]=C_norm[M_use,colnames(C_use)]
+  }
+}
+
+lineage_cell=data.frame(matrix(0,ncol = length(all_cells),nrow = length(all_end_nodes)),row.names = all_end_nodes)
+colnames(lineage_cell)=all_cells
+
+# matrix to use: allM_allCell
+for(lin in all_end_nodes){
+  lin_M=all_lineages[[lin]]
+  if(length(setdiff(lin_M,all_Ms))==0){
+    ## sum up and add
+    lineage_cell[lin,]=apply(allM_allCell[lin_M,colnames(lineage_cell)],2,sum)
+  }else{
+    print(paste(lin,"has module(s) that are not in the table"))
+  }
+}
+```
+
+### Re-name some of the rownames in the lineage by cell matrix based on their expression in URD lineage
+```{r}
+lineage_names=rownames(lineage_cell)
+lineage_names[which(lineage_names=="6S_0")]="Housekeeping"
+lineage_names[which(lineage_names=="6S_1")]="Epidermis"
+lineage_names[which(lineage_names=="6S_2")]="PSM"
+lineage_names[which(lineage_names=="6S_3")]="PCP"
+lineage_names[which(lineage_names=="6S_4")]="EVL"
+lineage_names[which(lineage_names=="6S_5")]="SomiteForming"
+lineage_names[which(lineage_names=="6S_6")]="CellCycle"
+lineage_names[which(lineage_names=="6S_7")]="HeartPrimordium"
+lineage_names[which(lineage_names=="6S_9")]="HindbrainR3456"
+lineage_names[which(lineage_names=="6S_10")]="Notochord"
+lineage_names[which(lineage_names=="6S_13")]="OpticCup"
+lineage_names[which(lineage_names=="6S_14")]="NeuralCrest"
+lineage_names[which(lineage_names=="6S_15")]="Placode"
+lineage_names[which(lineage_names=="6S_17")]="Adaxial"
+lineage_names[which(lineage_names=="6S_18")]="Somite"
+lineage_names[which(lineage_names=="6S_19")]="NegativeRegulationRnaSynthesis"
+lineage_names[which(lineage_names=="6S_20")]="Tailbud2"
+lineage_names[which(lineage_names=="6S_21")]="CephalicMeso"
+lineage_names[which(lineage_names=="6S_22")]="Hematopoeitic_Pronephros"
+lineage_names[which(lineage_names=="6S_23")]="Midbrain"
+lineage_names[which(lineage_names=="6S_26")]="Endoderm"
+lineage_names[which(lineage_names=="6S_27")]="NonNeuralEctoderm"
+lineage_names[which(lineage_names=="6S_29")]="HindbrainR7_SpinalCord"
+lineage_names[which(lineage_names=="6S_34")]="Telencephalon"
+lineage_names[which(lineage_names=="6S_35")]="SpinalCord"
+lineage_names[which(lineage_names=="6S_37")]="CellCycle2"
+lineage_names[which(lineage_names=="6S_40")]="Tailbud"
+lineage_names[which(lineage_names=="3S_22")]="Diencephalon"
+lineage_names[which(lineage_names=="3S_26")]="ApoptoticLike"
+lineage_names[which(lineage_names=="90_28")]="PGC"
+lineage_names[which(lineage_names=="75_22")]="EVL2"
+
+rownames(lineage_cell)=lineage_names
+```
+
+### Save this lineage by cell table. Also save a table with all modules and their levels in each cell
+```{r}
+write.csv(allM_allCell, file = "../Module Tree/knit_AllModuleByAllCell.csv")
+write.csv(lineage_cell, file = "../Module Tree/knit_LineageByCell_ModuleSum.csv")
+```
+
+### for each 50% module, get its down stream connected modules and save their expression in all cells in a matrix
+```{r}
+all_Ms=rownames(net_int_good)
+M_stages=unlist(lapply(all_Ms, function(x) unlist(strsplit(x,"_"))[1]))
+M_ZF50_ind=which(M_stages=="50")
+M_ZF50=all_Ms[M_ZF50_ind]
+
+ZF50_M_after <- list()
+for(M in M_ZF50){
+  ZF50_M_after[[M]]=get_downstream(net_int_good,M)
+}
+
+not_in_oep_M=c("50_5","50_2","50_12")
+all_in_oep=c()
+all_not_oep=c()
+ubi_M=c("50_8","50_17")
+for(ZF50_M in names(ZF50_M_after)){
+  if(ZF50_M %in% not_in_oep_M){
+    all_not_oep=c(all_not_oep,ZF50_M_after[[ZF50_M]])
+  }else{
+    if(!ZF50_M%in%ubi_M){
+      all_in_oep=c(all_in_oep,ZF50_M_after[[ZF50_M]])
+    }
+  }
+}
+
+all_50M_NormSum=data.frame(matrix(0,ncol = dim(allM_allCell)[2],nrow = length(ZF50_M_after)),row.names = names(ZF50_M_after))
+colnames(all_50M_NormSum)=colnames(allM_allCell)
+
+for(name in names(ZF50_M_after)){
+  all_50M_NormSum[name,]=apply(allM_allCell[ZF50_M_after[[name]],],2,sum)
+}
+
+oep_M=data.frame(matrix(0,ncol = dim(allM_allCell)[2],nrow = 2),row.names = c("In_oep","Not_in_oep"))
+colnames(oep_M)=colnames(allM_allCell)
+oep_M["In_oep",]=apply(all_50M_NormSum[intersect(all_in_oep,rownames(all_50M_NormSum)),],2,sum)
+oep_M["Not_in_oep",]=apply(all_50M_NormSum[not_in_oep_M,],2,sum)
+```
+
+### save tables
+```{r}
+write.csv(all_50M_NormSum, file = "../Module Tree/knit_ZF50_allModule_maxNormSum.csv")
+write.csv(oep_M, file = "../Module Tree/knit_ZF50_OEPM_maxNormSum.csv")
+```
+
+
+### save the top 25 genes for each module
+```{r}
+top_25genes <- list()
+for(M in colnames(allGene_allM)){
+  top_25genes[[M]]=rownames(allGene_allM)[order(allGene_allM[,M],decreasing = T)[1:25]]
+}
+save(top_25genes,file = "../Module Tree/knit_Module_top_25genes.Robj")
+```
+
+
+### find and save member genes for each module using a mixture model
+```{r, eval=F}
+library(mixtools)
+## first build a mixture model with gaussian mixture
+## then select the genes with higher posterior for the distribution with higher mu
+## return the list of genes 
+top_genes <- list()
+thres=0.15
+#par(mfrow=c(3,3))
+for(M in colnames(allGene_allM)){
+  genes_use=rownames(allGene_allM)[which(allGene_allM[,M]>thres)]
+  vec=as.numeric(allGene_allM[allGene_allM[,M]>thres,M])
+  mixmdl = normalmixEM(as.numeric(allGene_allM[allGene_allM[,M]>thres,M]),mean.constr=c(mean(vec[which(vec<0.4)]),mean(vec[which(vec>0.5)])),lambda=c(19,1),epsilon = 1e-05)
+  low_dist=order(mixmdl$mu)[1]
+  high_dist=order(mixmdl$mu)[2]
+  high_gen_ind=which(mixmdl$posterior[,high_dist]-mixmdl$posterior[,low_dist]>=0)
+  low_weigh=min(as.numeric(allGene_allM[genes_use[high_gen_ind],M]))
+  top_genes[[M]]=rownames(allGene_allM)[which(allGene_allM[,M]>low_weigh)]
+  #plot(mixmdl,which=2)
+  #title(main=paste0("\n\n",M,", ",as.character(length(top_genes[[M]]))))
+}
+
+## save the list
+save(top_genes,file = "./Result_obj/knit_Module_top_genes_MixEM.Robj")
+```

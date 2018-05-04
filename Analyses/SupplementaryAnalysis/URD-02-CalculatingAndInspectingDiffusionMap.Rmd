@@ -1,0 +1,136 @@
+---
+title: "URD 2: Diffusion Map and Pseudotime"
+linestretch: 0.5
+output:
+ pdf_document:
+   latex_engine: xelatex
+ html_notebook: default
+---
+
+\fontsize{8}{18}
+
+```{r knit_prep, echo=F, results='hide', message=F, warning=F}
+library("knitr")
+opts_chunk$set(tidy.opts=list(width.cutoff=80),tidy=TRUE,dev="png",dpi=150)
+```
+
+```{r, message=F, warning=F}
+library(URD)
+```
+
+```{r, include=F}
+setwd("~/Dropbox/Jeff-Yiqun/URD-walkthrough/")
+```
+
+# Load previous saved object
+
+```{r load-object}
+object <- readRDS("obj/object_2_trimmed.rds")
+```
+
+# Calculate diffusion map
+
+First, from the data, we have to calculate the transition probalities between cells. The eigendecomposition of the transition probabilities gives diffusion components (which comprise a diffusion map). Inspecting the diffusion map is an easy way to verify that good parameters have been chosen for the transition probabilities. For this, we use the pioneering package *destiny* from the Theis lab that established the usefulness of diffusion maps for studying differentiation processes in single-cell RNAseq data.
+
+### Run on the cluster
+
+For smaller data sets (e.g. 10,000 cells), the diffusion map can easily be calculated on your laptop or desktop computer. For larger data sets, such as the one here (~40,000 cells), it can be RAM intensive, so diffusion maps were calculated on the cluster using the scripts URD-DM.R and URD-DM.sh. The commands included in URD-DM.R were:
+
+```{r, eval=F, highlight=F}
+# Calculate diffusion map
+object <- calcDM(object, knn=200, sigma.use=8)
+
+# Save diffusion map to read in later.
+saveRDS(object@dm, file="dm/dm-8-2.0.6ep.rds")
+```
+
+### Load diffusion map and add to URD object
+
+```{r}
+# Load calculated diffusion map
+dm.8 <- readRDS("dm/dm-8-2.0.6ep.rds")
+
+# Add it to the URD object
+object <- importDM(object, dm.8)
+```
+
+### Inspect diffusion map
+
+```{r, fig.width=7, fig.height=7}
+# Stage color palette
+stage.colors <- c("#CCCCCC", RColorBrewer::brewer.pal(9, "Set1")[9], RColorBrewer::brewer.pal(12, "Paired")[c(9,10,7,8,5,6,3,4,1,2)])
+
+plotDimArray(object = object, reduction.use = "dm", dims.to.plot = 1:18, label="stage.nice", plot.title="", outer.title="STAGE - Diffusion Map Sigma 8", legend=F, alpha=0.3, discrete.colors=stage.colors)
+```
+
+We have had good results tuning sigma such that 1 or 2 pairs of DCs become very tight, while the remainder exhibit sharp spikes for several more DCs before beginning to become blurry. For this data, sigma 8 exhibits that desired behavior. (Additional diffusion maps with varied sigma values are presented in "URD: Choosing Parameters - Diffusion Map Sigma.")
+
+# Pseudotime
+
+We next assign cells a pseudotime, that represents an ordering in the process of differentiation. We find that cells from neighboring developmental stages can exhibit extremely similar transcriptomes, so we prefer this to analyzing the data according to its developmental stage. Pseudotime is used later for biasing random walks used to determine developmental trajectories, as well as for determining where branchpoints lie in the data.
+
+### Calculate pseudotime "floods"
+
+Because this computation can take some time and RAM, this portion was also run on the cluster, using the script URD-PT.R and URD-PT.sh. Since many simulations are run, this allows the work to be split across several CPUs. For smaller datasets (<10,000 cells), this can be efficiently run on a laptop. The commands run in URD-PT.R were:
+
+We first define the 'root' or the base of the specification tree as a group of cells (here, all cells from the first developmental stage we profiled). We then simulate 'floods', which start with the root cells visited, and move to connected cells in a stepwise fashion (with the chance of visiting a neighboring cell determined by the transition probabilities). This continues until the visitation structure of the graph stops changing much in a given iteration.
+
+```{r, eval=F}
+# Define the root cells as cells in HIGH stage
+root.cells <- rownames(object@meta)[object@meta$STAGE=="ZFHIGH"]
+
+# Do the flood
+flood.result <- floodPseudotime(object, root.cells=root.cells, n=10, minimum.cells.flooded=2, verbose=T)
+
+# Save the result
+saveRDS(flood.result, file="floods/flood-dm-8-[random#].rds")
+```
+
+### Process pseudotime floods
+
+We loaded the pre-run floods from the cluster (where 150 total simulations were performed). 
+
+```{r}
+# Load floods
+floods.dm8 <- lapply(list.files(path="floods/", pattern="flood-dm-8-", full.names=T), readRDS)
+```
+
+We then processed the simulations. Each cell was assigned pseudotime determined as the average across all simulations of the step that visited the cell (normalized to the number of steps in a given simulation).
+
+```{r}
+# Process the floods
+object <- floodPseudotimeProcess(object, floods.dm8, floods.name="pseudotime", max.frac.NA=0.4, pseudotime.fun=mean, stability.div=20)
+```
+
+Pseudotime was calculated with several sub-sampled portions of the simulations, and the overall change in pseudotime across all cells was determined as more data was added. Since this graph reaches an asymptote, enough simulations were performed.
+
+```{r}
+pseudotimePlotStabilityOverall(object)
+```
+
+### Inspect pseudotime
+
+The detected pseudotime looked like this, shown on the tSNE.
+
+```{r}
+plotDim(object, "pseudotime", plot.title = "Pseudotime")
+```
+
+And we the plotted the distribution of pseudotime for cells from each developmental stage. As expected, there is a clear correlation between pseudotime and actual developmental stage, but the distributions of pseudotime overlap for neighboring stages, which is in accord with our expectations of developmental asynchrony. All cells from 3.3 HPF - ZFHIGH have pseudotime 0 (because they were defined as the root), which creates an odd shape in this density plot.
+
+```{r}
+# Define a properly ordered stage name.
+object@meta$HPFSTAGE <- apply(object@meta[,c("HPF", "STAGE")], 1, paste0, collapse="-", sep="")
+
+# Create a data.frame that includes pseudotime and stage information
+gg.data <- cbind(object@pseudotime, object@meta[rownames(object@pseudotime),])
+
+# Plot
+ggplot(gg.data, aes(x=pseudotime, color=HPFSTAGE, fill=HPFSTAGE)) + geom_density(alpha=0.4) + theme_bw()
+```
+
+# Save object
+
+```{r}
+saveRDS(object, file="obj/object_3_withDMandPT.rds")
+```

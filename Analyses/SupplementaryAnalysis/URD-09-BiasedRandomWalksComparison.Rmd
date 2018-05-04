@@ -1,0 +1,536 @@
+---
+title: "URD: Choosing Parameters - Biased Random Walk"
+linestretch: 0.5
+output:
+ pdf_document:
+   latex_engine: xelatex
+ html_notebook: default
+---
+
+\fontsize{8}{18}
+
+```{r knit_prep, echo=F, results='hide', message=F, warning=F}
+library("knitr")
+opts_chunk$set(tidy.opts=list(width.cutoff=75),tidy=TRUE,dev="png",dpi=150)
+```
+
+```{r load-packages, message=F, warning=F}
+library(URD)
+library(gridExtra) # grid.arrange
+rgl::setupKnitr()
+```
+
+```{r, include=F}
+setwd("~/Dropbox/Jeff-Yiqun/URD-walkthrough/")
+```
+
+```{r}
+# Color schemes
+fire.with.grey <- c("#CECECE", "#DDC998", RColorBrewer::brewer.pal(9, "YlOrRd")[3:9])
+pond.with.grey <- c("#CECECE", "#CBDAC2", RColorBrewer::brewer.pal(9, "YlGnBu")[3:9])
+```
+
+# Load previous saved object
+
+```{r load-object}
+object <- readRDS("obj/object_4_withTips.rds")
+```
+
+# Modifying Random Walk Bias
+
+## Diffusion logistic settings
+
+In order to perform the biased walks that determine the trajectories from each tip to the root, the transition probabilities must be biased, such that transitions to cells with younger pseudotime (i.e. closer to the root) are favored. We bias the random walks using a logistic function that provides a smooth curve that approaches 0 (totally prohibited) and 1 (probability unaltered). The parameters of the logistic are set in terms of a number of cells forward in pseudotime (across the entire dataset) and a number of cells backward in pseudotime (across the entire dataset) where the logistic approaches 1 and 0 respectively.
+
+This parameter must be determined for each data set, as it is dependent on the number of cells present in the data set and likely the number of branches present. However, as we show below, the parameter is quite robust, and even extreme variations result in relatively small changes in the structure of the zebrafish tree.
+
+```{r, fig.width=9, fig.height=6}
+par(mfrow=c(2,3))
+par(mar=c(5,4,5,2))
+
+diffusion.logistic <- pseudotimeDetermineLogistic(object, "pseudotime", optimal.cells.forward=40, max.cells.back=80, pseudotime.direction="<", do.plot=T, print.values=F)
+title("Used in the tree\nYounger 40 cells, Older 80 cells")
+
+diffusion.logistic <- pseudotimeDetermineLogistic(object, "pseudotime", optimal.cells.forward=50, max.cells.back=80, pseudotime.direction="<", do.plot=T, print.values=F)
+title("Slight shift younger\nYounger 50 cells, Older 80 cells")
+
+diffusion.logistic <- pseudotimeDetermineLogistic(object, "pseudotime", optimal.cells.forward=40, max.cells.back=100, pseudotime.direction="<", do.plot=T, print.values=F)
+title("Slight shift older\nYounger 40 cells, Older 100 cells")
+
+diffusion.logistic <- pseudotimeDetermineLogistic(object, "pseudotime", optimal.cells.forward=40, max.cells.back=400, pseudotime.direction="<", do.plot=T, print.values=F)
+title("Weakly biased\nYounger 40 cells, Older 400 cells")
+
+diffusion.logistic <- pseudotimeDetermineLogistic(object, "pseudotime", optimal.cells.forward=40, max.cells.back=1000, pseudotime.direction="<", do.plot=T, print.values=F)
+title("Very weakly biased\nYounger 40 cells, Older 1000 cells")
+
+diffusion.logistic <- pseudotimeDetermineLogistic(object, "pseudotime", optimal.cells.forward=40, max.cells.back=0, pseudotime.direction="<", do.plot=T, print.values=F)
+title("Only younger allowed\nYounger 40 cells, Older 0 cells")
+```
+
+```{r}
+object.40.0 <- object
+object.40.0@diff.data <- readRDS("alt/diff.data/diffdata-dm-8-tm-40-0.rds")
+object.40.0@pseudotime <- readRDS("alt/diff.data/pseudotime-dm-8-tm-40-0.rds")
+object.40.0@tree <- readRDS("alt/tree/tree-dm-8-tm-40-0.rds")
+
+object.40.100 <- object
+object.40.100@diff.data <- readRDS("alt/diff.data/diffdata-dm-8-tm-40-100.rds")
+object.40.100@pseudotime <- readRDS("alt/diff.data/pseudotime-dm-8-tm-40-100.rds")
+object.40.100@tree <- readRDS("alt/tree/tree-dm-8-tm-40-100.rds")
+
+# Fixed a layout bug since running on the cluster so need to redo last steps of layout.
+object.40.100 <- treeLayoutElaborate(object.40.100)
+object.40.100 <- treeLayoutCells(object.40.100, pseudotime="pseudotime")
+
+object.40.400 <- object
+object.40.400@diff.data <- readRDS("alt/diff.data/diffdata-dm-8-tm-40-400.rds")
+object.40.400@pseudotime <- readRDS("alt/diff.data/pseudotime-dm-8-tm-40-400.rds")
+object.40.400@tree <- readRDS("alt/tree/tree-dm-8-tm-40-400.rds")
+
+object.40.1000 <- object
+object.40.1000@diff.data <- readRDS("alt/diff.data/diffdata-dm-8-tm-40-1000.rds")
+object.40.1000@pseudotime <- readRDS("alt/diff.data/pseudotime-dm-8-tm-40-1000.rds")
+object.40.1000@tree <- readRDS("alt/tree/tree-dm-8-tm-40-1000.rds")
+
+object.50.80 <- object
+object.50.80@diff.data <- readRDS("alt/diff.data/diffdata-dm-8-tm-50-80.rds")
+object.50.80@pseudotime <- readRDS("alt/diff.data/pseudotime-dm-8-tm-50-80.rds")
+object.50.80@tree <- readRDS("alt/tree/tree-dm-8-tm-50-80.rds")
+
+# Fixed a layout bug since running on the cluster so need to redo last steps of layout.
+object.50.80 <- treeLayoutElaborate(object.50.80)
+object.50.80 <- treeLayoutCells(object.50.80, pseudotime="pseudotime")
+
+object.dm7 <- object
+object.dm7@diff.data <- readRDS("alt/diff.data/diffdata-dm-7-tm-40-80.rds")
+object.dm7@pseudotime <- readRDS("alt/diff.data/pseudotime-dm-7-tm-40-80.rds")
+object.dm7@tree <- readRDS("alt/tree/tree-dm-7-tm-40-80.rds")
+
+object.dm9 <- object
+object.dm9@diff.data <- readRDS("alt/diff.data/diffdata-dm-9-tm-40-80.rds")
+object.dm9@pseudotime <- readRDS("alt/diff.data/pseudotime-dm-9-tm-40-80.rds")
+object.dm9@tree <- readRDS("alt/tree/tree-dm-9-tm-40-80.rds")
+```
+
+## Comparing visitation frequencies 
+
+We compared the visitation structure at the axial mesoderm branchpoint given different biased random walk settings (including no bias at all). We plotted both the segment assignment, as well as the visitation frequency of cells from the notochord and prechordal plate tips. Cell arrangement is based on the position of cells in 3 components of the diffusion map. These plots are cropped to cells that were part of the early blastoderm or the axial mesoderm lineage, and include cells that are general early blastoderm progenitors, the axial mesoderm progenitors, or the notochord or prechordal plate progenitors. While it is clear that biasing the random walks is important (as the unbiased random walks lead to visitation of both populations from either tip), the particular settings of the bias make only small changes to the visitation frequency near the branchpoint and the final placement of the branchpoint assignment.
+
+```{r}
+## Incorporate unbiased walks from tip 29 = PCP
+# Load unbiased walks
+unbiased.walks.29 <- unlist(lapply(list.files(path="walks/dm-8-unbiased/", pattern="-29-", full.names=T), readRDS), recursive=F)
+# How many actually completed?
+# 75% completed, ~35k successful
+# Load them into the object
+object.unbiased <- processRandomWalks(object, walks=unbiased.walks.29, walks.name="29.unbiased", n.subsample=1, verbose=F)
+# Clear up RAM because the unbiased walks lists are BIG.
+rm(unbiased.walks.29)
+shhh <- gc(verbose=F)
+
+## Repeat for unbiased walks from tip 32 = Notochord
+unbiased.walks.32 <- unlist(lapply(list.files(path="walks/dm-8-unbiased/", pattern="-32-", full.names=T), readRDS), recursive=F)
+# 75% completed, ~35k successful
+object.unbiased <- processRandomWalks(object.unbiased, walks=unbiased.walks.32, walks.name="32.unbiased", n.subsample=1, verbose=F)
+rm(unbiased.walks.32)
+shhh <- gc()
+
+# Move diffusion map to unbiased walk object
+object.unbiased@dm <- object@dm
+
+object <- readRDS("obj/object_5_withWalks.rds")
+object.tree <- readRDS("obj/object_6_tree.rds")
+
+color.lim <- range(unlist(c(
+  object@diff.data[,c("visitfreq.log.29", "visitfreq.log.32")],
+  object.unbiased@diff.data[,c("visitfreq.log.29.unbiased", "visitfreq.log.32.unbiased")],
+  object.40.0@diff.data[,c("visitfreq.log.29", "visitfreq.log.32")],
+  object.40.1000@diff.data[,c("visitfreq.log.29", "visitfreq.log.32")]
+)))
+
+cells.to.3d.plot <- cellsInCluster(object.tree, "segment", c("81", "79", "29", "32"))
+
+# Load plotDim3D orientation into your objects
+object@plot.3d <- readRDS("obj/object_6_tree_axialmesoplot3d.rds")
+object.tree@plot.3d <- readRDS("obj/object_6_tree_axialmesoplot3d.rds")
+object.unbiased@plot.3d <- readRDS("obj/object_6_tree_axialmesoplot3d.rds")
+object.40.0@plot.3d <- readRDS("obj/object_6_tree_axialmesoplot3d.rds")
+object.40.1000@plot.3d <- readRDS("obj/object_6_tree_axialmesoplot3d.rds")
+
+# Recreate "segment" group identity for 3D plots later
+object.40.0@group.ids$segment <- "99"
+for (segment in c("29","32","79","81")) {
+  object.40.0@group.ids[object.40.0@tree$cells.in.segment[[segment]], "segment"] <- segment
+}
+object.40.1000@group.ids$segment <- "99"
+for (segment in c("29","32","79","81")) {
+  object.40.1000@group.ids[object.40.1000@tree$cells.in.segment[[segment]], "segment"] <- segment
+}
+```
+
+### Segment assignment
+
+Here, the segment assignment is plotted for three biased random walk conditions. These plots reveal that there are very slight changes in the placement of the notochord-prechordal plate branchpoint depending on the random walk parameters -- when more lateral and backward movement is allowed (such as in 40F/1000B), the axial mesoderm common progenitor segment persists slightly later before splitting into the notochord and prechordal plate, and the converse occurs when less lateral or backward movement is allowed (such as in 40F/0B). Colors: blue (early blastoderm progenitors), red (axial mesoderm progenitors), green (prechordal plate progenitors), yellow (notochord progenitors).
+
+```{r, rgl=T, out.width="3in", out.height="3.5in"}
+Sys.sleep(0.2)
+plotDim3D(object.tree, view="axialmeso", label = "segment", cells=cells.to.3d.plot, bounding.box=F, discrete.colors=c("#FFE354", "#93EC93","#FF0000","#8CD0F5"), size=6, alpha=0.4, title="Segment identities: 40F/80B", title.line=-35)
+rgl::rgl.bringtotop()
+Sys.sleep(0.5)
+```
+
+```{r, rgl=T, out.width="3in", out.height="3.5in"}
+Sys.sleep(0.2)
+plotDim3D(object.40.0, view="axialmeso", label = "segment", cells=cells.to.3d.plot, bounding.box=F, discrete.colors = c("#FFE354", "#93EC93","#FF0000","#8CD0F5","#CECECE"), size=6, alpha=0.4, title="Segment identities: 40F/0B", title.line=-35)
+Sys.sleep(0.5)
+rgl::rgl.bringtotop()
+```
+
+```{r, rgl=T, out.width="3in", out.height="3.5in"}
+Sys.sleep(0.2)
+plotDim3D(object.40.1000, view="axialmeso", label = "segment", cells=cells.to.3d.plot, bounding.box=F, discrete.colors = c("#FFE354", "#93EC93","#FF0000","#8CD0F5","#CECECE"), size=6, alpha=0.4, title="Segment identities: 40F/1000B", title.line=-35)
+Sys.sleep(0.5)
+rgl::rgl.bringtotop()
+```
+
+### Prechordal Plate Walks
+
+Here, visitation frequency from the prechordal plate tip is plotted. Visitation frequency is only slightly affected by the particular parameters used for biasing the transition matrix, however, the final "unbiased" condition shows that the biasing step is absolutely critical.
+
+```{r, rgl=T, out.width="3in", out.height="3.5in"}
+Sys.sleep(0.2)
+plotDim3D(object, label = "visitfreq.log.29", view="axialmeso2", dim.1=3, dim.2=8, dim.3=1, cells = cells.to.3d.plot, bounding.box=F, continuous.colors = fire.with.grey, continuous.color.limits = color.lim, size=6, alpha=0.3, title="PCP:40F/80B", title.line=-35)
+Sys.sleep(0.5)
+rgl::rgl.bringtotop()
+```
+
+```{r, rgl=T, out.width="3in", out.height="3.5in"}
+Sys.sleep(0.2)
+plotDim3D(object.40.0, label = "visitfreq.log.29", view="axialmeso2", dim.1=3, dim.2=8, dim.3=1, cells = cells.to.3d.plot, bounding.box=F, continuous.colors = fire.with.grey, continuous.color.limits = color.lim, size=6, alpha=0.3, title="PCP: 40F/0B", title.line=-35)
+Sys.sleep(0.5)
+rgl::rgl.bringtotop()
+```
+
+```{r, rgl=T, out.width="3in", out.height="3.5in"}
+Sys.sleep(0.2)
+plotDim3D(object.40.1000, label = "visitfreq.log.29", view="axialmeso2", dim.1=3, dim.2=8, dim.3=1, cells = cells.to.3d.plot, bounding.box=F, continuous.colors = fire.with.grey, continuous.color.limits = color.lim, size=6, alpha=0.3, title="PCP: 40F/1000B", title.line=-35)
+Sys.sleep(0.5)
+rgl::rgl.bringtotop()
+```
+
+```{r, rgl=T, out.width="3in", out.height="3.5in"}
+Sys.sleep(0.2)
+plotDim3D(object.unbiased, label = "visitfreq.log.29.unbiased", view="axialmeso2", dim.1=3, dim.2=8, dim.3=1, cells = cells.to.3d.plot, bounding.box=F, continuous.colors = fire.with.grey, continuous.color.limits = color.lim, size=6, alpha=0.3, title="PCP: Unbiased", title.line=-35)
+Sys.sleep(0.5)
+rgl::rgl.bringtotop()
+```
+
+### Notochord Walks
+
+Here, visitation frequency from the notochord tip is plotted. Visitation frequency is only slightly affected by the particular parameters used for biasing the transition matrix, however, the final "unbiased" condition shows that the biasing step is absolutely critical.
+
+```{r, rgl=T, out.width="3in", out.height="3.5in"}
+Sys.sleep(0.2)
+plotDim3D(object, label = "visitfreq.log.32", view="axialmeso2", dim.1=3, dim.2=8, dim.3=1, cells = cells.to.3d.plot, bounding.box=F, continuous.colors = fire.with.grey, continuous.color.limits = color.lim, size=6, alpha=0.3, title="Notochord: 40F/80B", title.line=-35)
+Sys.sleep(0.5)
+rgl::rgl.bringtotop()
+```
+
+```{r, rgl=T, out.width="3in", out.height="3.5in"}
+Sys.sleep(0.2)
+plotDim3D(object.40.0, label = "visitfreq.log.32", view="axialmeso2", dim.1=3, dim.2=8, dim.3=1, cells = cells.to.3d.plot, bounding.box=F, continuous.colors = fire.with.grey, continuous.color.limits = color.lim, size=6, alpha=0.3, title="Notochord: 40F/0B", title.line=-35)
+Sys.sleep(0.5)
+rgl::rgl.bringtotop()
+```
+
+```{r, rgl=T, out.width="3in", out.height="3.5in"}
+Sys.sleep(0.2)
+plotDim3D(object.40.1000, label = "visitfreq.log.32", view="axialmeso2", dim.1=3, dim.2=8, dim.3=1, cells = cells.to.3d.plot, bounding.box=F, continuous.colors = fire.with.grey, continuous.color.limits = color.lim, size=6, alpha=0.3, title="Notochord: 40F/1000B", title.line=-35)
+Sys.sleep(0.5)
+rgl::rgl.bringtotop()
+```
+
+```{r, rgl=T, out.width="3in", out.height="3.5in"}
+Sys.sleep(0.2)
+plotDim3D(object.unbiased, label = "visitfreq.log.32.unbiased", view="axialmeso2", dim.1=3, dim.2=8, dim.3=1, cells = cells.to.3d.plot, bounding.box=F, continuous.colors = fire.with.grey, continuous.color.limits = color.lim, title="Notochord: Unbiased", title.line=-35, size=6, alpha=0.3)
+Sys.sleep(0.5)
+rgl::rgl.bringtotop()
+```
+
+## Compare Resultant Tree Structures
+
+Much of the tree structure is preserved across all of these trees, though there is some variability.
+
+The "slight shift younger" results in no change in the overall structure of the tree, and the "slight shift older" results only in a slight change of the structure of the axial mesoderm (the cephalic mesoderm joins the axial mesoderm, and the prechordal plate begins to separate earlier than the notochord). The "weakly biased" parameters also result in only a small change in the structure of the tree (the same rearrangement of the axial mesoderm, and a slightly earlier branchpoint of the preplacodal ectoderm from the remainder of the non-neural ectoderm). The "very weakly biased" parameters, introduce more changes (now the paraxial mesoderm splits earlier, along with the axial mesoderm, and the remainder of the mesendoderm branches from the ectoderm later). However, even under these extreme parameters, most aspects of the tree are reproduced and recapitulate known embryology. Finally, the "younger only" parameters result in a similar tree structure as the "very weakly biased" parameters.
+
+```{r}
+# Move the object with built tree over to the main object slot.
+object <- object.tree
+rm(object.tree)
+# Automatically name the tips, so they will match the other trees
+tip.names <- unique(object@group.ids[,c("ZF6S-Cluster", "ZF6S-Cluster-Num")])
+tip.names <- tip.names[complete.cases(tip.names),]
+object <- nameSegments(object, segments=tip.names$`ZF6S-Cluster-Num`, segment.names = tip.names$`ZF6S-Cluster`)
+```
+
+```{r}
+tree.plots.1 <- list(
+  plotTree(object, title="40-80: Tree constructed in manuscript"),
+  plotTree(object.40.100, title="40-100 (Slight shift younger)"),
+  plotTree(object.50.80, title="50-80 (Slight shift older)"),
+  plotTree(object.40.1000, title="40-400 (Weakly biased)")
+)
+tree.plots.2 <- list(
+  plotTree(object.40.1000, title="40-1000 (Very weakly biased)"),
+  plotTree(object.40.0, title="40-0 (Younger Only)")
+)
+```
+
+```{r fig.width=12, fig.height=17, out.width="6in", out.height="8.5in"}
+grid.arrange(grobs=tree.plots.1, ncol=2)
+```
+
+```{r fig.width=12, fig.height=8.5, out.width="6in", out.height="4.25in"}
+grid.arrange(grobs=tree.plots.2, ncol=2)
+```
+
+## Compare changes in trajectory membership across entire tree
+
+We quantified the percentage of the assignments (of cell to trajectory) that changed in each tree. Each cell was determined as "in" or "not-in" each trajectory, and the percentage of those assignments that changed for each alternative tree relative to the tree presented in the paper was determined. 
+
+```{r}
+alts <- c("object.40.100", "object.50.80", "object.40.400", "object.40.1000", "object.40.0")
+
+tree.change <- lapply(alts, function(alt) {
+  
+  object.alt <- get(alt)
+  
+  # Some tips combined immediately, but this could be different between trees. Create a data frame for each original tip to the terminal segment that it belongs to in each resultant tree.
+  
+  tree.terminal.segs <- data.frame(
+    original.tip=object@tree$tips,
+    row.names = object@tree$tips,
+    stringsAsFactors=F
+  )
+  
+  tree.terminal.segs[,2:3] <- t(apply(tree.terminal.segs, 1, function(ot) {
+    ot <- ot[1]
+    if (ot %in% segTerminal(object)) {
+      seg.1 <- ot
+    } else {
+      t <- ot
+      while (!(t %in% segTerminal(object))) {
+        t <- object@tree$segment.joins.initial[
+        c( which(object@tree$segment.joins.initial$child.1 == t),
+          which(object@tree$segment.joins.initial$child.2 == t))
+        , "parent"]
+      }
+      seg.1 <- t
+    }
+    if (ot %in% segTerminal(object.alt)) {
+      seg.2 <- ot
+    } else {
+      t <- ot
+      while (!(t %in% segTerminal(object.alt))) {
+        t <- object.alt@tree$segment.joins.initial[
+        c( which(object.alt@tree$segment.joins.initial$child.1 == t),
+          which(object.alt@tree$segment.joins.initial$child.2 == t))
+        , "parent"]
+      }
+      seg.2 <- t
+    }
+    return(c(seg.1, seg.2))
+  }))
+  
+  # Now, get the cells in the tree overall for both trees so you only consider those.
+  cells.in.tree.original <- unique(unlist(object@tree$cells.in.segment))
+  cells.in.tree.alt <- unique(unlist(object.alt@tree$cells.in.segment))
+  cells.in.trees <- intersect(cells.in.tree.original, cells.in.tree.alt)
+  
+  # Now, for each lineage, figure out the number of cells in that lineage for each tree
+  tree.terminal.segs[,c(4:7)] <- t(apply(tree.terminal.segs, 1, function (ts) {
+    cells.orig <- intersect(cellsAlongLineage(object, segments = ts[2], remove.root = F), cells.in.trees)
+    cells.alt <- intersect(cellsAlongLineage(object.alt, segments = ts[3], remove.root = F), cells.in.trees)
+    cells.both <- length(intersect(cells.orig, cells.alt))
+    cells.orig.only <- length(setdiff(cells.orig, cells.alt))
+    cells.alt.only <- length(setdiff(cells.alt, cells.orig))
+    cells.neither <- length(cells.in.trees) - (cells.both + cells.orig.only + cells.alt.only)
+    return(c(cells.both, cells.orig.only, cells.alt.only, cells.neither))
+  }))
+  
+  names(tree.terminal.segs) <- c("tip.run", "tip.orig", "tip.alt", "cells.both", "cells.orig", "cells.alt", "cells.neither")
+
+  return(tree.terminal.segs)
+})
+names(tree.change) <- alts
+```
+
+```{r}
+# Figure out how much each changed.
+
+tree.changed.overall <- unlist(lapply(tree.change, function(tc) {
+  tcsum <- apply(tc[,4:7], 2, sum)
+  changed <- round(((tcsum[2] + tcsum[3]) / sum(tcsum)) * 100, digits=2)
+  return(changed)
+}))
+
+tree.changed.overall.present <- paste0(tree.changed.overall, "%")
+names(tree.changed.overall.present) <- c("40-100", "50-80", "40-400", "40-1000", "40-0")
+
+tree.changed.overall.present
+```
+
+Overall, the tree assignments are fairly robust to the parameter used for biasing the random walks, as only about 10% of cells' assignments change. The most extreme change is in the "very weakly biased" parameters (40-1000: 14.02%), as expected from the more dramatic changes in the structure of the tree.
+
+## Compare changes in trajectory membership for each trajectory
+
+We also wondered if some parts of the tree were more sensitive to others than the parameters of the reconstruction. So, we quantified the percentage change in each lineage, given the different parameters.
+
+```{r}
+tree.changed.by.lineage <- as.data.frame(lapply(tree.change, function(tc) {
+  apply(tc[,4:7], 1, function(tcr) {
+    changed <- round((tcr[2] + tcr[3]) / sum(tcr[1:4]) * 100, digits=2)
+  })
+}))
+
+tip.names <- unique(object@group.ids[,c("ZF6S-Cluster-Num", "ZF6S-Cluster")])
+tip.names <- tip.names[complete.cases(tip.names),]
+rownames(tip.names) <- tip.names[,"ZF6S-Cluster-Num"]
+tree.changed.by.lineage$population <- tip.names[rownames(tree.changed.by.lineage),"ZF6S-Cluster"]
+
+names(tree.changed.by.lineage) <- c("40-100", "50-80", "40-400", "40-1000", "40-0", "Population")
+
+tree.changed.by.lineage
+```
+
+Some lineages are clearly more sensitive than others; those that branched early (such as the axial mesoderm -- the notochord and prechordal plate) are very robust, even against this parameter, while those that branch later (such as the individual placodes, which are just beginning to form) are much more sensitive.
+
+# Modifying diffuson map parameters
+
+We also built the tree using two additional diffusion map sigmas (7 & 9) that performed reasonably well (see "URD: Choosing Parameters - Diffusion Map Sigma"), while holding the biased random walk parameters constant. 
+
+### Compare Resultant Tree Structures
+
+Much of the tree structure is preserved across all of these trees, though there is some variability.
+
+Sigma 7 resulted in a later separatation of the non-axial mesendoderm from the ectoderm, but otherwise produced a largely similar structure. Sigma 9 had more dramatic effects and produces the only tree so far that really violates known embryology -- a portion of the endoderm ends up assigned in the neural ectoderm, while the optic cup ends up assigned in the mesendoderm. This illustrates that URD's performance is much more sensitive to the initial diffusion map that it operates on, and suggests that using the smallest possible sigma that does not cause disconnections is likely to work best.
+
+```{r, fig.width=12, fig.height=17, out.width="6in", out.height="8.5in"}
+sigma.tree.plots <- list(
+  plotTree(object, title="Sigma 8: Tree constructed in manuscript"),
+  plotTree(object.dm7, title="Sigma 7"),
+  plotTree(object.dm9, title="Sigma 9")
+)
+grid.arrange(grobs=sigma.tree.plots, ncol=2)
+```
+
+## Compare changes in trajectory membership across entire tree
+
+We quantified the percentage of the assignments (of cell to trajectory) that changed in each tree. Each cell was determined as "in" or "not-in" each trajectory, and the percentage of those assignments that changed for each alternative tree relative to the tree presented in the paper was determined. 
+
+```{r}
+alts <- c("object.dm7", "object.dm9")
+
+tree.change <- lapply(alts, function(alt) {
+  
+  object.alt <- get(alt)
+  
+  # Some tips combined immediately, but this could be different between trees. Create a data frame for each original tip to the terminal segment that it belongs to in each resultant tree.
+  
+  tree.terminal.segs <- data.frame(
+    original.tip=object@tree$tips,
+    row.names = object@tree$tips,
+    stringsAsFactors=F
+  )
+  
+  tree.terminal.segs[,2:3] <- t(apply(tree.terminal.segs, 1, function(ot) {
+    ot <- ot[1]
+    if (ot %in% segTerminal(object)) {
+      seg.1 <- ot
+    } else {
+      t <- ot
+      while (!(t %in% segTerminal(object))) {
+        t <- object@tree$segment.joins.initial[
+        c(which(object@tree$segment.joins.initial$child.1 == t),
+          which(object@tree$segment.joins.initial$child.2 == t))
+        , "parent"]
+      }
+      seg.1 <- t
+    }
+    if (ot %in% segTerminal(object.alt)) {
+      seg.2 <- ot
+    } else {
+      t <- ot
+      while (!(t %in% segTerminal(object.alt))) {
+        t <- object.alt@tree$segment.joins.initial[
+        c(which(object.alt@tree$segment.joins.initial$child.1 == t),
+          which(object.alt@tree$segment.joins.initial$child.2 == t))
+        , "parent"]
+      }
+      seg.2 <- t
+    }
+    return(c(seg.1, seg.2))
+  }))
+  
+  # Now, get the cells in the tree overall for both trees so you only consider those.
+  cells.in.tree.original <- unique(unlist(object@tree$cells.in.segment))
+  cells.in.tree.alt <- unique(unlist(object.alt@tree$cells.in.segment))
+  cells.in.trees <- intersect(cells.in.tree.original, cells.in.tree.alt)
+  
+  # Now, for each lineage, figure out the number of cells in that lineage for each tree
+  tree.terminal.segs[,c(4:7)] <- t(apply(tree.terminal.segs, 1, function (ts) {
+    cells.orig <- intersect(cellsAlongLineage(object, segments = ts[2], remove.root = F), cells.in.trees)
+    cells.alt <- intersect(cellsAlongLineage(object.alt, segments = ts[3], remove.root = F), cells.in.trees)
+    cells.both <- length(intersect(cells.orig, cells.alt))
+    cells.orig.only <- length(setdiff(cells.orig, cells.alt))
+    cells.alt.only <- length(setdiff(cells.alt, cells.orig))
+    cells.neither <- length(cells.in.trees) - (cells.both + cells.orig.only + cells.alt.only)
+    return(c(cells.both, cells.orig.only, cells.alt.only, cells.neither))
+  }))
+  
+  names(tree.terminal.segs) <- c("tip.run", "tip.orig", "tip.alt", "cells.both", "cells.orig", "cells.alt", "cells.neither")
+
+  return(tree.terminal.segs)
+})
+names(tree.change) <- alts
+```
+
+```{r}
+# Figure out how much each changed.
+
+tree.changed.overall <- unlist(lapply(tree.change, function(tc) {
+  tcsum <- apply(tc[,4:7], 2, sum)
+  changed <- round(((tcsum[2] + tcsum[3]) / sum(tcsum)) * 100, digits=2)
+  return(changed)
+}))
+
+tree.changed.overall.present <- paste0(tree.changed.overall, "%")
+names(tree.changed.overall.present) <- c("Sigma7", "Sigma9")
+
+tree.changed.overall.present
+```
+
+Again, the diffusion map parameter has a stonger effect than the biased walk parameters, though still most cells are robustly assigned to the same segments.
+
+## Compare changes in trajectory membership for each trajectory
+
+We also wondered if some parts of the tree were more sensitive to others than the parameters of the reconstruction. So, we quantified the percentage change in each lineage, given the different parameters.
+
+```{r}
+tree.changed.by.lineage <- as.data.frame(lapply(tree.change, function(tc) {
+  apply(tc[,4:7], 1, function(tcr) {
+    changed <- round((tcr[2] + tcr[3]) / sum(tcr[1:4]) * 100, digits=2)
+  })
+}))
+
+tip.names <- unique(object@group.ids[,c("ZF6S-Cluster-Num", "ZF6S-Cluster")])
+tip.names <- tip.names[complete.cases(tip.names),]
+rownames(tip.names) <- tip.names[,"ZF6S-Cluster-Num"]
+tree.changed.by.lineage$population <- tip.names[rownames(tree.changed.by.lineage),"ZF6S-Cluster"]
+
+names(tree.changed.by.lineage) <- c("Sigma7", "Sigma9", "Population")
+
+tree.changed.by.lineage
+```
+
+Again, the choice of diffusion map makes a larger difference. Here, changes seem to be distributed relatively equally across cell types, though some of the earliest branching types seem more robust (such as the notochord, prechordal plate, EVL, and primordial germ cells). For sigma 9, as expected, there are dramatic changes in the assignment to the optic cup and pharyngeal endoderm -- the two populations that end up misconnected in the tree.

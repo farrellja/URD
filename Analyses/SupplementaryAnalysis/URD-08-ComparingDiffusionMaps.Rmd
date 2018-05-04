@@ -1,0 +1,140 @@
+---
+title: "URD: Choosing Parameters - Diffusion Map Sigma"
+linestretch: 0.5
+output:
+ pdf_document:
+   latex_engine: xelatex
+ html_notebook: default
+---
+
+\fontsize{8}{18}
+
+```{r knit_prep, echo=F, results='hide', message=F, warning=F}
+library("knitr")
+opts_chunk$set(tidy.opts=list(width.cutoff=80),tidy=TRUE,dev="png",dpi=150)
+```
+
+```{r, message=F, warning=F}
+library(URD)
+```
+
+```{r, include=F}
+setwd("~/Dropbox/Jeff-Yiqun/URD-walkthrough/")
+```
+
+# Load previous saved object
+
+```{r load-object}
+object <- readRDS("obj/object_2_trimmed.rds")
+```
+
+# Calculate diffusion maps
+
+In the presented analysis, we used a diffusion map with sigma 8. Here, we calculated several diffusion maps on the same data with varying sigmas (5, 7, 8, 9, and 13) to demonstrate how we chose an appropriate sigma.
+
+The transition probabilities between cells is their Euclidean distance in gene expression space (calculated on the highly variable genes), then transformed by a Gaussian function to prioritize transitions between cells that are very close. The sigma parameters is the standard deviation of the Gaussian used to transform the distances. A smaller sigma requires cells to be closer to each other in transcriptional space in order to be connected in the tree. An overly small sigma, however, will create disconnections, where all connections to some cells will become 0.
+
+```{r add-dm}
+# Load calculated diffusion maps
+dm.5 <- readRDS("dm/dm-5-2.0.6ep.rds")
+dm.7 <- readRDS("dm/dm-7-2.0.6ep.rds")
+dm.8 <- readRDS("dm/dm-8-2.0.6ep.rds")
+dm.9 <- readRDS("dm/dm-9-2.0.6ep.rds")
+dm.13 <- readRDS("dm/dm-13-2.0.6ep.rds")
+
+# Add them to URD objects
+object.dm5 <- importDM(object, dm.5)
+object.dm7 <- importDM(object, dm.7)
+object.dm8 <- importDM(object, dm.8)
+object.dm9 <- importDM(object, dm.9)
+object.dm13 <- importDM(object, dm.13)
+
+# Clean up RAM.
+rm(list=c("dm.5", "dm.7", "dm.8", "dm.9", "dm.13", "object"))
+shhh <- gc()
+```
+
+# Inspect diffusion maps
+
+Choosing the correct sigma for the diffusion map and transition probabilities is critical. In general, we find it best to choose the smallest sigma possible that doesn't cause many disconnections in the data.
+
+```{r plot-dm, fig.width=12, fig.height=10}
+# Stage color palette
+stage.colors <- c("#CCCCCC", RColorBrewer::brewer.pal(9, "Set1")[9], RColorBrewer::brewer.pal(12, "Paired")[c(9,10,7,8,5,6,3,4,1,2)])
+
+plotDimArray(object = object.dm5, reduction.use = "dm", dims.to.plot = 1:18, label="stage.nice", plot.title="", outer.title="Sigma 5", discrete.colors=stage.colors)
+plotDimArray(object = object.dm7, reduction.use = "dm", dims.to.plot = 1:18, label="stage.nice", plot.title="", outer.title="Sigma 7", discrete.colors=stage.colors)
+plotDimArray(object = object.dm8, reduction.use = "dm", dims.to.plot = 1:18, label="stage.nice", plot.title="", outer.title="Sigma 8", discrete.colors=stage.colors)
+plotDimArray(object = object.dm9, reduction.use = "dm", dims.to.plot = 1:18, label="stage.nice", plot.title="", outer.title="Sigma 9", discrete.colors=stage.colors)
+plotDimArray(object = object.dm13, reduction.use = "dm", dims.to.plot = 1:18, label="stage.nice", plot.title="", outer.title="Sigma 13", discrete.colors=stage.colors)
+```
+
+In this case, we would choose sigma 8 as our preferred resolution, although sigmas 7 or 9 would also potentially work. Sigma 5 is too small and has many components that are essentially linear, while sigma 13 is too broad.
+
+If you have DCs that define singleton cells, it means that outliers remain, and you should adjust the parameters of the outlier removal step prior to calculating the diffusion map (see Part 2). 
+
+# Pseudotime
+
+We used each of the above diffusion maps to determine pseudotime in our data, and compared them to the pseudotime defined by the diffusion map with sigma 8 that we used in our analysis.
+
+```{r process-floods}
+# Load floods
+floods.dm5 <- lapply(list.files(path="floods/", pattern="flood-dm-5", full.names=T), readRDS)
+floods.dm7 <- lapply(list.files(path="floods/", pattern="flood-dm-7", full.names=T), readRDS)
+floods.dm8 <- lapply(list.files(path="floods/", pattern="flood-dm-8", full.names=T), readRDS)
+floods.dm9 <- lapply(list.files(path="floods/", pattern="flood-dm-9", full.names=T), readRDS)
+floods.dm13 <- lapply(list.files(path="floods/", pattern="flood-dm-13", full.names=T), readRDS)
+
+# Process the floods
+object.dm5 <- floodPseudotimeProcess(object.dm5, floods.dm5, floods.name="pseudotime", max.frac.NA=0.4, pseudotime.fun=mean, stability.div=10)
+object.dm7 <- floodPseudotimeProcess(object.dm7, floods.dm7, floods.name="pseudotime", max.frac.NA=0.4, pseudotime.fun=mean, stability.div=10)
+object.dm8 <- floodPseudotimeProcess(object.dm8, floods.dm8, floods.name="pseudotime", max.frac.NA=0.4, pseudotime.fun=mean, stability.div=10)
+object.dm9 <- floodPseudotimeProcess(object.dm9, floods.dm9, floods.name="pseudotime", max.frac.NA=0.4, pseudotime.fun=mean, stability.div=10)
+object.dm13 <- floodPseudotimeProcess(object.dm13, floods.dm13, floods.name="pseudotime", max.frac.NA=0.4, pseudotime.fun=mean, stability.div=10)
+```
+
+```{r pseudotime-compare}
+pseudotime.compare <- data.frame(
+  pseudotime.5=object.dm5@pseudotime$pseudotime,
+  pseudotime.7=object.dm7@pseudotime$pseudotime,
+  pseudotime.8=object.dm8@pseudotime$pseudotime,
+  pseudotime.9=object.dm9@pseudotime$pseudotime,
+  pseudotime.13=object.dm13@pseudotime$pseudotime,
+  row.names=rownames(object.dm8@pseudotime)
+)
+pseudotime.compare$STAGE <- apply(object.dm8@meta[rownames(pseudotime.compare),c("HPF", "STAGE")], 1, paste0, collapse="-")
+```
+
+### Pseudotime by stage
+
+We first looked at the pseudotime distribution of each developmental stage. For sigma 5, the pseudotime calculation failed -- only 5 cells in the data are assigned pseudotimes, because the graph is too poorly connected for the pseudotime simulations to visit most cells reliably. For sigmas 7-9, different developmental stages have distinct, but overlapping distributions of pseudotime. Sigma 7 is potentially slightly too small, as 30% and 50% epiboly stages occur in the wrong order. For an overly large sigmas (e.g. 13), most of the later stages collapse atop each other. We preferred sigma 8 to sigma 9 because 9 begins to show the collapse of the later stage distributions (at least compared to 8). 
+
+```{r pseudotime-stage-plots, fig.width=6, fig.height=3, warning=F}
+# Omit high stage -- they are all exactly 0 (since they were defined as the root), and it messes with the density distribution algorithm!
+pseudotime.compare.nohigh <- pseudotime.compare[grep("ZFHIGH", rownames(pseudotime.compare), value=T, invert=T),]
+
+ggplot(pseudotime.compare.nohigh, aes(x=pseudotime.7, color=STAGE, fill=STAGE)) + geom_density(alpha=0.4) + theme_bw()+ labs(x="Pseudotime (Sigma 7)", y="", fill="HPF-STAGE", color="HPF-STAGE", title="Pseudotime By Stage (DM Sigma 7)")
+ggplot(pseudotime.compare.nohigh, aes(x=pseudotime.8, color=STAGE, fill=STAGE)) + geom_density(alpha=0.4) + theme_bw() + labs(x="Pseudotime (Sigma 8)", y="", fill="HPF-STAGE", color="HPF-STAGE", title="Pseudotime By Stage (DM Sigma 8)")
+ggplot(pseudotime.compare.nohigh, aes(x=pseudotime.9, color=STAGE, fill=STAGE)) + geom_density(alpha=0.4) + theme_bw() + labs(x="Pseudotime (Sigma 9)", y="", fill="HPF-STAGE", color="HPF-STAGE", title="Pseudotime By Stage (DM Sigma 9)")
+ggplot(pseudotime.compare.nohigh, aes(x=pseudotime.13, color=STAGE, fill=STAGE)) + geom_density(alpha=0.4) + theme_bw() + labs(x="Pseudotime (Sigma 13)", y="", fill="HPF-STAGE", color="HPF-STAGE", title="Pseudotime By Stage (DM Sigma 13)")
+```
+
+### Compare determined pseudotimes
+
+We next compared the pseudotime assignment of each cell between diffusion maps with different sigma. For sigmas that are similar to each other and to our chosen diffusion map (*i.e.* 7 and 9), the calculated pseudotimes are reasonably similar: nearly a linear transformation. For sigmas more distant from the optimal one (*e.g.* 13), can see that the overly connected diffusion map results in a pseudotime plateau. This mirrors the results we saw in the above plots of pseudotime by stage.
+
+```{r pseudotime-scatterplots, fig.width=5, fig.height=5, out.width='50%', out.height='50%', warning=F}
+lm.8.7 <- lm(pseudotime.7~pseudotime.8, data=pseudotime.compare)
+r2.8.7 <- round(summary(lm.8.7)$r.squared, 2)
+ggplot(pseudotime.compare, aes(x=pseudotime.8, y=pseudotime.7)) + geom_point(alpha=0.05) + geom_smooth(method="lm", lty=2) + theme_bw() + labs(x="Pseudotime (Sigma 8)", y="Pseudotime (Sigma 7)", title=paste0("Diffusion Map: Sigma 8 vs. Sigma 7 (r2 = ", r2.8.7, ")"))
+
+lm.8.9 <- lm(pseudotime.9~pseudotime.8, data=pseudotime.compare)
+r2.8.9 <- round(summary(lm.8.9)$r.squared, 2)
+ggplot(pseudotime.compare, aes(x=pseudotime.8, y=pseudotime.9)) + geom_point(alpha=0.05)  + geom_smooth(method="lm", lty=2) + theme_bw() + labs(x="Pseudotime (Sigma 8)", y="Pseudotime (Sigma 9)", title=paste0("Diffusion Map: Sigma 8 vs. Sigma 9 (r2 = ", r2.8.9, ")"))
+
+lm.8.13 <- lm(pseudotime.13~pseudotime.8, data=pseudotime.compare)
+r2.8.13 <- round(summary(lm.8.13)$r.squared, 2)
+ggplot(pseudotime.compare, aes(x=pseudotime.8, y=pseudotime.13)) + geom_point(alpha=0.05) + geom_smooth(method="lm", lty=2) + theme_bw() + labs(x="Pseudotime (Sigma 8)", y="Pseudotime (Sigma 9)", title=paste0("Diffusion Map: Sigma 8 vs. Sigma 13 (r2 = ", r2.8.13, ")"))
+```
+
+

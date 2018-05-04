@@ -1,0 +1,277 @@
+---
+title: "URD 5: Build Tree"
+linestretch: 0.5
+output:
+ pdf_document:
+   latex_engine: xelatex
+ html_notebook: default
+---
+
+\fontsize{8}{18}
+
+```{r knit_prep, echo=F, results='hide', message=F, warning=F}
+library("knitr")
+opts_chunk$set(tidy.opts=list(width.cutoff=80),tidy=TRUE,dev="png",dpi=150)
+```
+
+```{r, message=F, warning=F}
+library(URD)
+library(rgl)
+
+# Set up knitr to capture rgl output
+rgl::setupKnitr()
+```
+
+```{r, include=F}
+setwd("~/Dropbox/Jeff-Yiqun/URD-walkthrough/")
+```
+
+# Load previous saved object
+
+```{r load-object}
+object <- readRDS("obj/object_5_withWalks.rds")
+```
+
+# Refine the walks before building the tree
+
+A few clusters that were run as separate tips are totally intermixed in the diffusion map. In these cases, it's often best to combine the two tips before starting to build the tree. (This averages their visitation frequency, according to the number of cells in each tip, and avoids having to re-run the random walks.)
+
+```{r}
+# Load tip cells
+object <- loadTipCells(object, tips="ZF6S-Cluster-Num")
+
+# Combine a few sets of tips where you walked from two groups of cells
+# that probably should be considered one, based on the fact that they
+# are intermixed in the diffusion map.
+
+# Diencephalon 
+object <- combineTipVisitation(object, "14", "27", "14")
+object <- combineTipVisitation(object, "14", "19", "19")
+
+# Optic Cup
+object <- combineTipVisitation(object, "2", "9", "2")
+
+# Combine epidermis and integument
+object <- combineTipVisitation(object, "1", "36", "1")
+
+# Tailbud
+object <- combineTipVisitation(object, "3", "13", "3")
+```
+
+# Build the tree
+
+Additionally, only "tips" that are actually terminal populations should be used in construction of the tree if possible. We ran random walks from all 6-somite clusters, and so we exclude several of them here, based on prior knowledge or based on their position in the diffusion map.
+
+```{r}
+# Decide on the tips to use in the tree construction
+tips.to.exclude <- c("4", "6", "7", "9", "11", "13", "14", "15", "20", "23", "24", "25", "27", "28", "30", "35", "36", "37", "39", "41", "42", "44")
+tips.to.use <- setdiff(as.character(1:53), tips.to.exclude)
+```
+
+```{r}
+# Build the tree
+object.built <- buildTree(object = object, pseudotime="pseudotime", divergence.method = "ks", tips.use=tips.to.use, weighted.fusion = T, use.only.original.tips = T, cells.per.pseudotime.bin=80, bins.per.pseudotime.window = 5, minimum.visits = 1, visit.threshold = 0.7, p.thresh = 0.025, save.breakpoint.plots = NULL, dendro.node.size = 100, min.cells.per.segment = 10, min.pseudotime.per.segment = .01, verbose = F)
+```
+
+# Name the tips
+
+### Automated first pass
+
+First, just use the names of the clusters to inspect the tree structure.
+
+```{r}
+tip.names <- unique(object@group.ids[,c("ZF6S-Cluster", "ZF6S-Cluster-Num")])
+tip.names <- tip.names[complete.cases(tip.names),]
+object.built <- nameSegments(object.built, segments=tip.names$`ZF6S-Cluster-Num`, segment.names=tip.names$`ZF6S-Cluster`)
+```
+
+```{r, fig.width=7, fig.height=8}
+plotTree(object.built)
+```
+
+### Manual refinement
+
+And then after inspecting the tree, choose a set of refined names to use going forward, including short names that will look better in the force-directed layout.
+
+```{r}
+# Descriptive names that will be used on dendrogram
+new.seg.names <- c("Spinal Cord", "Diencephalon", "Optic Cup", "Midbrain+Neural Crest", "Hindbrain R3", "Hindbrain R4+5+6", "Telencephalon", "Epidermis", "Neural Plate Border", "Placode Adeno.+Lens+Trigeminal", "Placode Epibranchial+Otic", "Placode Olfactory", "Tailbud", "Adaxial Cells", "Somites", "Hematopoietic (ICM)", "Hematopoietic (RBI)+Pronephros", "Endoderm Pharyngeal", "Endoderm Pancreatic+Intestinal", "Heart Primordium", "Cephalic Mesoderm", "Prechordal Plate", "Notochord", "Primordial Germ Cells", "EVL/Periderm")
+
+# Short names / Abbreviations for use on force-directed layout
+new.short.names <- c("SC", "Di", "Optic", "MB+NC", "HB R3", "HB R4-6", "Tel", "Epi", "NPB", "P(A+L+T)", "P(E+Ot)", "P(Olf)", "TB", "Adax", "Som", "Hem(ICM)", "Hem(RBI)+Pro", "Endo Phar", "Endo Pan+Int", "Heart", "CM", "PCP", "Noto", "PGC", "EVL")
+
+# Segment numbers
+segs.to.name <- c("8", "19", "2", "59", "50", "56", "16", "1", "10", "55", "57", "53", "3", "34", "12", "52", "58", "17", "26", "5", "18", "29", "32", "40", "38")
+
+# Run the naming
+object.built <- nameSegments(object.built, segments = segs.to.name, segment.names=new.seg.names, short.names=new.short.names)
+```
+
+```{r}
+plotTree(object.built, label.segments=T)
+```
+
+# Check out gene expression in dendrogram
+
+```{r, fig.width=7, fig.height=4.5}
+genes.plot <- c("SOX17", "NOTO", "TA", "GSC", "MEOX1", "GATA2A", "NANOS3", "KRT4", "FSTA", "WNT8A", "CRABP2A", "EGR2B", "ENG2B", "TAL1", "MAFBA", "EMX3")
+
+for (gene in genes.plot) {
+  plot(plotTree(object.built, gene))
+}
+```
+
+# Generate a force-directed layout
+
+We generate a force-directed layout as a nice visualization of the data. It is constructed by generating a weighted k-nearest neighbor network, based on euclidean distance in visitation space (using the frequency of visitation of each cell by the walks from each tip). The nearest neighbor network is optionally refined based on cells' distance in the dendrogram (in terms of which segments are connected). Cells then push and pull against their neighbors, as the amount of freedom they have to move is slowly decreased until cells are locked into place. This produces a two-dimensional layout, and we then add pseudotime as a third dimension.
+
+### Choose cells that were visited more robustly
+
+We find that the force directed layout works best if the most poorly visited (and thus likely poorly connected) cells are excluded.
+
+```{r}
+# Data frame to measure cell visitation
+visitation <- data.frame(
+  cell=rownames(object.built@diff.data),
+  seg=object.built@diff.data$segment,
+  stringsAsFactors=F, row.names=rownames(object.built@diff.data)
+)
+visitation$visit <- log10(apply(visitation, 1, function(cr) object.built@diff.data[as.character(cr['cell']), paste0("visitfreq.raw.", as.character(cr['seg']))])+1)
+
+# Choose those cells that were well visited
+robustly.visited.cells <- visitation[visitation$visit >= 0.5, "cell"]
+
+# Since some tips of the tree were combined in their entirety, get the terminal segments to use as the tips of the force-directed layout.
+final.tips <- segTerminal(object.built)
+```
+
+### Calculate layout
+
+It can be important to try several sets of parameters here. Varying the number of nearest neighbors (num.nn) and the amount of refinement based on the dendrogram (cut.unconnected.segments) affects the layout significantly.
+
+```{r, eval=F}
+# Generate the force-directed layout
+object.built <- treeForceDirectedLayout(object.built, num.nn=120, pseudotime="pseudotime", method = "fr", dim = 2, cells.to.do = robustly.visited.cells, tips=final.tips, cut.unconnected.segments = 2, min.final.neighbors=4, verbose=T)
+```
+
+Once calculated and plotted, the plot can be rotated to a desired view, and you can save the view using the function plotTreeForceStore3DView. Thus, many plots with a comparable orientation can then be produced.
+
+### Load saved layout
+
+Since the force-directed layout is not deterministic, we instead load a saved layout and orientation to finish the tutorial.
+
+```{r}
+# Load view
+object.built@tree$force.view.list <- readRDS("fdls/force.view.list.rds")
+object.built@tree$force.view.default <- "figure1"
+
+# Load layout
+precalc.fdl <- readRDS("fdls/layout.51.cells05.nn120.mn4.cut2.rds")
+object.built@tree$walks.force.layout <- precalc.fdl$walks.force.layout
+```
+
+```{r, rgl=T}
+plotTreeForce(object.built, "segment", alpha=0.2, view="figure1")
+```
+
+### Hand-tune the tree
+
+For optimal 2D presentation in the paper, we further tuned the layout by hand to reduce overlaps and ensure as much of the tree is visible simultaneously as possible. This was done by increasing the angular distance at the first branchpoint, and moving the two completely disconnected populations (EVL & PGCs).
+
+```{r}
+## ECTODERM
+
+# Rotate the ectoderm branch around the z-axis to optimize the 
+# orientation of the neural and non-neural ectoderm later.
+object.built <- treeForceRotateCoords(object.built, seg="72", angle = -3.3, axis="z", around.cell = 10, throw.out.cells=1000, pseudotime="pseudotime")
+
+# Curve the ectoderm outwards and forwards, to prevent it 
+# overlapping the mesoderm, so that the branching structure 
+# within the two domains is easily viewed.
+for (throw.out in c(0,100,250,500,1000)) {
+  object.built <- treeForceRotateCoords(object.built, seg="72", angle = pi/20, axis="y", around.cell = 10, throw.out.cells=throw.out, pseudotime="pseudotime")
+}
+for (throw.out in c(0,100,250,500,1000)) {
+  object.built <- treeForceRotateCoords(object.built, seg="72", angle = pi/24, axis="z", around.cell = 10, throw.out.cells=throw.out, pseudotime="pseudotime")
+}
+
+## AXIAL MESODERM
+
+# Rotate the axial mesoderm a bit to the right to make 
+# some extra space for the remainder of the mesendoderm.
+
+object.built <- treeForceRotateCoords(object.built, seg="79", angle = -pi/10, axis="y", around.cell = 10, throw.out.cells=0, pseudotime="pseudotime")
+object.built <- treeForceRotateCoords(object.built, seg="79", angle = -pi/8, axis="x", around.cell = 10, throw.out.cells=0, pseudotime="pseudotime")
+
+## REMAINDER OF THE MESENDODERM
+
+# Rotate the rest of the mesoderm a bit to the right into the 
+# empty space between the ectoderm and axial mesoderm.
+
+object.built <- treeForceRotateCoords(object.built, seg="78", angle = pi/4, axis="z", around.cell = 10, throw.out.cells=0, pseudotime="pseudotime")
+object.built <- treeForceRotateCoords(object.built, seg="78", angle = -pi/5, axis="y", around.cell = 10, throw.out.cells=0, pseudotime="pseudotime")
+
+## PGCs
+
+# The PGCs are disconnected from the tree totally, 
+# so just rotate and move them into place.
+
+object.built <- treeForceRotateCoords(object.built, seg="40", angle = -pi/2, axis="y", around.cell = 1, throw.out.cells=0, pseudotime="pseudotime")
+object.built <- treeForceTranslateCoords(object.built, seg="40", x=0, y=0, z=-3)
+
+## EVL / Periderm
+
+# The EVL/Periderm is also nearly completely disconnected. 
+# Rotate these cells, and also close the enormous gap in them 
+# somewhat so that they fit neatly next to the ectoderm. 
+
+# Determine the EVL cells
+evl.cells <- intersect(cellsInCluster(object.built, "segment", "38"), rownames(object.built@tree$walks.force.layout))
+evl.cells.move.1 <- evl.cells[which(object.built@tree$walks.force.layout[evl.cells, "telescope.pt"] > 15)]
+evl.cells.move.2 <- evl.cells[which(object.built@tree$walks.force.layout[evl.cells, "telescope.pt"] > 30)]
+
+# Close the gaps a bit in this lineage to shorten it so that it doesn't overlap with the ectoderm
+object.built <- treeForceTranslateCoords(object.built, cells=evl.cells.move.1, x=0, y=0, z=-10)
+object.built <- treeForceTranslateCoords(object.built, cells=evl.cells.move.2, x=0, y=0, z=-15)
+
+# Rotate the EVL cells in next to the ectoderm
+object.built <- treeForceRotateCoords(object.built, seg="38", angle = 1.35, axis="y", around.cell = 1, throw.out.cells=0, pseudotime="pseudotime")
+```
+
+```{r, rgl=T}
+plotTreeForce(object.built, "segment", alpha=0.2, view="figure1")
+```
+
+# Check out gene expression in the force-directed layout 
+
+```{r, rgl=T, out.width="5in", out.height="5in"}
+plotTreeForce(object.built, "SOX17", alpha=0.2, view="figure1")
+```
+
+```{r, rgl=T, out.width="5in", out.height="5in"}
+plotTreeForce(object.built, "GSC", alpha=0.2, view="figure1")
+```
+
+```{r, rgl=T, out.width="5in", out.height="5in"}
+plotTreeForce(object.built, "NOTO", alpha=0.2, view="figure1")
+```
+
+```{r, rgl=T, out.width="5in", out.height="5in"}
+plotTreeForce(object.built, "TAL1", alpha=0.2, view="figure1")
+```
+
+```{r, rgl=T, out.width="5in", out.height="5in"}
+plotTreeForce(object.built, "GATA2A", alpha=0.2, view="figure1")
+```
+
+```{r, rgl=T, out.width="5in", out.height="5in"}
+plotTreeForce(object.built, "SOX19A", alpha=0.2, view="figure1")
+```
+
+# Save objects
+
+```{r, eval=F}
+saveRDS(object.built, file="obj/object_6_tree.rds")
+```
+
+

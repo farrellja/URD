@@ -1,0 +1,88 @@
+---
+title: "URD 4: Biased Random Walks"
+linestretch: 0.5
+output:
+ pdf_document:
+   latex_engine: xelatex
+ html_notebook: default
+---
+
+\fontsize{8}{18}
+
+```{r knit_prep, echo=F, results='hide', message=F, warning=F}
+library("knitr")
+opts_chunk$set(tidy.opts=list(width.cutoff=80),tidy=TRUE,dev="png",dpi=150)
+```
+
+```{r, message=F, warning=F}
+library(URD)
+```
+
+```{r, include=F}
+setwd("~/Dropbox/Jeff-Yiqun/URD-walkthrough/")
+```
+
+# Load previous saved object
+
+```{r load-object}
+object <- readRDS("obj/object_4_withTips.rds")
+```
+
+# Biased Random Walks
+
+### Define parameters of logistic function to bias transition probabilities
+
+```{r}
+diffusion.logistic <- pseudotimeDetermineLogistic(object, "pseudotime", optimal.cells.forward=40, max.cells.back=80, pseudotime.direction="<", do.plot=T, print.values=T)
+```
+
+### Run walks on cluster
+
+Biased random walks were run on the cluster using the scripts URD-TM.R, URD-TM.sh (to build a biased transition matrix that could be re-used for each tip), and then URD-Walks.R and URD-Walks.sh to parallelize the process of walking from each tip. The commands run by the scripts (if you have a smaller data set that could run on a laptop, for instance) were:
+
+```{r, eval=F, highlight=F}
+# Create biased transition matrix
+biased.tm <- pseudotimeWeightTransitionMatrix(object, pseudotime = "pseudotime", logistic.params = diffusion.logistic, pseudotime.direction = "<")
+
+# Define the root cells
+root.cells <- rownames(object@meta)[object@meta$STAGE=="ZFHIGH"]
+
+# Define the tip cells
+tips <- setdiff(unique(object@group.ids[,clustering]), NA)
+this.tip <- tips[tip.to.walk] # tip.to.walk was passed by the cluster job array.
+tip.cells <- rownames(object@group.ids)[which(object@group.ids[,clustering] == this.tip)]
+
+# Do the random walks
+these.walks <- simulateRandomWalk(start.cells=tip.cells, transition.matrix=biased.tm, end.cells=root.cells, n=walks.to.do, end.visits=1, verbose.freq=round(walks.to.do/20), max.steps=5000)
+
+```
+
+### Process walks from cluster
+
+We then load the pre-run walks from the cluster, and process them to determine the visitation frequency of each cell by the walks from each tip. This determines the developmental trajectories, and will be used to determine the branching structure in the data.
+
+```{r}
+# Get list of walk files
+tip.walk.files <- list.files(path = "walks/dm-8-tm-40-80/", pattern = ".rds", full.names = T)
+
+# Which tips were walked?
+tips.walked <- setdiff(unique(object@group.ids$`ZF6S-Cluster-Num`), NA)
+
+# Run through each tip, load the walks, and process them into visitation frequency for that tip.
+for (tip in tips.walked) {
+  # Get the files for that tip
+  tip.files <- grep(paste0("walks-", tip, "-"), tip.walk.files, value=T)
+  if (length(tip.files) > 0) {
+    # Read the files into a list of lists, and do a non-recursive unlist to combine into one list.
+    these.walks <- unlist(lapply(tip.files, readRDS), recursive = F)
+    object <<- processRandomWalks(object, walks=these.walks, walks.name=tip, verbose=F)
+  }
+}
+```
+
+# Save objects
+
+```{r}
+saveRDS(object, file="obj/object_5_withWalks.rds")
+```
+
