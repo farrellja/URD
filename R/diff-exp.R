@@ -24,7 +24,8 @@ markersBinom <- function(object, pseudotime, clust.1=NULL,clust.2=NULL,cells.1=N
             if (is.null(genes.use)) genes.use <- rownames(object@logupx.data)
             
             if (is.null(clustering)) {
-              clust.use <- object@group
+              # Must provide clustering if either cell list should be pulled from clustering
+              if (!is.null(clust.1) | !is.null(clust.2)) stop("If clust.1 or clust.2 is set, clustering must also be provided.")
             } else {
               clust.use <- object@group.ids[,clustering]
               names(clust.use) <- rownames(object@group.ids)
@@ -111,7 +112,8 @@ markersAUCPR <- function(object, clust.1=NULL, clust.2=NULL, cells.1=NULL, cells
   if (is.null(genes.use)) genes.use <- rownames(object@logupx.data)
   
   if (is.null(clustering)) {
-    clust.use <- object@group
+    # Must provide clustering if either cell list should be pulled from clustering
+    if (!is.null(clust.1) | !is.null(clust.2)) stop("If clust.1 or clust.2 is set, clustering must also be provided.")
   } else {
     clust.use <- object@group.ids[,clustering]
     names(clust.use) <- rownames(object@group.ids)
