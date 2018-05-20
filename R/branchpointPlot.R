@@ -129,7 +129,8 @@ plotBranchpoint <- function(object, branchpoint.layout, label, label.2=NULL, lab
   } else {
     expression.data.1 <- data.for.plot(object, label=label, label.type=label.type, cells.use=rownames(branchpoint.layout), as.single.color=T)
     expression.data.2 <- data.for.plot(object, label=label.2, label.type=label.type, cells.use=rownames(branchpoint.layout), as.single.color=T)
-    expression.data <- rgb(expression.data.1, 0.2*expression.data.1+0.2*expression.data.2, expression.data.2)
+    #expression.data <- rgb(expression.data.1, 0.2*expression.data.1+0.2*expression.data.2, expression.data.2)
+    expression.data <- rgb(expression.data.1, expression.data.2, 0.2*expression.data.1+0.2*expression.data.2)
     branchpoint.layout$expression <- expression.data
     branchpoint.layout$alpha <- 1
   }
