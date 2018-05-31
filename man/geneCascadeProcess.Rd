@@ -7,8 +7,8 @@
 geneCascadeProcess(object, pseudotime, cells, genes,
   background.genes = sample(setdiff(rownames(object@logupx.data),
   object@var.genes), 1000), moving.window = 3, cells.per.window = 10,
-  plot.scaled = T, verbose = T, limit.single.sigmoid.slopes = c("none",
-  "on", "off"), k = 50, a = 0.05)
+  plot.scaled = T, verbose = T, verbose.genes = F,
+  limit.single.sigmoid.slopes = c("none", "on", "off"), k = 50, a = 0.05)
 }
 \arguments{
 \item{object}{An URD object}
@@ -28,6 +28,8 @@ geneCascadeProcess(object, pseudotime, cells, genes,
 \item{plot.scaled}{(Logical)}
 
 \item{verbose}{(Logical)}
+
+\item{verbose.genes}{(Logical) If \code{verbose=T}, should the start time of each gene be printed?}
 
 \item{gene.cuts}{(Numeric) Number of groups}
 
