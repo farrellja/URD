@@ -49,10 +49,6 @@ plotDimDual(object, label.red, label.green, label.red.type = "search",
 \item{na.rm}{(Logical) If \code{TRUE}, points with an NA value for either label are displayed as transparent grey. If \code{FALSE}, they are removed from the plot.}
 
 \item{na.alpha}{(Numeric) If \code{na.rm=FALSE}, thae alpha value that should be used for NA points}
-
-\item{colors}{(Character vector) Colors to use to generate a gradient scale to color continuous data}
-
-\item{discrete.colors}{(Character vector) Colors to use to color}
 }
 \value{
 A ggplot2 object
