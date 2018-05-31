@@ -40,12 +40,13 @@ pseudotimeMovingWindow <- function(object, pseudotime, cells, moving.window, cel
 #' @param ignore.expression.before (Numeric)
 #' @param plot.scaled (Logical)
 #' @param verbose (Logical)
+#' @param verbose.genes (Logical) If \code{verbose=T}, should the start time of each gene be printed?
 #' @param limit.single.sigmoid ("none", "on", "off")
 #' 
 #' @return List
 #' 
 #' @export
-geneCascadeProcess <- function(object, pseudotime, cells, genes, background.genes=sample(setdiff(rownames(object@logupx.data), object@var.genes),1000), moving.window=3, cells.per.window=10, plot.scaled=T, verbose=T, limit.single.sigmoid.slopes=c("none","on","off"), k=50, a=0.05) {
+geneCascadeProcess <- function(object, pseudotime, cells, genes, background.genes=sample(setdiff(rownames(object@logupx.data), object@var.genes),1000), moving.window=3, cells.per.window=10, plot.scaled=T, verbose=T, verbose.genes=F, limit.single.sigmoid.slopes=c("none","on","off"), k=50, a=0.05) {
   
   if (verbose) print(paste0(Sys.time(), ": Calculating moving window expression."))
   # Get moving window of cells by pseudotime
@@ -72,8 +73,11 @@ geneCascadeProcess <- function(object, pseudotime, cells, genes, background.gene
   sd.bg <- sd(unlist(scaled.expression.bg), na.rm=T)
   
   # Do impulse model fitting for all genes
-  if (verbose) print("Fitting impulse model for all genes.")
-  impulse.fits <- lapply(genes, function(g) impulseFit(x=as.numeric(names(scaled.expression)), y=as.numeric(scaled.expression[g,]), limit.single.slope = limit.single.sigmoid.slopes, sd.bg = sd.bg, a = a, k = k, onset.thresh=0.1))
+  if (verbose) print(paste0(Sys.time(), ": Fitting impulse model for all genes."))
+  impulse.fits <- lapply(genes, function(g) {
+    if (verbose && verbose.genes) print(paste0(Sys.time(), ":   ", g))
+    impulseFit(x=as.numeric(names(scaled.expression)), y=as.numeric(scaled.expression[g,]), limit.single.slope = limit.single.sigmoid.slopes, sd.bg = sd.bg, a = a, k = k, onset.thresh=0.1)
+  })
   names(impulse.fits) <- genes
   
   # Get out onset/offset times
