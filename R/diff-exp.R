@@ -659,7 +659,7 @@ aucprTestByFactor <- function(object, cells.1, cells.2, label, groups, log.effec
 #' @return (Numeric) AUC threshold
 #' 
 #' @export
-aucprThreshold <- function(cells.1, cells.2, factor, max.auc) {
+aucprThreshold <- function(cells.1, cells.2, factor=1, max.auc=Inf) {
   # Random is P / (P+N)
   random.auc <- length(cells.1) / (length(cells.1) + length(cells.2))
   # Multiply be factor
