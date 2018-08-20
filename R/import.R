@@ -44,7 +44,7 @@ seuratToURD <- function(seurat.object) {
                 colnames(ds@tsne.y) <- c("tSNE1", "tSNE2")
               }
             } else if (.hasSlot(seurat.object, "dr")) {
-              if(!any(dim(seurat.object@dr$tsne) == 0)) {
+              if(("tsne" %in% names(seurat.object@dr)) && !any(dim(seurat.object@dr$tsne) == 0)) {
                 ds@tsne.y <- as.data.frame(seurat.object@dr$tsne@cell.embeddings)
                 colnames(ds@tsne.y) <- c("tSNE1", "tSNE2")
               }
@@ -59,7 +59,7 @@ seuratToURD <- function(seurat.object) {
               }
               ## TO DO: Convert SVD to sdev
             } else if (.hasSlot(seurat.object, "dr")) {
-              if(!any(dim(seurat.object@dr$pca@gene.loadings) == 0)) {
+              if(("pca" %in% names(seurat.object@dr)) && !any(dim(seurat.object@dr$pca@gene.loadings) == 0)) {
                 ds@pca.load <- as.data.frame(seurat.object@dr$pca@gene.loadings)
                 ds@pca.scores <- as.data.frame(seurat.object@dr$pca@cell.embeddings)
                 ds@pca.sdev <- seurat.object@dr$pca@sdev
