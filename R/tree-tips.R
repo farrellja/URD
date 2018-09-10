@@ -138,15 +138,22 @@ nameSegments <- function(object, segments, segment.names, short.names=NULL, sep=
     object@tree$segment.names.short <- to.name.segments.short
   }
   
-  # If label positions have been stored, update their names
-  if (!is.null(object@tree$walks.force.labels)) {
-    object@tree$walks.force.labels$name <- object@tree$segment.names[object@tree$walks.force.labels$seg]
-    object@tree$walks.force.labels$name[is.na(object@tree$walks.force.labels$name)] <- ""
-    if (!is.null(short.names)) {
-      object@tree$walks.force.labels$name.short <- object@tree$segment.names.short[object@tree$walks.force.labels$seg]
-      object@tree$walks.force.labels$name.short[is.na(object@tree$walks.force.labels$name.short)] <- ""
+  # If a force-directed layout has been generated
+  if (!is.null(object@tree$walks.force.layout)) {
+    # If label positions have been stored, update their names
+    if (!is.null(object@tree$walks.force.labels)) {
+      object@tree$walks.force.labels$name <- object@tree$segment.names[object@tree$walks.force.labels$seg]
+      object@tree$walks.force.labels$name[is.na(object@tree$walks.force.labels$name)] <- ""
+      if (!is.null(short.names)) {
+        object@tree$walks.force.labels$name.short <- object@tree$segment.names.short[object@tree$walks.force.labels$seg]
+        object@tree$walks.force.labels$name.short[is.na(object@tree$walks.force.labels$name.short)] <- ""
+      }
+    } else {
+    # If label positions were not stored because segments were unnamed, generate labels
+      object@tree$walks.force.labels <- treeForcePositionLabels(object)
     }
   }
-
+  
+  
   return(object)
 }
