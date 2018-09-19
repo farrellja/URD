@@ -9,6 +9,10 @@
 #' \code{\link{floodPseudotime}} will call this function automatically if
 #' one isn't provided.
 #' 
+#' Thanks to @diegomscoelho for suggested improvements.
+#' 
+#' @importFrom Matrix rowSums
+#' 
 #' @param object An URD object
 #' @param dm A Diffusion Map
 #' 
@@ -20,7 +24,7 @@ floodBuildTM <- function(object=NULL, dm=NULL) {
   # Normalize transition matrix so that maximum sum of transition probabilities is 1.
   if (!is.null(object)) { tm.flood <- object@dm@transitions }
   else if (!is.null(dm)) { tm.flood <- dm@transitions }
-  tm.sum.max <- max(apply(tm.flood, 1, sum))
+  tm.sum.max <- max(Matrix::rowSums(tm.flood))
   tm.flood <- tm.flood / tm.sum.max
   return(tm.flood)
 }
