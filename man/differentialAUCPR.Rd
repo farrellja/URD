@@ -17,3 +17,4 @@ differentialAUCPR(x, y)
 \description{
 Area under precision-recall curve for determining marker specificity.
 }
+\keyword{internal}
