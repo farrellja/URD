@@ -7,7 +7,7 @@
 #' By default, it searches for a label in the following order:
 #' metadata (\code{"meta"}), group IDs (\code{"group"}), gene signatures (\code{"sig"}), 
 #' gene expression (\code{"gene"}), unnormalized gene expression counts (\code{"counts"}),
-#' pseudotime (\code{"pseudotime"}), principal components (\code{"pca"}), 
+#' pseudotime (\code{"pseudotime"}), NMF modules (\code{"nmf"}), principal components (\code{"pca"}), 
 #' simulated diffusion results (\code{"diff.data"}).
 #' However, data can be requested from a particular source by setting \code{label.type}. 
 #' This can be used to get log-transformed but unnormalized expression data from
@@ -35,7 +35,7 @@
 #'   \item{$range}{(Numeric Vector) If data is continuous, the range of the data, otherwise NULL.}
 #' }
 #' @export
-data.for.plot <- function(object, label, label.type=c("search", "meta", "group", "sig", "gene", "counts", "pseudotime", "pca", "diff.data"), cells.use=NULL, as.color=F, as.single.color=F, as.discrete.list=F, continuous.colors=NULL, continuous.color.limits=NULL, colors.use=NULL) {
+data.for.plot <- function(object, label, label.type=c("search", "meta", "group", "sig", "gene", "counts", "pseudotime", "nmf", "pca", "diff.data"), cells.use=NULL, as.color=F, as.single.color=F, as.discrete.list=F, continuous.colors=NULL, continuous.color.limits=NULL, colors.use=NULL) {
   
   # Default URD colors
   if (is.null(continuous.colors)) continuous.colors <- defaultURDContinuousColors()
@@ -88,6 +88,13 @@ data.for.plot <- function(object, label, label.type=c("search", "meta", "group",
     discrete <- F
   }
   
+  # Check NMF modules
+  else if (label.type=="nmf.c1" | (label.type=="search" & label %in% colnames(object@nmf.c1))) {
+    if (is.null(cells.use)) cells.use <- rownames(object@nmf.c1)
+    data <- object@nmf.c1[cells.use, label]
+    discrete <- F
+  }
+  
   # Check PC
   else if (label.type=="pca" | (label.type=="search" & label %in% colnames(object@pca.scores))) {
     if (is.null(cells.use)) cells.use <- rownames(object@pca.scores)
@@ -103,7 +110,7 @@ data.for.plot <- function(object, label, label.type=c("search", "meta", "group",
   }
   
   # Uh oh
-  else { stop(paste("Cannot find", label, "in metadata, group.ids, signatures, genes, or pseudotime."))}
+  else { stop(paste("Cannot find", label, "in metadata, group.ids, signatures, genes, NMF modules, PCA, or pseudotime."))}
   
   data.range <- NULL
   
