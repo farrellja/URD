@@ -321,9 +321,10 @@ llrtest.dof <- function(y, M0, M, sd.bg, df) {
 #' @param a (Numeric) 
 #' @param k (Numeric) Number of sets of starting conditions to try
 #' @param onset.thresh (Numeric)
+#' @param onset.abs (Logical) Should onset and offset time be calculated using the absolute value of the fit? (This is useful when fitting against a difference, rather than actual data.)
 #' 
 #' @export
-impulseFit <- function(x, y, limit.single.slope=c("none","on","off"), sd.bg, a=0.05, k=50, onset.thresh=0.1) {
+impulseFit <- function(x, y, limit.single.slope=c("none","on","off"), sd.bg, a=0.05, k=50, onset.thresh=0.1, onset.abs=F) {
   ## Fit linear regression, single sigmoid, and double sigmoids (concave and convex)
   linear <- lm(y~x, data=list(x=x, y=y))
   linear <- c(coef(linear), sum(resid(linear)^2))
@@ -401,6 +402,7 @@ impulseFit <- function(x, y, limit.single.slope=c("none","on","off"), sd.bg, a=0
     }
   } else if (best.fit=="single") {
     y.pred <- impulse.single(x, b1 = single['b1'], h0 = single['h0'], h1 = single['h1'], t1=single['t1'])
+    if (onset.abs) y.pred <- abs(y.pred)
     onset <- abs((single['h1'] - single['h0'])) * onset.thresh + min(single['h0'], single['h1'])
     # Single, onset
     if (single['b1'] < 0) {
@@ -413,6 +415,7 @@ impulseFit <- function(x, y, limit.single.slope=c("none","on","off"), sd.bg, a=0
     }
   } else if (best.fit=="double") {
     y.pred <- impulse.double(x, b1 = double['b1'], b2=double['b2'], h0 = double['h0'], h1 = double['h1'], h2=double['h2'], t1=double['t1'], t2=double['t2'])
+    if (onset.abs) y.pred <- abs(y.pred)
     # Is it convex or concave? (You still can't trust the previous function to fit them correctly.)
     outer <- mean(c(head(y.pred, 5), tail(y.pred, 5)))
     inner <- mean(y.pred[ceiling((length(y.pred)/2) + c(-5,5))])
