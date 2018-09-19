@@ -9,7 +9,7 @@ plotTree(object, label = NULL, label.type = "search", title = label,
   plot.cells = T, cell.alpha = 0.25, cell.size = 0.5, label.x = T,
   label.segments = F, discrete.ignore.na = F, color.tree = NULL,
   continuous.colors = NULL, discrete.colors = NULL, color.limits = NULL,
-  hide.y.ticks = T)
+  symmetric.color.scale = NULL, hide.y.ticks = T)
 }
 \arguments{
 \item{object}{An URD object}
@@ -45,6 +45,8 @@ plotTree(object, label = NULL, label.type = "search", title = label,
 \item{discrete.colors}{(Character vector) Colors to use if plotting a discrete variable}
 
 \item{color.limits}{(Numeric vector, length 2) Minimum and maximum values for color scale}
+
+\item{symmetric.color.scale}{(Logical) Should the color scale be symmetric and centered around 0? (Default \code{NULL} is \code{FALSE} if all values are positive, and \code{TRUE} if both positive and negative values are present.)}
 
 \item{hide.y.ticks}{(Logical) Should the pseudotime values on the y-axis be hidden?}
 

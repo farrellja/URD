@@ -21,18 +21,19 @@
 #' @param continuous.colors (Character vector) Colors to make color scale if plotting a continuous variable
 #' @param discrete.colors (Character vector) Colors to use if plotting a discrete variable
 #' @param color.limits (Numeric vector, length 2) Minimum and maximum values for color scale
+#' @param symmetric.color.scale (Logical) Should the color scale be symmetric and centered around 0? (Default \code{NULL} is \code{FALSE} if all values are positive, and \code{TRUE} if both positive and negative values are present.)
 #' @param hide.y.ticks (Logical) Should the pseudotime values on the y-axis be hidden?
 #' 
 #' @return A ggplot2 object
 #' 
 #' @export
-plotTree <- function(object, label=NULL, label.type="search", title=label, legend.title="", plot.tree=T, tree.alpha=1, tree.size=1, plot.cells=T, cell.alpha=0.25, cell.size=0.5, label.x=T, label.segments=F, discrete.ignore.na=F, color.tree=NULL, continuous.colors=NULL, discrete.colors=NULL, color.limits=NULL, hide.y.ticks=T) {
+plotTree <- function(object, label=NULL, label.type="search", title=label, legend.title="", plot.tree=T, tree.alpha=1, tree.size=1, plot.cells=T, cell.alpha=0.25, cell.size=0.5, label.x=T, label.segments=F, discrete.ignore.na=F, color.tree=NULL, continuous.colors=NULL, discrete.colors=NULL, color.limits=NULL, symmetric.color.scale=NULL, hide.y.ticks=T) {
   
   # Grab various layouts from the object
   segment.layout <- object@tree$segment.layout
   tree.layout <- object@tree$tree.layout
   if (plot.cells) cell.layout <- object@tree$cell.layout
-  
+
   # Initialize ggplot and do basic formatting
   the.plot <- ggplot()
   if (hide.y.ticks) {
@@ -73,6 +74,24 @@ plotTree <- function(object, label=NULL, label.type="search", title=label, legen
     tree.layout[,"expression"] <- node.data[tree.layout$node.2,"x"]
   }  
   
+  # Figure out color limits if plotting a non-discrete label
+  if (!is.null(label) && !color.discrete && is.null(color.limits)) {
+    # Take from cells if plotting, otherwise from tree.
+    if (plot.cells) color.data.for.scale <- color.data$value else color.data.for.scale <- tree.layout$expression
+    # Set symmetric scale automatically if not provided
+    if (is.null(symmetric.color.scale)) {
+      if (min(color.data.for.scale) < 0) symmetric.color.scale <- T else symmetric.color.scale <- F
+    }
+    if (symmetric.color.scale) {
+      color.mv <- max(abs(color.data.for.scale))
+      color.limits <- c(-1*color.mv, color.mv)
+    } else {
+      color.max <- max(color.data.for.scale)
+      color.min <- min(c(0, color.data.for.scale))
+      color.limits <- c(color.min, color.max)
+    }
+  }
+  
   # Add cells to graph
   if (plot.cells) {
     if (!is.null(label)) {
@@ -112,7 +131,7 @@ plotTree <- function(object, label=NULL, label.type="search", title=label, legen
   if (!is.null(label)) {
     if (!color.discrete) {
       if (is.null(continuous.colors)) {
-        the.plot <- the.plot + scale_color_gradientn(colors=defaultURDContinuousColors(with.grey=T), limits=color.limits)
+        the.plot <- the.plot + scale_color_gradientn(colors=defaultURDContinuousColors(with.grey=T, symmetric=symmetric.color.scale), limits=color.limits)
       } else {
         the.plot <- the.plot + scale_color_gradientn(colors=continuous.colors, limits=color.limits)
       }
