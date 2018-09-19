@@ -4,12 +4,15 @@
 \alias{edgesFromDM}
 \title{Create an edge list from the transition matrix of the diffusion map}
 \usage{
-edgesFromDM(object, cells = NULL, edges.return = NULL)
+edgesFromDM(object, cells = NULL, include.connected.cells = F,
+  edges.return = NULL)
 }
 \arguments{
 \item{object}{An URD object}
 
 \item{cells}{(Character vector) Cells to calculate edges between (default \code{NULL} uses all cells in diffusion map.)}
+
+\item{include.connected.cells}{(Logical) If \code{FALSE}, then only edges that connect two cells included in \code{cells} will be kept. If \code{TRUE}, then edges where at least one connected cell is in \code{cells} will be kept.}
 
 \item{edges.return}{(Numeric) Number of edges to return (default \code{NULL} returns all edges.)}
 }
