@@ -345,7 +345,11 @@ plotTreeForce <- function(object, label, label.type="search", view="default", al
       }
       view <- object@tree$force.view.list[[view]]
     }
-    
+
+    # Get layout data
+    gg.data <- object@tree$walks.force.layout
+    gg.data$segment <- object@diff.data[rownames(gg.data),"segment"]
+        
     # Get expression data, use to determine parameters of color scale, and get default colors
     expression.data <- data.for.plot(object=object, label=label, label.type=label.type, as.color=F, cells.use=rownames(gg.data), as.discrete.list=T)
     if (!expression.data$discrete && is.null(symmetric.color.scale)) symmetric.color.scale <- min(expression.data$data) < 0
@@ -359,9 +363,7 @@ plotTreeForce <- function(object, label, label.type="search", view="default", al
     }
     if (is.null(colors)) colors <- defaultURDContinuousColors(symmetric = symmetric.color.scale)
     
-    # Get layout data and expression data
-    gg.data <- object@tree$walks.force.layout
-    gg.data$segment <- object@diff.data[rownames(gg.data),"segment"]
+    # Set color, alpha, and point size
     if (!is.null(label)) {
       color.data <- data.for.plot(object = object, label = label, label.type = label.type, as.color = T, as.discrete.list=T, cells.use = rownames(gg.data), continuous.colors=colors, colors.use = discrete.colors, continuous.color.limits = color.limits)
       gg.data$expression <- color.data$data
