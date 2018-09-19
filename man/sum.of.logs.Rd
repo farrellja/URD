@@ -14,3 +14,4 @@
 \description{
 Un-logs, takes the sum, and re-logs
 }
+\keyword{internal}

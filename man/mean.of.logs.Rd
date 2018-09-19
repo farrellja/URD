@@ -14,3 +14,4 @@ mean.of.logs(x, base = 2)
 \description{
 Un-logs, takes the arithmetic mean, and re-logs
 }
+\keyword{internal}
