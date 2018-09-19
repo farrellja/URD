@@ -130,6 +130,9 @@ preference <- function(x, y, signed=F) {
 
 #' Arithmetic Mean of As Numeric
 #' 
+#' @param x (Vector) Input values (character OK)
+#' 
+#' @export
 #' @keywords internal
 num.mean <- function(x) mean(as.numeric(x))
 
