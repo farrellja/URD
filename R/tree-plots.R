@@ -138,6 +138,8 @@ plotTree <- function(object, label=NULL, label.type="search", title=label, legen
     if (any(unlist(lapply(tip.layout$name, nchar)) > 2)) {
       the.plot <- the.plot + theme(axis.text.x = element_text(angle = 68, vjust = 1, hjust=1))
     }
+  } else {
+    the.plot <- the.plot + theme(axis.text.x=element_blank())
   }
   
   # Label the segments with their number?
