@@ -20,12 +20,13 @@
 #' @param color.tree (Logical) Should the dendrogram be colored according to the data? Default \code{NULL} colors the tree when plotting continuous variables, but not when plotting discrete variables.
 #' @param continuous.colors (Character vector) Colors to make color scale if plotting a continuous variable
 #' @param discrete.colors (Character vector) Colors to use if plotting a discrete variable
+#' @param color.limits (Numeric vector, length 2) Minimum and maximum values for color scale
 #' @param hide.y.ticks (Logical) Should the pseudotime values on the y-axis be hidden?
 #' 
 #' @return A ggplot2 object
 #' 
 #' @export
-plotTree <- function(object, label=NULL, label.type="search", title=label, legend.title="", plot.tree=T, tree.alpha=1, tree.size=1, plot.cells=T, cell.alpha=0.25, cell.size=0.5, label.x=T, label.segments=F, discrete.ignore.na=F, color.tree=NULL, continuous.colors=NULL, discrete.colors=NULL, hide.y.ticks=T) {
+plotTree <- function(object, label=NULL, label.type="search", title=label, legend.title="", plot.tree=T, tree.alpha=1, tree.size=1, plot.cells=T, cell.alpha=0.25, cell.size=0.5, label.x=T, label.segments=F, discrete.ignore.na=F, color.tree=NULL, continuous.colors=NULL, discrete.colors=NULL, color.limits=NULL, hide.y.ticks=T) {
   
   # Grab various layouts from the object
   segment.layout <- object@tree$segment.layout
@@ -111,9 +112,9 @@ plotTree <- function(object, label=NULL, label.type="search", title=label, legen
   if (!is.null(label)) {
     if (!color.discrete) {
       if (is.null(continuous.colors)) {
-        the.plot <- the.plot + scale_color_gradientn(colors=defaultURDContinuousColors(with.grey=T))
+        the.plot <- the.plot + scale_color_gradientn(colors=defaultURDContinuousColors(with.grey=T), limits=color.limits)
       } else {
-        the.plot <- the.plot + scale_color_gradientn(colors=continuous.colors)
+        the.plot <- the.plot + scale_color_gradientn(colors=continuous.colors, limits=color.limits)
       }
     } else {
       if (!is.null(discrete.colors)) {

@@ -8,7 +8,8 @@ plotTree(object, label = NULL, label.type = "search", title = label,
   legend.title = "", plot.tree = T, tree.alpha = 1, tree.size = 1,
   plot.cells = T, cell.alpha = 0.25, cell.size = 0.5, label.x = T,
   label.segments = F, discrete.ignore.na = F, color.tree = NULL,
-  continuous.colors = NULL, discrete.colors = NULL, hide.y.ticks = T)
+  continuous.colors = NULL, discrete.colors = NULL, color.limits = NULL,
+  hide.y.ticks = T)
 }
 \arguments{
 \item{object}{An URD object}
@@ -42,6 +43,8 @@ plotTree(object, label = NULL, label.type = "search", title = label,
 \item{continuous.colors}{(Character vector) Colors to make color scale if plotting a continuous variable}
 
 \item{discrete.colors}{(Character vector) Colors to use if plotting a discrete variable}
+
+\item{color.limits}{(Numeric vector, length 2) Minimum and maximum values for color scale}
 
 \item{hide.y.ticks}{(Logical) Should the pseudotime values on the y-axis be hidden?}
 
