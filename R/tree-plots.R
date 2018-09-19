@@ -20,7 +20,7 @@
 #' @param color.tree (Logical) Should the dendrogram be colored according to the data? Default \code{NULL} colors the tree when plotting continuous variables, but not when plotting discrete variables.
 #' @param continuous.colors (Character vector) Colors to make color scale if plotting a continuous variable
 #' @param discrete.colors (Character vector) Colors to use if plotting a discrete variable
-#' @param color.limits (Numeric vector, length 2) Minimum and maximum values for color scale
+#' @param color.limits (Numeric vector, length 2) Minimum and maximum values for color scale. Default \code{NULL} auto-detects.
 #' @param symmetric.color.scale (Logical) Should the color scale be symmetric and centered around 0? (Default \code{NULL} is \code{FALSE} if all values are positive, and \code{TRUE} if both positive and negative values are present.)
 #' @param hide.y.ticks (Logical) Should the pseudotime values on the y-axis be hidden?
 #' 

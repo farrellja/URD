@@ -311,6 +311,8 @@ plotTreeForce2D <- function(object, label=NULL, label.type="search", title=label
 #' @param text.cex (Numeric) Size of the label text
 #' @param colors (Character vector) Vector of colors to use if plotting continuous data
 #' @param discrete.colors (Character vector) Vector of colors to use if plotting discrete data
+#' @param color.limits (Numeric vector, length 2) Minimum and maximum values for color scale. Default \code{NULL} auto-detects.
+#' @param symmetric.color.scale (Logical) Should the color scale be symmetric and centered around 0? (Default \code{NULL} is \code{FALSE} if all values are positive, and \code{TRUE} if both positive and negative values are present.)
 #' 
 #' @return Nothing. Produces a plot using the \code{rgl} package, displayed in an X11 window.
 #' 
@@ -331,7 +333,7 @@ plotTreeForce2D <- function(object, label=NULL, label.type="search", title=label
 #' plotTreeForce(object, "lineage_Tailbud", title="Tailbud", title.line=1, discrete.colors=branch.colors, alpha=0.4)
 #' 
 #' @export
-plotTreeForce <- function(object, label, label.type="search", view="default", alpha=0.8, alpha.fade=0.1, size=5, title=NULL, title.cex=3, title.line=0, label.tips=(!is.null(object@tree$segment.names) | !is.null(object@tree$segment.names.short)), use.short.names=!is.null(object@tree$segment.names.short), seg.show=NULL, cells.show=NULL, fade.below=(2/9), density.alpha=T, label.spacing=5, text.cex=0.8, colors=NULL, discrete.colors=NULL) {
+plotTreeForce <- function(object, label, label.type="search", view="default", alpha=0.8, alpha.fade=0.1, size=5, title=NULL, title.cex=3, title.line=0, label.tips=(!is.null(object@tree$segment.names) | !is.null(object@tree$segment.names.short)), use.short.names=!is.null(object@tree$segment.names.short), seg.show=NULL, cells.show=NULL, fade.below=(2/9), density.alpha=T, label.spacing=5, text.cex=0.8, colors=NULL, discrete.colors=NULL, color.limits=NULL, symmetric.color.scale=NULL) {
   
   if (requireNamespace("rgl", quietly = TRUE)) {
     
@@ -344,14 +346,24 @@ plotTreeForce <- function(object, label, label.type="search", view="default", al
       view <- object@tree$force.view.list[[view]]
     }
     
-    # Get default colors
-    if (is.null(colors)) colors <- defaultURDContinuousColors()
+    # Get expression data, use to determine parameters of color scale, and get default colors
+    expression.data <- data.for.plot(object=object, label=label, label.type=label.type, as.color=F, cells.use=rownames(gg.data), as.discrete.list=T)
+    if (!expression.data$discrete && is.null(symmetric.color.scale)) symmetric.color.scale <- min(expression.data$data) < 0
+    if (!expression.data$discrete && is.null(color.limits)) {
+      if (symmetric.color.scale) {
+        color.sv <- max(abs(expression.data$data))
+        color.limits <- c(-1*color.sv, color.sv)
+      } else {
+        color.limits <- c(0, max(expression.data$data))
+      }
+    }
+    if (is.null(colors)) colors <- defaultURDContinuousColors(symmetric = symmetric.color.scale)
     
     # Get layout data and expression data
     gg.data <- object@tree$walks.force.layout
     gg.data$segment <- object@diff.data[rownames(gg.data),"segment"]
     if (!is.null(label)) {
-      color.data <- data.for.plot(object = object, label = label, label.type = label.type, as.color = T, as.discrete.list=T, cells.use = rownames(gg.data), continuous.colors=colors, colors.use = discrete.colors)
+      color.data <- data.for.plot(object = object, label = label, label.type = label.type, as.color = T, as.discrete.list=T, cells.use = rownames(gg.data), continuous.colors=colors, colors.use = discrete.colors, continuous.color.limits = color.limits)
       gg.data$expression <- color.data$data
     }
     gg.data$alpha <- alpha
@@ -360,13 +372,11 @@ plotTreeForce <- function(object, label, label.type="search", view="default", al
     # Focus on expression
     # For this, grey out any thing below focus, set alpha low for those, and increase progressively until 2*focus.
     if (fade.below > 0 & !color.data$discrete) {
-      # Get the actual expression data
-      expression.data <- data.for.plot(object=object, label=label, label.type=label.type, as.color=F, cells.use=rownames(gg.data))
       # Figure out ranges
-      expression.range <- range(expression.data)
+      expression.range <- range(abs(expression.data$data))
       fade.range <- diff(expression.range) * fade.below + expression.range[1]
       # Adjust gg.data
-      fade <- (fade.range-expression.data+expression.range[1])/fade.range
+      fade <- (fade.range-abs(expression.data$data)+expression.range[1])/fade.range
       fade[fade < 0] <- 0
       gg.data$alpha <- alpha - ((alpha-alpha.fade) * fade)
     }

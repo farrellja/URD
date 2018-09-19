@@ -44,7 +44,7 @@ plotTree(object, label = NULL, label.type = "search", title = label,
 
 \item{discrete.colors}{(Character vector) Colors to use if plotting a discrete variable}
 
-\item{color.limits}{(Numeric vector, length 2) Minimum and maximum values for color scale}
+\item{color.limits}{(Numeric vector, length 2) Minimum and maximum values for color scale. Default \code{NULL} auto-detects.}
 
 \item{symmetric.color.scale}{(Logical) Should the color scale be symmetric and centered around 0? (Default \code{NULL} is \code{FALSE} if all values are positive, and \code{TRUE} if both positive and negative values are present.)}
 
