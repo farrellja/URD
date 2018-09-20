@@ -7,6 +7,7 @@
 #' 
 #' @return data.frame Rows are cells, columns are segments, values are logical and encode whether a cell might be part of a given segment
 #' 
+#' @export
 #' @keywords internal
 putativeCellsInSegment <- function(object, segments, minimum.visits, visit.threshold) {
   # Get visit data
@@ -387,11 +388,27 @@ assignCellsToSegments <- function(object, pseudotime, verbose=T) {
   # Get visit data
   visit.data <- object@diff.data[,paste0("visitfreq.raw.", object@tree$segments)]
   segments <- object@tree$segments
+  # For cells in tip.clusters, make sure they have high visitation from their own tip
+  # to compensate for the fact that tip cells have unusual visitation parameters,
+  # because they are randomly chosen for starting walks with a uniform distribution.
+  # Set to max visitation from any segment + 1, so that cells in tips will be assigned
+  # to the segment which they define regardless of their visitation.
+  for (tip in object@tree$tips) {
+    tip.to.assign <- tip
+    # Get tip cells
+    cells.in.tip <- object@tree$cells.in.tip[[tip]]
+    # Check whether segment exists in the tree
+    while(!(tip.to.assign %in% rownames(object@tree$segment.pseudotime.limits))) {
+      tip.to.assign <- segParent(object, tip.to.assign, original.joins=T)
+    }
+    # Set visitation frequency to max + 1
+    visit.data[cells.in.tip, paste0("visitfreq.raw.", tip.to.assign)] <- apply(visit.data[cells.in.tip,], 1, max) + 1
+  }
   # Zero out visitation outside of the segment limits for each segment
   for (segment in segments) {
     visit.data[which(object@pseudotime[,pseudotime] > object@tree$segment.pseudotime.limits[segment, "end"] | object@pseudotime[,pseudotime] < object@tree$segment.pseudotime.limits[segment, "start"]),paste0("visitfreq.raw.", segment)] <- 0
   }
-  # Figure out which cells are now not visited enough.
+  # Figure out which cells are now not visited enough
   cells.still.visited <- rownames(visit.data)[which(apply(visit.data, 1, max) > 0)]
   cells.removed <- rownames(visit.data)[which(apply(visit.data, 1, max) == 0)]
   if ((length(cells.removed) > 0) & verbose) warning(paste(length(cells.removed), "cells were not visited by a branch that exists at their pseudotime and were not assigned."))
@@ -414,12 +431,18 @@ assignCellsToSegments <- function(object, pseudotime, verbose=T) {
 #' @importFrom gdata interleave
 #' 
 #' @keywords internal
-reformatSegmentJoins <- function(object) {
-  sj.c1 <- object@tree$segment.joins[,c("parent","child.1","pseudotime")]
-  sj.c2 <- object@tree$segment.joins[,c("parent","child.2","pseudotime")]
+reformatSegmentJoins <- function(object, segment.joins.initial=F) {
+  # Get proper segment joins 
+  if (segment.joins.initial) sj <- object@tree$segment.joins.initial else sj <- object@tree$segment.joins
+  # Reformat it
+  sj.c1 <- sj[,c("parent","child.1","pseudotime")]
+  sj.c2 <- sj[,c("parent","child.2","pseudotime")]
   names(sj.c1) <- c("parent", "child", "pseudotime"); names(sj.c2) <- c("parent", "child", "pseudotime")
-  object@tree$segment.joins <- gdata::interleave(sj.c1, sj.c2)
-  rownames(object@tree$segment.joins) <- NULL
+  sj <- gdata::interleave(sj.c1, sj.c2)
+  rownames(sj) <- NULL
+  # Place it back in the right place in the object
+  if (segment.joins.initial) object@tree$segment.joins.initial <- sj else object@tree$segment.joins <- sj
+  # Return the object
   return(object)
 }
 

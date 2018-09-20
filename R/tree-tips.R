@@ -81,6 +81,11 @@ combineTipVisitation <- function(object, tip.1, tip.2, new.tip) {
 #' @export
 
 nameSegments <- function(object, segments, segment.names, short.names=NULL, sep="+") {
+  # Reformat segment.joins.initial if it didn't already happen.
+  if (ncol(object@tree$segment.joins.initial) > 3) {
+    object <- reformatSegmentJoins(object, segment.joins.initial=T)
+  }
+  
   # Make sure everything is treated as a character vector, not numeric or a factor
   segments <- as.character(segments)
   segment.names <- as.character(segment.names)
@@ -112,7 +117,7 @@ nameSegments <- function(object, segments, segment.names, short.names=NULL, sep=
   # Figure out which terminal tips are a combination of ones that exist
   combined <- setdiff(terminal, segments)
   for (tt in combined) {
-    og.tips <- intersect(segChildrenAll(object, segment = tt, original.joins = T), segments)
+    og.tips <- intersect(segChildrenAll(object, segment = tt, original.joins = T, format="unary"), segments)
     if (!is.null(short.names)) {
       new.name <- c(
         tt, 
