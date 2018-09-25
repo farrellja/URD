@@ -5,10 +5,11 @@
 \title{Plot 2D Dendrogram of URD Tree}
 \usage{
 plotTree(object, label = NULL, label.type = "search", title = label,
-  legend.title = "", plot.tree = T, tree.alpha = 1, tree.size = 1,
-  plot.cells = T, cell.alpha = 0.25, cell.size = 0.5, label.x = T,
-  label.segments = F, discrete.ignore.na = F, color.tree = NULL,
-  continuous.colors = NULL, discrete.colors = NULL, color.limits = NULL,
+  legend = T, legend.title = "", legend.point.size = 6 * cell.size,
+  plot.tree = T, tree.alpha = 1, tree.size = 1, plot.cells = T,
+  cell.alpha = 0.25, cell.size = 0.5, label.x = T, label.segments = F,
+  discrete.ignore.na = F, color.tree = NULL, continuous.colors = NULL,
+  discrete.colors = NULL, color.limits = NULL,
   symmetric.color.scale = NULL, hide.y.ticks = T)
 }
 \arguments{
@@ -20,7 +21,11 @@ plotTree(object, label = NULL, label.type = "search", title = label,
 
 \item{title}{(Character) Title to display on the plot}
 
+\item{legend}{(Logical) Show a legend?}
+
 \item{legend.title}{(Character) Title to display on the legend}
+
+\item{legend.point.size}{(Numeric) How big should points be in the legend?}
 
 \item{plot.tree}{(Logical) Whether to plot the dendrogram}
 

@@ -7,7 +7,9 @@
 #' @param label (Character) Data to use for color information, see \link{data.for.plot}
 #' @param label.type (Character) See \link{data.for.plot}
 #' @param title (Character) Title to display on the plot
+#' @param legend (Logical) Show a legend?
 #' @param legend.title (Character) Title to display on the legend
+#' @param legend.point.size (Numeric) How big should points be in the legend?
 #' @param plot.tree (Logical) Whether to plot the dendrogram
 #' @param tree.alpha (Numeric) Transparency of dendrogram (0 is transparent, 1 is opaque)
 #' @param tree.size (Numeric) Thickness of lines of dendrogram
@@ -27,7 +29,7 @@
 #' @return A ggplot2 object
 #' 
 #' @export
-plotTree <- function(object, label=NULL, label.type="search", title=label, legend.title="", plot.tree=T, tree.alpha=1, tree.size=1, plot.cells=T, cell.alpha=0.25, cell.size=0.5, label.x=T, label.segments=F, discrete.ignore.na=F, color.tree=NULL, continuous.colors=NULL, discrete.colors=NULL, color.limits=NULL, symmetric.color.scale=NULL, hide.y.ticks=T) {
+plotTree <- function(object, label=NULL, label.type="search", title=label, legend=T, legend.title="", legend.point.size=6*cell.size, plot.tree=T, tree.alpha=1, tree.size=1, plot.cells=T, cell.alpha=0.25, cell.size=0.5, label.x=T, label.segments=F, discrete.ignore.na=F, color.tree=NULL, continuous.colors=NULL, discrete.colors=NULL, color.limits=NULL, symmetric.color.scale=NULL, hide.y.ticks=T) {
   
   # Grab various layouts from the object
   segment.layout <- object@tree$segment.layout
@@ -140,6 +142,14 @@ plotTree <- function(object, label=NULL, label.type="search", title=label, legen
         the.plot <- the.plot + scale_color_manual(values=discrete.colors)
       }
     }
+  }
+  
+  # Remove legend if desired
+  if (!legend) {
+    the.plot <- the.plot + guides(color=FALSE, shape=FALSE)
+  } else if (color.discrete) {
+    # Otherwise, make the legend points bigger if coloring by a discrete value
+    the.plot <- the.plot + guides(color=guide_legend(override.aes = list(size=legend.point.size, alpha=1)))
   }
   
   # Label segment names along the x-axis?
