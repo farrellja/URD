@@ -147,7 +147,7 @@ plotTree <- function(object, label=NULL, label.type="search", title=label, legen
   # Remove legend if desired
   if (!legend) {
     the.plot <- the.plot + guides(color=FALSE, shape=FALSE)
-  } else if (color.discrete) {
+  } else if (!is.null(label) && color.discrete) {
     # Otherwise, make the legend points bigger if coloring by a discrete value
     the.plot <- the.plot + guides(color=guide_legend(override.aes = list(size=legend.point.size, alpha=1)))
   }
