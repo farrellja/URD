@@ -12,7 +12,8 @@ plotTreeForce(object, label, label.type = "search", view = "default",
   use.short.names = !is.null(object@tree$segment.names.short),
   seg.show = NULL, cells.show = NULL, fade.below = (2/9),
   density.alpha = T, label.spacing = 5, text.cex = 0.8, colors = NULL,
-  discrete.colors = NULL)
+  discrete.colors = NULL, color.limits = NULL,
+  symmetric.color.scale = NULL)
 }
 \arguments{
 \item{object}{An URD object}
@@ -54,6 +55,10 @@ plotTreeForce(object, label, label.type = "search", view = "default",
 \item{colors}{(Character vector) Vector of colors to use if plotting continuous data}
 
 \item{discrete.colors}{(Character vector) Vector of colors to use if plotting discrete data}
+
+\item{color.limits}{(Numeric vector, length 2) Minimum and maximum values for color scale. Default \code{NULL} auto-detects.}
+
+\item{symmetric.color.scale}{(Logical) Should the color scale be symmetric and centered around 0? (Default \code{NULL} is \code{FALSE} if all values are positive, and \code{TRUE} if both positive and negative values are present.)}
 }
 \value{
 Nothing. Produces a plot using the \code{rgl} package, displayed in an X11 window.

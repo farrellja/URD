@@ -2,11 +2,33 @@
 % Please edit documentation in R/tree-navigate.R
 \name{segChildrenAll}
 \alias{segChildrenAll}
+\alias{segChildrenAll}
 \title{All children of segment}
 \usage{
 segChildrenAll(object, segment, include.self = F, original.joins = F,
-  point.at.segment.joins.initial = original.joins)
+  format = c("unary", "binary"))
+
+segChildrenAll(object, segment, include.self = F, original.joins = F,
+  format = c("unary", "binary"))
+}
+\arguments{
+\item{object}{An URD object}
+
+\item{segment}{(Character) Name of segment to start from}
+
+\item{include.self}{(Logical) Should \code{segment} be included in the list of children?}
+
+\item{original.joins}{(Logical) Should children be drawn from \code{@tree$segment.joins} (\code{FALSE}) or
+\code{@tree$segment.joins.initial} (\code{TRUE})? (\code{@tree$segment.joins.initial} reflects the process
+of constructing the tree and includes all initial starting tips. \code{@tree$segment.joins} reflects the
+final structure of the tree, after segments have been removed due to insufficient members or pseudotime length.)}
+
+\item{format}{(Character: "unary" or "binary") Reflects the storage structure of \code{@tree$segment.joins}. \code{binary}
+is only used internally, and all user queries should be \code{unary}.}
 }
 \description{
 All children of segment
+
+Returns the segment ids of all segments that are children (and grandchildren and great-grandchildren...)
+or a parent segment specified.
 }

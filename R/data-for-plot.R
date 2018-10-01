@@ -7,7 +7,7 @@
 #' By default, it searches for a label in the following order:
 #' metadata (\code{"meta"}), group IDs (\code{"group"}), gene signatures (\code{"sig"}), 
 #' gene expression (\code{"gene"}), unnormalized gene expression counts (\code{"counts"}),
-#' pseudotime (\code{"pseudotime"}), principal components (\code{"pca"}), 
+#' pseudotime (\code{"pseudotime"}), NMF modules (\code{"nmf"}), principal components (\code{"pca"}), 
 #' simulated diffusion results (\code{"diff.data"}).
 #' However, data can be requested from a particular source by setting \code{label.type}. 
 #' This can be used to get log-transformed but unnormalized expression data from
@@ -35,7 +35,7 @@
 #'   \item{$range}{(Numeric Vector) If data is continuous, the range of the data, otherwise NULL.}
 #' }
 #' @export
-data.for.plot <- function(object, label, label.type=c("search", "meta", "group", "sig", "gene", "counts", "pseudotime", "pca", "diff.data"), cells.use=NULL, as.color=F, as.single.color=F, as.discrete.list=F, continuous.colors=NULL, continuous.color.limits=NULL, colors.use=NULL) {
+data.for.plot <- function(object, label, label.type=c("search", "meta", "group", "sig", "gene", "counts", "pseudotime", "nmf", "pca", "diff.data"), cells.use=NULL, as.color=F, as.single.color=F, as.discrete.list=F, continuous.colors=NULL, continuous.color.limits=NULL, colors.use=NULL) {
   
   # Default URD colors
   if (is.null(continuous.colors)) continuous.colors <- defaultURDContinuousColors()
@@ -88,6 +88,13 @@ data.for.plot <- function(object, label, label.type=c("search", "meta", "group",
     discrete <- F
   }
   
+  # Check NMF modules
+  else if (label.type=="nmf.c1" | (label.type=="search" & label %in% colnames(object@nmf.c1))) {
+    if (is.null(cells.use)) cells.use <- rownames(object@nmf.c1)
+    data <- object@nmf.c1[cells.use, label]
+    discrete <- F
+  }
+  
   # Check PC
   else if (label.type=="pca" | (label.type=="search" & label %in% colnames(object@pca.scores))) {
     if (is.null(cells.use)) cells.use <- rownames(object@pca.scores)
@@ -103,7 +110,7 @@ data.for.plot <- function(object, label, label.type=c("search", "meta", "group",
   }
   
   # Uh oh
-  else { stop(paste("Cannot find", label, "in metadata, group.ids, signatures, genes, or pseudotime."))}
+  else { stop(paste("Cannot find", label, "in metadata, group.ids, signatures, genes, NMF modules, PCA, or pseudotime."))}
   
   data.range <- NULL
   
@@ -121,11 +128,6 @@ data.for.plot <- function(object, label, label.type=c("search", "meta", "group",
   # Convert to color values if desired
   if (as.color || as.single.color) {
     if (discrete) {
-      #data.to.color <- as.factor(data)
-      #if (is.null(colors.use)) colors <- scales::hue_pal()(length(levels(data.to.color))) else colors <- colors.use
-      #if (is.null(names(colors))) names(colors) <- levels(data.to.color)
-      #legend <- colors
-      #data <- colors[data.to.color]
       data.to.color <- sort(unique(data))
       if (is.null(colors.use)) colors <- scales::hue_pal()(length(data.to.color)) else colors <- colors.use
       if (is.null(names(colors))) names(colors) <- data.to.color
@@ -151,5 +153,31 @@ data.for.plot <- function(object, label, label.type=c("search", "meta", "group",
     return(list(discrete=discrete, data=data, legend=legend, range=data.range))
   } else {
     return(data)
+  }
+}
+
+#' Default URD continuous colors
+#' 
+#' @return Vector of default colors
+#' 
+#' @export
+#' 
+#' @keywords internal
+defaultURDContinuousColors <- function(with.grey=F, symmetric=F) {
+  if (symmetric) {
+    return(c("#B3006B", "#C04981", "#CA7197", "#D396AE", "#D9B9C5", "#DDDDDD", 
+             "#BFD6B7", "#A0CE91", "#7FC66B", "#57BD43", "#0CB300"))
+  } else if (with.grey) {
+    return(c("#B2B2B2", "#9BABC2", "#7D9FD1", "#5A90E0", "#307DF0", "#0065FF", 
+             "#0078FF", "#008DFF", "#00A1FF", "#00B5FF", "#00CAFF", "#00DEFF", 
+             "#00F2FF", "#27FFD7", "#8CFF71", "#F1FF0D", "#FFEE00", "#FFDB00", 
+             "#FFC900", "#FFB700", "#FFA500", "#FF9200", "#FF8000", "#FF6D00", 
+             "#FF5B00", "#FF4800", "#FF3600", "#FF2400", "#FF1200", "#FF0000"))
+  } else {
+    return(c("#0000FF", "#0013FF", "#0028FF", "#003CFF", "#0050FF", "#0065FF", 
+             "#0078FF", "#008DFF", "#00A1FF", "#00B5FF", "#00CAFF", "#00DEFF", 
+             "#00F2FF", "#27FFD7", "#8CFF71", "#F1FF0D", "#FFEE00", "#FFDB00", 
+             "#FFC900", "#FFB700", "#FFA500", "#FF9200", "#FF8000", "#FF6D00", 
+             "#FF5B00", "#FF4800", "#FF3600", "#FF2400", "#FF1200", "#FF0000"))
   }
 }

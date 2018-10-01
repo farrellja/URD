@@ -8,6 +8,8 @@
 
 R can be obtained and installed from [https://cran.rstudio.com](https://cran.rstudio.com). 
 
+URD has only been tested under R 3.4.x and may fail to install under R 3.5.x until some of its dependencies are updated.
+
 Following installation of R, Rstudio can be obtained and installed from [https://www.rstudio.com/products/rstudio/download/](https://www.rstudio.com/products/rstudio/download/). The free version of RStudio Desktop is sufficient.
 
 ### 2. Install an X11 window client (Mac only)
@@ -21,6 +23,14 @@ We wrote a script that will attempt to install all requirements for URD and then
 ```source("https://raw.githubusercontent.com/farrellja/URD/master/URD-Install.R")```
 
 ## Troubleshooting
+
+### udunits
+
+URD's dependencies require the installation of the **udunits2** package, which depends on the udunits2 library. This is part of the Windows and Mac OS X operating systems, but often requires manual installation on Linux distributions:
+
+```
+sudo apt-get install libudunits2-dev
+```
 
 ### DLL error
 

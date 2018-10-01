@@ -205,26 +205,3 @@ createURD <- function(count.data, meta=NULL, min.cells=3, min.genes=500, min.cou
   if (verbose) message(paste0(Sys.time(), ": All done."))
   return(object)
 } 
-
-#' Default URD continuous colors
-#' 
-#' @return Vector of default colors
-#' 
-#' @export
-#' 
-#' @keywords internal
-defaultURDContinuousColors <- function(with.grey=F) {
-  if (with.grey) {
-    return(c("#B2B2B2", "#9BABC2", "#7D9FD1", "#5A90E0", "#307DF0", "#0065FF", 
-             "#0078FF", "#008DFF", "#00A1FF", "#00B5FF", "#00CAFF", "#00DEFF", 
-             "#00F2FF", "#27FFD7", "#8CFF71", "#F1FF0D", "#FFEE00", "#FFDB00", 
-             "#FFC900", "#FFB700", "#FFA500", "#FF9200", "#FF8000", "#FF6D00", 
-             "#FF5B00", "#FF4800", "#FF3600", "#FF2400", "#FF1200", "#FF0000"))
-  } else {
-    return(c("#0000FF", "#0013FF", "#0028FF", "#003CFF", "#0050FF", "#0065FF", 
-           "#0078FF", "#008DFF", "#00A1FF", "#00B5FF", "#00CAFF", "#00DEFF", 
-           "#00F2FF", "#27FFD7", "#8CFF71", "#F1FF0D", "#FFEE00", "#FFDB00", 
-           "#FFC900", "#FFB700", "#FFA500", "#FF9200", "#FF8000", "#FF6D00", 
-           "#FF5B00", "#FF4800", "#FF3600", "#FF2400", "#FF1200", "#FF0000"))
-  }
-}

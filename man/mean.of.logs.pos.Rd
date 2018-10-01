@@ -14,3 +14,4 @@ mean.of.logs.pos(x, base = 2)
 \description{
 Un-logs, takes the arithmetic mean of those values greater than 0, and re-logs
 }
+\keyword{internal}

@@ -5,10 +5,12 @@
 \title{Plot 2D Dendrogram of URD Tree}
 \usage{
 plotTree(object, label = NULL, label.type = "search", title = label,
-  legend.title = "", plot.tree = T, tree.alpha = 1, tree.size = 1,
-  plot.cells = T, cell.alpha = 0.25, cell.size = 0.5, label.x = T,
-  label.segments = F, discrete.ignore.na = F, color.tree = NULL,
-  continuous.colors = NULL, discrete.colors = NULL, hide.y.ticks = T)
+  legend = T, legend.title = "", legend.point.size = 6 * cell.size,
+  plot.tree = T, tree.alpha = 1, tree.size = 1, plot.cells = T,
+  cell.alpha = 0.25, cell.size = 0.5, label.x = T, label.segments = F,
+  discrete.ignore.na = F, color.tree = NULL, continuous.colors = NULL,
+  discrete.colors = NULL, color.limits = NULL,
+  symmetric.color.scale = NULL, hide.y.ticks = T)
 }
 \arguments{
 \item{object}{An URD object}
@@ -19,7 +21,11 @@ plotTree(object, label = NULL, label.type = "search", title = label,
 
 \item{title}{(Character) Title to display on the plot}
 
+\item{legend}{(Logical) Show a legend?}
+
 \item{legend.title}{(Character) Title to display on the legend}
+
+\item{legend.point.size}{(Numeric) How big should points be in the legend?}
 
 \item{plot.tree}{(Logical) Whether to plot the dendrogram}
 
@@ -42,6 +48,10 @@ plotTree(object, label = NULL, label.type = "search", title = label,
 \item{continuous.colors}{(Character vector) Colors to make color scale if plotting a continuous variable}
 
 \item{discrete.colors}{(Character vector) Colors to use if plotting a discrete variable}
+
+\item{color.limits}{(Numeric vector, length 2) Minimum and maximum values for color scale. Default \code{NULL} auto-detects.}
+
+\item{symmetric.color.scale}{(Logical) Should the color scale be symmetric and centered around 0? (Default \code{NULL} is \code{FALSE} if all values are positive, and \code{TRUE} if both positive and negative values are present.)}
 
 \item{hide.y.ticks}{(Logical) Should the pseudotime values on the y-axis be hidden?}
 

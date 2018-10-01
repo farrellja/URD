@@ -24,4 +24,6 @@ stored in slot \code{@dm}, or a diffusion map directly (\code{dm=}).
 This function can be called directly and the transition matrix stored, or
 \code{\link{floodPseudotime}} will call this function automatically if
 one isn't provided.
+
+Thanks to @diegomscoelho for suggested improvements.
 }

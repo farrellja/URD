@@ -7,7 +7,9 @@
 #' @param label (Character) Data to use for color information, see \link{data.for.plot}
 #' @param label.type (Character) See \link{data.for.plot}
 #' @param title (Character) Title to display on the plot
+#' @param legend (Logical) Show a legend?
 #' @param legend.title (Character) Title to display on the legend
+#' @param legend.point.size (Numeric) How big should points be in the legend?
 #' @param plot.tree (Logical) Whether to plot the dendrogram
 #' @param tree.alpha (Numeric) Transparency of dendrogram (0 is transparent, 1 is opaque)
 #' @param tree.size (Numeric) Thickness of lines of dendrogram
@@ -20,18 +22,20 @@
 #' @param color.tree (Logical) Should the dendrogram be colored according to the data? Default \code{NULL} colors the tree when plotting continuous variables, but not when plotting discrete variables.
 #' @param continuous.colors (Character vector) Colors to make color scale if plotting a continuous variable
 #' @param discrete.colors (Character vector) Colors to use if plotting a discrete variable
+#' @param color.limits (Numeric vector, length 2) Minimum and maximum values for color scale. Default \code{NULL} auto-detects.
+#' @param symmetric.color.scale (Logical) Should the color scale be symmetric and centered around 0? (Default \code{NULL} is \code{FALSE} if all values are positive, and \code{TRUE} if both positive and negative values are present.)
 #' @param hide.y.ticks (Logical) Should the pseudotime values on the y-axis be hidden?
 #' 
 #' @return A ggplot2 object
 #' 
 #' @export
-plotTree <- function(object, label=NULL, label.type="search", title=label, legend.title="", plot.tree=T, tree.alpha=1, tree.size=1, plot.cells=T, cell.alpha=0.25, cell.size=0.5, label.x=T, label.segments=F, discrete.ignore.na=F, color.tree=NULL, continuous.colors=NULL, discrete.colors=NULL, hide.y.ticks=T) {
+plotTree <- function(object, label=NULL, label.type="search", title=label, legend=T, legend.title="", legend.point.size=6*cell.size, plot.tree=T, tree.alpha=1, tree.size=1, plot.cells=T, cell.alpha=0.25, cell.size=0.5, label.x=T, label.segments=F, discrete.ignore.na=F, color.tree=NULL, continuous.colors=NULL, discrete.colors=NULL, color.limits=NULL, symmetric.color.scale=NULL, hide.y.ticks=T) {
   
   # Grab various layouts from the object
   segment.layout <- object@tree$segment.layout
   tree.layout <- object@tree$tree.layout
   if (plot.cells) cell.layout <- object@tree$cell.layout
-  
+
   # Initialize ggplot and do basic formatting
   the.plot <- ggplot()
   if (hide.y.ticks) {
@@ -72,6 +76,24 @@ plotTree <- function(object, label=NULL, label.type="search", title=label, legen
     tree.layout[,"expression"] <- node.data[tree.layout$node.2,"x"]
   }  
   
+  # Figure out color limits if plotting a non-discrete label
+  if (!is.null(label) && !color.discrete && is.null(color.limits)) {
+    # Take from cells if plotting, otherwise from tree.
+    if (plot.cells) color.data.for.scale <- color.data$value else color.data.for.scale <- tree.layout$expression
+    # Set symmetric scale automatically if not provided
+    if (is.null(symmetric.color.scale)) {
+      if (min(color.data.for.scale) < 0) symmetric.color.scale <- T else symmetric.color.scale <- F
+    }
+    if (symmetric.color.scale) {
+      color.mv <- max(abs(color.data.for.scale))
+      color.limits <- c(-1*color.mv, color.mv)
+    } else {
+      color.max <- max(color.data.for.scale)
+      color.min <- min(c(0, color.data.for.scale))
+      color.limits <- c(color.min, color.max)
+    }
+  }
+  
   # Add cells to graph
   if (plot.cells) {
     if (!is.null(label)) {
@@ -111,15 +133,23 @@ plotTree <- function(object, label=NULL, label.type="search", title=label, legen
   if (!is.null(label)) {
     if (!color.discrete) {
       if (is.null(continuous.colors)) {
-        the.plot <- the.plot + scale_color_gradientn(colors=defaultURDContinuousColors(with.grey=T))
+        the.plot <- the.plot + scale_color_gradientn(colors=defaultURDContinuousColors(with.grey=T, symmetric=symmetric.color.scale), limits=color.limits)
       } else {
-        the.plot <- the.plot + scale_color_gradientn(colors=continuous.colors)
+        the.plot <- the.plot + scale_color_gradientn(colors=continuous.colors, limits=color.limits)
       }
     } else {
       if (!is.null(discrete.colors)) {
         the.plot <- the.plot + scale_color_manual(values=discrete.colors)
       }
     }
+  }
+  
+  # Remove legend if desired
+  if (!legend) {
+    the.plot <- the.plot + guides(color=FALSE, shape=FALSE)
+  } else if (!is.null(label) && color.discrete) {
+    # Otherwise, make the legend points bigger if coloring by a discrete value
+    the.plot <- the.plot + guides(color=guide_legend(override.aes = list(size=legend.point.size, alpha=1)))
   }
   
   # Label segment names along the x-axis?
@@ -137,6 +167,8 @@ plotTree <- function(object, label=NULL, label.type="search", title=label, legen
     if (any(unlist(lapply(tip.layout$name, nchar)) > 2)) {
       the.plot <- the.plot + theme(axis.text.x = element_text(angle = 68, vjust = 1, hjust=1))
     }
+  } else {
+    the.plot <- the.plot + theme(axis.text.x=element_blank())
   }
   
   # Label the segments with their number?

@@ -6,7 +6,8 @@
 \usage{
 markersAUCPR(object, clust.1 = NULL, clust.2 = NULL, cells.1 = NULL,
   cells.2 = NULL, clustering = NULL, effect.size = 0.25,
-  frac.must.express = 0.1, frac.min.diff = 0, genes.use = NULL)
+  frac.must.express = 0.1, exp.thresh = 0, frac.min.diff = 0,
+  genes.use = NULL)
 }
 \arguments{
 \item{object}{An URD object}
@@ -24,6 +25,8 @@ markersAUCPR(object, clust.1 = NULL, clust.2 = NULL, cells.1 = NULL,
 \item{effect.size}{(Numeric) Minimum log fold-change for two genes to be considered differentially expressed}
 
 \item{frac.must.express}{(Numeric) Gene must be expressed in at least this fraction of cells in one of the two clusters to be considered.}
+
+\item{exp.thresh}{(Numeric) Minimum expression value to consider 'expressed.'}
 
 \item{frac.min.diff}{(Numeric) Fraction of cells expressing the gene must be at least this different between two populations to be considered.}
 

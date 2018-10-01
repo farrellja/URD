@@ -5,7 +5,7 @@
 \title{Fit gene expression data with an impulse model}
 \usage{
 impulseFit(x, y, limit.single.slope = c("none", "on", "off"), sd.bg,
-  a = 0.05, k = 50, onset.thresh = 0.1)
+  a = 0.05, k = 50, onset.thresh = 0.1, onset.abs = F)
 }
 \arguments{
 \item{x}{(Numeric)}
@@ -21,6 +21,8 @@ impulseFit(x, y, limit.single.slope = c("none", "on", "off"), sd.bg,
 \item{k}{(Numeric) Number of sets of starting conditions to try}
 
 \item{onset.thresh}{(Numeric)}
+
+\item{onset.abs}{(Logical) Should onset and offset time be calculated using the absolute value of the fit? (This is useful when fitting against a difference, rather than actual data.)}
 }
 \description{
 Fit gene expression data with an impulse model

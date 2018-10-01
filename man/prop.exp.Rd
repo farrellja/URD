@@ -4,11 +4,14 @@
 \alias{prop.exp}
 \title{Returns proportion of expressing cells}
 \usage{
-prop.exp(x)
+prop.exp(x, exp.thresh = 0)
 }
 \arguments{
 \item{x}{(Numeric vector) Input values}
+
+\item{exp.thresh}{(Numeric) Minimum value considered expressed}
 }
 \description{
-Determines proportion of input values > 0.
+Determines proportion of input values > exp.thresh.
 }
+\keyword{internal}
