@@ -126,10 +126,11 @@ calcDM <- function(object, genes.use=object@var.genes, cells.use=NULL, knn=NULL,
 #' map in an URD object. Used by some plotting functions to show the
 #' connectivity of the network if desired.
 #'
-#' @importFrom igraph graph_from_adjacency_matrix as_data_frame V induced_subgraph
+#' @importFrom igraph graph_from_adjacency_matrix as_data_frame V induced_subgraph adjacent_vertices
 #' 
 #' @param object An URD object
 #' @param cells (Character vector) Cells to calculate edges between (default \code{NULL} uses all cells in diffusion map.)
+#' @param include.connected.cells (Logical) If \code{FALSE}, then only edges that connect two cells included in \code{cells} will be kept. If \code{TRUE}, then edges where at least one connected cell is in \code{cells} will be kept.
 #' @param edges.return (Numeric) Number of edges to return (default \code{NULL} returns all edges.)
 #' 
 #' @return A data.frame with columns from (cell name), to (cell name), and weight (transition probability)
@@ -138,18 +139,29 @@ calcDM <- function(object, genes.use=object@var.genes, cells.use=NULL, knn=NULL,
 #' edges <- edgesFromDM(object, cells=NULL, edges.return=100000)
 #' 
 #' @export
-edgesFromDM <- function(object, cells=NULL, edges.return=NULL) {
+edgesFromDM <- function(object, cells=NULL, include.connected.cells=F, edges.return=NULL) {
   # Create igraph representation from transition matrix
-  ig <- graph_from_adjacency_matrix(object@dm@transitions, weighted=T, mode="undirected")
+  ig <- igraph::graph_from_adjacency_matrix(object@dm@transitions, weighted=T, mode="undirected")
   
   # Subset if only some cells are provided
   if (!is.null(cells)) {
-    v.keep <- which(names(V(ig)) %in% cells)
-    ig <- induced_subgraph(ig, vids=v.keep)
+    v.keep <- which(names(igraph::V(ig)) %in% cells)
+    if (include.connected.cells) {
+      v.adj <- igraph::adjacent_vertices(ig, v.keep, mode="all")
+      v.adj <- unique(unlist(lapply(v.adj, names)))
+      v.adj <- which(names(igraph::V(ig)) %in% v.adj)
+      v.keep <- unique(c(v.keep, v.adj))
+    }
+    ig <- igraph::induced_subgraph(ig, vids=v.keep)
   }
   
   # Convert igraph representation to data frame
-  ig_edges <- as_data_frame(ig)
+  ig_edges <- igraph::as_data_frame(ig)
+  
+  # If include.connected.cells, retain only edges where at least one cell is in cells
+  if (include.connected.cells) {
+    ig_edges <- ig_edges[which(ig_edges$from %in% cells | ig_edges$to %in% cells),]
+  }
   
   # Sample number of edges at random, if desired
   if (!is.null(edges.return) && (edges.return < nrow(ig_edges))) ig_edges <- ig_edges[sample(1:nrow(ig_edges), edges.return),]

@@ -12,3 +12,4 @@ prop.nonexp(x)
 \description{
 Determines proportion of input values <= 0.
 }
+\keyword{internal}

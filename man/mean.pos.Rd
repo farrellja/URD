@@ -12,3 +12,4 @@ mean.pos(x)
 \description{
 Returns the arithmetic mean of values greater than 0.
 }
+\keyword{internal}

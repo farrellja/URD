@@ -166,8 +166,6 @@ plotDim <- function(object, label, label.type="search", reduction.use=c("tsne", 
 #' @param reduction.use (Character) Dimensionality reduction to use (tSNE, PCA, or Diffusion Map)
 #' @param dim.x (Numeric) Component to use on x-axis
 #' @param dim.y (Numeric) Component to use on y-axis
-#' @param colors (Character vector) Colors to use to generate a gradient scale to color continuous data
-#' @param discrete.colors (Character vector) Colors to use to color 
 #' @param point.size (Numeric) Size of points on plot
 #' @param alpha (Numeric) Transparency of points on plot: 0 (Transparent) - 1 (Opaque)
 #' @param plot.title (Character) Title of the plot

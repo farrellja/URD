@@ -6,6 +6,9 @@
 \usage{
 num.mean(x)
 }
+\arguments{
+\item{x}{(Vector) Input values (character OK)}
+}
 \description{
 Arithmetic Mean of As Numeric
 }

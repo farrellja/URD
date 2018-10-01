@@ -122,8 +122,8 @@ treeForceDirectedLayout <- function(object, num.nn=NULL, method=c("fr", "drl", "
   
   # Turn nearest neighbors into edge list
   if (verbose) print(paste0(Sys.time(), ": Preparing edge list."))
-  edges <- melt(walk.nn$nn.label[cells.keep,], stringsAsFactors=F)
-  dists <- melt(walk.nn$nn.dists[cells.keep,])
+  edges <- reshape2::melt(walk.nn$nn.label[cells.keep,], stringsAsFactors=F)
+  dists <- reshape2::melt(walk.nn$nn.dists[cells.keep,])
   edges <- edges[,c(1,3)]
   names(edges) <- c("V1", "V2")
   edges$dists <- dists$value
@@ -189,7 +189,7 @@ treeForceDirectedLayout <- function(object, num.nn=NULL, method=c("fr", "drl", "
     edges$weight <- 1/edges$dists
   }
   object@tree$walks.force.edges <- edges
-  igraph.walk.weights <- graph_from_data_frame(edges, directed=F)
+  igraph.walk.weights <- igraph::graph_from_data_frame(edges, directed=F)
   
   if (!is.null(coords)) {
     cells.remain <- unique(c(edges$V1, edges$V2))
@@ -197,13 +197,13 @@ treeForceDirectedLayout <- function(object, num.nn=NULL, method=c("fr", "drl", "
     coords <- coords[coords.remain,]
   }
   
-  if (is.null(start.temp)) start.temp <- sqrt(vcount(igraph.walk.weights))
+  if (is.null(start.temp)) start.temp <- sqrt(igraph::vcount(igraph.walk.weights))
   
   # Do force-directed layout
   if (verbose) print(paste0(Sys.time(), ": Doing force-directed layout."))
-  if (method=="fr") igraph.walk.layout <- layout_with_fr(igraph.walk.weights, dim=dim, coords=coords, start.temp=start.temp)
-  if (method=="drl") igraph.walk.layout <- layout_with_drl(igraph.walk.weights, dim=dim, options=list(edge.cut=0))
-  if (method=="kk") igraph.walk.layout <- layout_with_kk(igraph.walk.weights, dim=dim, coords=coords)
+  if (method=="fr") igraph.walk.layout <- igraph::layout_with_fr(igraph.walk.weights, dim=dim, coords=coords, start.temp=start.temp)
+  if (method=="drl") igraph.walk.layout <- igraph::layout_with_drl(igraph.walk.weights, dim=dim, options=list(edge.cut=0))
+  if (method=="kk") igraph.walk.layout <- igraph::layout_with_kk(igraph.walk.weights, dim=dim, coords=coords)
   
   # Store the layout
   if (dim==2) {
@@ -219,7 +219,7 @@ treeForceDirectedLayout <- function(object, num.nn=NULL, method=c("fr", "drl", "
     # Store the layout
     object@tree$walks.force.layout <- as.data.frame(igraph.walk.layout, stringsAsFactors=F)
     names(object@tree$walks.force.layout) <- c("x","y")
-    rownames(object@tree$walks.force.layout) <- V(igraph.walk.weights)$name
+    rownames(object@tree$walks.force.layout) <- igraph::V(igraph.walk.weights)$name
     # Normalize neighbor.pt range
     neighbor.pt.factor <- mean(apply(object@tree$walks.force.layout[,c("x","y")], 2, max)) / max(neighbor.pt)
     object@tree$walks.force.layout$telescope.pt <- neighbor.pt[rownames(object@tree$walks.force.layout)] * neighbor.pt.factor
@@ -231,10 +231,13 @@ treeForceDirectedLayout <- function(object, num.nn=NULL, method=c("fr", "drl", "
   } else if (dim==3) {
     object@tree$walks.force.layout.3d <- as.data.frame(igraph.walk.layout, stringsAsFactors=F)
     names(object@tree$walks.force.layout.3d) <- c("x","y","z")
-    rownames(object@tree$walks.force.layout.3d) <- V(igraph.walk.weights)$name
+    rownames(object@tree$walks.force.layout.3d) <- igraph::V(igraph.walk.weights)$name
   }
   
-  object@tree$walks.force.labels <- treeForcePositionLabels(object)
+  # Position labels if segments have been named.
+  if (!is.null(object@tree$esgment.names)) {
+    object@tree$walks.force.labels <- treeForcePositionLabels(object)
+  }
   
   # Return the object
   if (verbose) print(paste0(Sys.time(), ": Finished."))
@@ -308,6 +311,8 @@ plotTreeForce2D <- function(object, label=NULL, label.type="search", title=label
 #' @param text.cex (Numeric) Size of the label text
 #' @param colors (Character vector) Vector of colors to use if plotting continuous data
 #' @param discrete.colors (Character vector) Vector of colors to use if plotting discrete data
+#' @param color.limits (Numeric vector, length 2) Minimum and maximum values for color scale. Default \code{NULL} auto-detects.
+#' @param symmetric.color.scale (Logical) Should the color scale be symmetric and centered around 0? (Default \code{NULL} is \code{FALSE} if all values are positive, and \code{TRUE} if both positive and negative values are present.)
 #' 
 #' @return Nothing. Produces a plot using the \code{rgl} package, displayed in an X11 window.
 #' 
@@ -328,7 +333,7 @@ plotTreeForce2D <- function(object, label=NULL, label.type="search", title=label
 #' plotTreeForce(object, "lineage_Tailbud", title="Tailbud", title.line=1, discrete.colors=branch.colors, alpha=0.4)
 #' 
 #' @export
-plotTreeForce <- function(object, label, label.type="search", view="default", alpha=0.8, alpha.fade=0.1, size=5, title=NULL, title.cex=3, title.line=0, label.tips=(!is.null(object@tree$segment.names) | !is.null(object@tree$segment.names.short)), use.short.names=!is.null(object@tree$segment.names.short), seg.show=NULL, cells.show=NULL, fade.below=(2/9), density.alpha=T, label.spacing=5, text.cex=0.8, colors=NULL, discrete.colors=NULL) {
+plotTreeForce <- function(object, label, label.type="search", view="default", alpha=0.8, alpha.fade=0.1, size=5, title=NULL, title.cex=3, title.line=0, label.tips=(!is.null(object@tree$segment.names) | !is.null(object@tree$segment.names.short)), use.short.names=!is.null(object@tree$segment.names.short), seg.show=NULL, cells.show=NULL, fade.below=(2/9), density.alpha=T, label.spacing=5, text.cex=0.8, colors=NULL, discrete.colors=NULL, color.limits=NULL, symmetric.color.scale=NULL) {
   
   if (requireNamespace("rgl", quietly = TRUE)) {
     
@@ -340,15 +345,27 @@ plotTreeForce <- function(object, label, label.type="search", view="default", al
       }
       view <- object@tree$force.view.list[[view]]
     }
-    
-    # Get default colors
-    if (is.null(colors)) colors <- defaultURDContinuousColors()
-    
-    # Get layout data and expression data
+
+    # Get layout data
     gg.data <- object@tree$walks.force.layout
     gg.data$segment <- object@diff.data[rownames(gg.data),"segment"]
+        
+    # Get expression data, use to determine parameters of color scale, and get default colors
+    expression.data <- data.for.plot(object=object, label=label, label.type=label.type, as.color=F, cells.use=rownames(gg.data), as.discrete.list=T)
+    if (!expression.data$discrete && is.null(symmetric.color.scale)) symmetric.color.scale <- min(expression.data$data) < 0
+    if (!expression.data$discrete && is.null(color.limits)) {
+      if (symmetric.color.scale) {
+        color.sv <- max(abs(expression.data$data))
+        color.limits <- c(-1*color.sv, color.sv)
+      } else {
+        color.limits <- c(0, max(expression.data$data))
+      }
+    }
+    if (is.null(colors)) colors <- defaultURDContinuousColors(symmetric = symmetric.color.scale)
+    
+    # Set color, alpha, and point size
     if (!is.null(label)) {
-      color.data <- data.for.plot(object = object, label = label, label.type = label.type, as.color = T, as.discrete.list=T, cells.use = rownames(gg.data), continuous.colors=colors, colors.use = discrete.colors)
+      color.data <- data.for.plot(object = object, label = label, label.type = label.type, as.color = T, as.discrete.list=T, cells.use = rownames(gg.data), continuous.colors=colors, colors.use = discrete.colors, continuous.color.limits = color.limits)
       gg.data$expression <- color.data$data
     }
     gg.data$alpha <- alpha
@@ -357,13 +374,11 @@ plotTreeForce <- function(object, label, label.type="search", view="default", al
     # Focus on expression
     # For this, grey out any thing below focus, set alpha low for those, and increase progressively until 2*focus.
     if (fade.below > 0 & !color.data$discrete) {
-      # Get the actual expression data
-      expression.data <- data.for.plot(object=object, label=label, label.type=label.type, as.color=F, cells.use=rownames(gg.data))
       # Figure out ranges
-      expression.range <- range(expression.data)
+      expression.range <- range(abs(expression.data$data))
       fade.range <- diff(expression.range) * fade.below + expression.range[1]
       # Adjust gg.data
-      fade <- (fade.range-expression.data+expression.range[1])/fade.range
+      fade <- (fade.range-abs(expression.data$data)+expression.range[1])/fade.range
       fade[fade < 0] <- 0
       gg.data$alpha <- alpha - ((alpha-alpha.fade) * fade)
     }
@@ -806,3 +821,60 @@ treeForceTranslateCoords <- function(object, cells=NULL, seg=NULL, x, y, z) {
   object@tree$walks.force.layout[cells, c("x", "y", "telescope.pt")] <- mprime
   return(object)
 }
+
+#' Stretch points in force-directed layout
+#' 
+#' This function can be used in addition to \code{\link{treeForceRotateCoords}}
+#' and \code{\link{treeForceTranslateCoords}}
+#' in order to fine-tune the presentation of a force-directed layout. For instance,
+#' this can be used to achieve an improved 2D visualization by shortening or lengthening
+#' a branch of the tree if branches have dramatically different lengths in pseudotime.
+#' (This occurs, for instance, in data sets generated from a single timepoint in 
+#' a homeostatic animal instead of an explicit timecourse.) This transformation
+#' will only occur in the force-directed layout, not the dendrogram tree layout.
+#' 
+#' @param object An URD object
+#' @param factor (Numeric) Factor to lengthen (>1) or shrink (<1) the branch by.
+#' @param cells (Character vector) Cells to modify (Default \code{NULL} is all cells in the force-directed layout)
+#' @param seg (Character) Instead of specifying cells, just grab all cells from this segment and downstream. Ignored if \code{cells} is specified.
+#' @param throw.out.cells (Numeric) Throw out the youngest N cells in pseudotime (i.e. don't stretch those)
+#' 
+#' @return An URD object with the coordinates of some cells in \code{@@tree$walks.force.layout} modified.
+#' 
+#' @export
+treeForceStretchCoords <- function(object, factor, cells=NULL, seg=NULL, throw.out.cells=0) {
+  if (!is.null(seg) & is.null(cells)) cells <- cellsInCluster(object, "segment", segChildrenAll(object, seg, include.self=T))
+  if (is.null(cells)) cells <- rownames(object@tree$walks.force.layout)
+  cells <- intersect(cells, rownames(object@tree$walks.force.layout))
+  if ((throw.out.cells > 0)) {
+    #if (is.null(pseudotime)) stop ("To use throw.out.cells, must specify pseudotime.")
+    cells <- setdiff(cells, cells[order(object@tree$pseudotime[cells])[1:throw.out.cells]])
+    #cells <- setdiff(cells, cells[order(object@pseudotime[cells,pseudotime])[1:throw.out.cells]])
+  }
+  m <- object@tree$walks.force.layout[cells, c("x","y","telescope.pt")]
+  m.min <- min(m$telescope.pt)
+  m$telescope.pt <- ((m$telescope.pt - m.min) * factor) + m.min
+  object@tree$walks.force.layout[cells, c("x", "y", "telescope.pt")] <- m
+  return(object)
+}
+
+treeForceStretchCoords <- function(object, factor, cells=NULL, seg=NULL, stretch.from=20, throw.out.cells=0, ramp=0.1) {
+  if (!is.null(seg) & is.null(cells)) cells <- cellsInCluster(object, "segment", segChildrenAll(object, seg, include.self=T))
+  if (is.null(cells)) cells <- rownames(object@tree$walks.force.layout)
+  cells <- intersect(cells, rownames(object@tree$walks.force.layout))
+  if ((throw.out.cells > 0)) {
+    #if (is.null(pseudotime)) stop ("To use throw.out.cells, must specify pseudotime.")
+    cells <- setdiff(cells, cells[order(object@tree$pseudotime[cells])[1:throw.out.cells]])
+    #cells <- setdiff(cells, cells[order(object@pseudotime[cells,pseudotime])[1:throw.out.cells]])
+  }
+  m <- object@tree$walks.force.layout[cells, c("x","y","telescope.pt")]
+  m.min <- sort(m$telescope.pt)[stretch.from]
+  m.max <- max(m$telescope.pt)
+  m.fac <- (m$telescope.pt - m.min) / (m.max - m.min)
+  m.fac <- pmax(m.fac, rep(0, length(m.fac)))
+  m.fac <- pmin(m.fac / ramp, rep(1, length(m.fac))) * factor
+  m$telescope.pt <- ((m$telescope.pt - m.min) * m.fac) + m.min
+  object@tree$walks.force.layout[cells, c("x", "y", "telescope.pt")] <- m
+  return(object)
+}
+

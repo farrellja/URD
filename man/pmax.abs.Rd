@@ -15,3 +15,4 @@ pmax.abs(x, y)
 Determines which value has greater magnitude (i.e. by absolute value) and returns the original signed value.
 Compares vectors x and y pairwise.
 }
+\keyword{internal}

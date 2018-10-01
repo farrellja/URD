@@ -4,7 +4,7 @@
 \alias{aucprThreshold}
 \title{Precision-Recall AUC threshold}
 \usage{
-aucprThreshold(cells.1, cells.2, factor, max.auc)
+aucprThreshold(cells.1, cells.2, factor = 1, max.auc = Inf)
 }
 \arguments{
 \item{cells.1}{(Character vector) List of cells}

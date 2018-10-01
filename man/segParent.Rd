@@ -4,7 +4,7 @@
 \alias{segParent}
 \title{Parent of segment}
 \usage{
-segParent(object, segment, return.self.if.na = F)
+segParent(object, segment, return.self.if.na = F, original.joins = F)
 }
 \description{
 Parent of segment

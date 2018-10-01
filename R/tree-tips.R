@@ -81,6 +81,11 @@ combineTipVisitation <- function(object, tip.1, tip.2, new.tip) {
 #' @export
 
 nameSegments <- function(object, segments, segment.names, short.names=NULL, sep="+") {
+  # Reformat segment.joins.initial if it didn't already happen.
+  if (ncol(object@tree$segment.joins.initial) > 3) {
+    object <- reformatSegmentJoins(object, segment.joins.initial=T)
+  }
+  
   # Make sure everything is treated as a character vector, not numeric or a factor
   segments <- as.character(segments)
   segment.names <- as.character(segment.names)
@@ -112,7 +117,7 @@ nameSegments <- function(object, segments, segment.names, short.names=NULL, sep=
   # Figure out which terminal tips are a combination of ones that exist
   combined <- setdiff(terminal, segments)
   for (tt in combined) {
-    og.tips <- intersect(segChildrenAll(object, segment = tt, original.joins = T), segments)
+    og.tips <- intersect(segChildrenAll(object, segment = tt, original.joins = T, format="unary"), segments)
     if (!is.null(short.names)) {
       new.name <- c(
         tt, 
@@ -138,15 +143,22 @@ nameSegments <- function(object, segments, segment.names, short.names=NULL, sep=
     object@tree$segment.names.short <- to.name.segments.short
   }
   
-  # If label positions have been stored, update their names
-  if (!is.null(object@tree$walks.force.labels)) {
-    object@tree$walks.force.labels$name <- object@tree$segment.names[object@tree$walks.force.labels$seg]
-    object@tree$walks.force.labels$name[is.na(object@tree$walks.force.labels$name)] <- ""
-    if (!is.null(short.names)) {
-      object@tree$walks.force.labels$name.short <- object@tree$segment.names.short[object@tree$walks.force.labels$seg]
-      object@tree$walks.force.labels$name.short[is.na(object@tree$walks.force.labels$name.short)] <- ""
+  # If a force-directed layout has been generated
+  if (!is.null(object@tree$walks.force.layout)) {
+    # If label positions have been stored, update their names
+    if (!is.null(object@tree$walks.force.labels)) {
+      object@tree$walks.force.labels$name <- object@tree$segment.names[object@tree$walks.force.labels$seg]
+      object@tree$walks.force.labels$name[is.na(object@tree$walks.force.labels$name)] <- ""
+      if (!is.null(short.names)) {
+        object@tree$walks.force.labels$name.short <- object@tree$segment.names.short[object@tree$walks.force.labels$seg]
+        object@tree$walks.force.labels$name.short[is.na(object@tree$walks.force.labels$name.short)] <- ""
+      }
+    } else {
+    # If label positions were not stored because segments were unnamed, generate labels
+      object@tree$walks.force.labels <- treeForcePositionLabels(object)
     }
   }
-
+  
+  
   return(object)
 }

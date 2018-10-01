@@ -1,8 +1,10 @@
 #' Parent of segment
 #' 
 #' @export
-segParent <- function(object, segment, return.self.if.na=F) {
-  parent <- object@tree$segment.joins[which(object@tree$segment.joins$child == segment),"parent"]
+segParent <- function(object, segment, return.self.if.na=F, original.joins=F) {
+  # Get correct segment.joins object out
+  if (original.joins) sj <- object@tree$segment.joins.initial else sj <- object@tree$segment.joins
+  parent <- sj[which(sj$child == segment),"parent"]
   if (!return.self.if.na) return(parent)
   if (length(parent) > 0) return(parent) else return(segment)
 }
@@ -50,6 +52,43 @@ segChildrenAll <- function(object, segment, include.self=F, original.joins=F, po
   children <- unique(children)
   return(children)
 }
+
+#' All children of segment
+#' 
+#' Returns the segment ids of all segments that are children (and grandchildren and great-grandchildren...)
+#' or a parent segment specified.
+#' 
+#' @param object An URD object
+#' @param segment (Character) Name of segment to start from
+#' @param include.self (Logical) Should \code{segment} be included in the list of children?
+#' @param original.joins (Logical) Should children be drawn from \code{@@tree$segment.joins} (\code{FALSE}) or
+#' \code{@@tree$segment.joins.initial} (\code{TRUE})? (\code{@@tree$segment.joins.initial} reflects the process
+#' of constructing the tree and includes all initial starting tips. \code{@@tree$segment.joins} reflects the
+#' final structure of the tree, after segments have been removed due to insufficient members or pseudotime length.)
+#' @param format (Character: "unary" or "binary") Reflects the storage structure of \code{@@tree$segment.joins}. \code{binary}
+#' is only used internally, and all user queries should be \code{unary}.
+#'  
+#' @export
+segChildrenAll <- function(object, segment, include.self=F, original.joins=F, format=c("unary", "binary")) {
+  # Get desired segment.joins or segment.joins.initial out
+  if (original.joins) sj <- object@tree$segment.joins.initial else sj <- object@tree$segment.joins
+  # Initialize
+  children <- c()
+  new.children <- segment
+  # Keep going down the tree until everything has been searched
+  while(length(new.children) > 0) {
+    if (format=="unary") {
+      new.children <- sj[which(sj$parent %in% new.children), "child"]
+    } else if (format=="binary") {
+      new.children <- unlist(sj[which(sj$parent %in% new.children), c("child.1", "child.2")])
+    } else stop("format must be 'unary' or 'binary'.")
+    children <- c(children, new.children)
+  }
+  if (include.self) children <- c(children, segment)
+  children <- unique(children)
+  return(children)
+}
+
 
 #' Siblings of segments 
 #' 

@@ -5,10 +5,10 @@
 \title{Retrieve data for plotting}
 \usage{
 data.for.plot(object, label, label.type = c("search", "meta", "group", "sig",
-  "gene", "counts", "pseudotime", "pca", "diff.data"), cells.use = NULL,
-  as.color = F, as.single.color = F, as.discrete.list = F,
-  continuous.colors = NULL, continuous.color.limits = NULL,
-  colors.use = NULL)
+  "gene", "counts", "pseudotime", "nmf", "pca", "diff.data"),
+  cells.use = NULL, as.color = F, as.single.color = F,
+  as.discrete.list = F, continuous.colors = NULL,
+  continuous.color.limits = NULL, colors.use = NULL)
 }
 \arguments{
 \item{object}{An URD object}
@@ -45,7 +45,7 @@ called by most of URD's plotting routines.
 By default, it searches for a label in the following order:
 metadata (\code{"meta"}), group IDs (\code{"group"}), gene signatures (\code{"sig"}), 
 gene expression (\code{"gene"}), unnormalized gene expression counts (\code{"counts"}),
-pseudotime (\code{"pseudotime"}), principal components (\code{"pca"}), 
+pseudotime (\code{"pseudotime"}), NMF modules (\code{"nmf"}), principal components (\code{"pca"}), 
 simulated diffusion results (\code{"diff.data"}).
 However, data can be requested from a particular source by setting \code{label.type}. 
 This can be used to get log-transformed but unnormalized expression data from

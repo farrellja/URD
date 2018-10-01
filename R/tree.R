@@ -139,7 +139,7 @@ buildTree <- function(object, pseudotime, tips.use=NULL, divergence.method=c("ks
     object@tree$segment.pseudotime.limits[c(seg.1,seg.2),"start"] <- pt.break
     
     # Create the new visitation data as the mean of all of the children of the two segments being joined.
-    children.of.branchpoint <- unique(c(segChildrenAll(object, seg.1, include.self=T, original.joins = T, point.at.segment.joins.initial = F), segChildrenAll(object, seg.2, include.self=T, original.joins = T, point.at.segment.joins.initial = F)))
+    children.of.branchpoint <- unique(c(segChildrenAll(object, seg.1, include.self=T, original.joins = F, format="binary"), segChildrenAll(object, seg.2, include.self=T, original.joins = F, format="binary")))
     
     # Limit children of branchpoints to original tips only.
     if (use.only.original.tips) children.of.branchpoint <- intersect(children.of.branchpoint, object@tree$tips)
@@ -177,7 +177,7 @@ buildTree <- function(object, pseudotime, tips.use=NULL, divergence.method=c("ks
   }
   
   # If storing all breakpoints place them in the tree.
-  object@tree$pseudotime.breakpoint.details <- all.pseudotime.breakpoint.details
+  if (save.all.breakpoint.info) object@tree$pseudotime.breakpoint.details <- all.pseudotime.breakpoint.details else object@tree$pseudotime.breakpoint.details <- NULL
   
   # Determine complete list of all segments
   object@tree$segments <- as.character(sort(as.numeric(unique(unlist(object@tree$segment.joins[,c("child.1", "child.2", "parent")])))))
@@ -191,6 +191,7 @@ buildTree <- function(object, pseudotime, tips.use=NULL, divergence.method=c("ks
   
   # Delete overly short segments from the tree, and reassign segments
   object <- reformatSegmentJoins(object)
+  object <- reformatSegmentJoins(object, segment.joins.initial = T)
   if (verbose) print ("Collapsing short segments.")
   object <- collapseShortSegments(object, min.cells.per.segment = min.cells.per.segment, min.pseudotime.per.segment = min.pseudotime.per.segment)
   if (verbose) print ("Removing singleton segments.")

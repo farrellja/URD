@@ -4,6 +4,8 @@
 #' @param M0 (Numeric)
 #' @param M (Numeric)
 #' @param sd.bg (Numeric) Standard deviation of background genes for calculating null
+#' 
+#' @export
 #' @keywords internal
 log.likelihood.ratio <- function(D, M0, M, sd.bg) {
   y0 <- (D - M0) / sd.bg # p(D|M0)
@@ -30,6 +32,7 @@ log.likelihood.ratio <- function(D, M0, M, sd.bg) {
 #' 
 #' @return Double-sigmoid impulse function with parameters b1, b2, h0, h1, h2, t1, t2, as evaluated for the vector x.
 #' 
+#' @export
 #' @keywords internal
 impulse.double <- function(x, b1, b2, h0, h1, h2, t1, t2) {
   f1 <- h0 + (h1 - h0)/(1 + exp(b1*(x - t1)))
@@ -50,6 +53,7 @@ impulse.double <- function(x, b1, b2, h0, h1, h2, t1, t2) {
 #' 
 #' @return Double-sigmoid impulse function with parameters b1, b2, h0, h1, h2, t1, t2, as evaluated for the vector x.
 #' 
+#' @export
 #' @keywords internal
 impulse.single <- function(x, b1, h0, h1, t1) {
   h0 + (h1 - h0)/(1 + exp(b1*(x - t1)))
@@ -59,6 +63,7 @@ impulse.single <- function(x, b1, h0, h1, t1) {
 #' 
 #' Function to determine k sets of initial starting conditions for impulse fitting
 #' 
+#' @export
 #' @keywords internal
 impulse.start.double <- function(x, y, k, limit.shape=c("none","concave","convex")) {
   df <- data.frame(x = x, y = y)
@@ -111,6 +116,7 @@ impulse.start.double <- function(x, y, k, limit.shape=c("none","concave","convex
 #' 
 #' Function to determine k sets of initial starting conditions for impulse fitting
 #' 
+#' @export
 #' @keywords internal
 impulse.start.single <- function(x, y, k, limit.slope) {
   ## Estimate two 'intelligent' pairs for h0, h1 from the data
@@ -181,6 +187,8 @@ impulse.start.single <- function(x, y, k, limit.slope) {
 #' @param y (Numeric)
 #' @param k (Numeric) Number of starting conditions to try
 #' @param limit.shape ("none", "convex", "concave") 
+#' 
+#' @export
 #' @keywords internal
 impulse.fit.double <- function(x, y, k=20, limit.shape=c("none","convex","concave")) {
   # Determine parameter limits
@@ -226,6 +234,8 @@ impulse.fit.double <- function(x, y, k=20, limit.shape=c("none","convex","concav
 #' @param y (Numeric)
 #' @param k (Numeric) Number of starting conditions to try
 #' @param limit.slope ("none", "on", "off") 
+#' 
+#' @export
 #' @keywords internal
 impulse.fit.single <- function(x, y, k=20, limit.slope=c("none","on","off")) {
   if (length(limit.slope) > 1) limit.slope <- limit.slope[1]
@@ -272,6 +282,7 @@ impulse.fit.single <- function(x, y, k=20, limit.slope=c("none","on","off")) {
 #' @param sd.bg (Numeric) Standard deviation of background data for estimating noise model
 #' @param df (Numeric) Difference in degrees of freedom (i.e. number of parameters)
 #' 
+#' @export
 #' @keywords internal
 impulse.llrtest<- function(x, y, I1, I2, sd.bg, df=3) {
   M0 <- impulse.single(x, b1=as.numeric(I1['b1']), h0=as.numeric(I1['h0']), h1=as.numeric(I1['h1']), t1=as.numeric(I1['t1']))
@@ -293,6 +304,7 @@ impulse.llrtest<- function(x, y, I1, I2, sd.bg, df=3) {
 #' @param sd.bg (Numeric) Standard deviation of background data for estimating noise model
 #' @param df (Numeric) Difference in degrees of freedom (i.e. number of parameters) between M and M0.
 #' 
+#' @export
 #' @keywords internal
 llrtest.dof <- function(y, M0, M, sd.bg, df) {
   e <- log.likelihood.ratio(y, M0, M, sd.bg)
@@ -309,9 +321,10 @@ llrtest.dof <- function(y, M0, M, sd.bg, df) {
 #' @param a (Numeric) 
 #' @param k (Numeric) Number of sets of starting conditions to try
 #' @param onset.thresh (Numeric)
+#' @param onset.abs (Logical) Should onset and offset time be calculated using the absolute value of the fit? (This is useful when fitting against a difference, rather than actual data.)
 #' 
 #' @export
-impulseFit <- function(x, y, limit.single.slope=c("none","on","off"), sd.bg, a=0.05, k=50, onset.thresh=0.1) {
+impulseFit <- function(x, y, limit.single.slope=c("none","on","off"), sd.bg, a=0.05, k=50, onset.thresh=0.1, onset.abs=F) {
   ## Fit linear regression, single sigmoid, and double sigmoids (concave and convex)
   linear <- lm(y~x, data=list(x=x, y=y))
   linear <- c(coef(linear), sum(resid(linear)^2))
@@ -389,6 +402,7 @@ impulseFit <- function(x, y, limit.single.slope=c("none","on","off"), sd.bg, a=0
     }
   } else if (best.fit=="single") {
     y.pred <- impulse.single(x, b1 = single['b1'], h0 = single['h0'], h1 = single['h1'], t1=single['t1'])
+    if (onset.abs) y.pred <- abs(y.pred)
     onset <- abs((single['h1'] - single['h0'])) * onset.thresh + min(single['h0'], single['h1'])
     # Single, onset
     if (single['b1'] < 0) {
@@ -401,6 +415,7 @@ impulseFit <- function(x, y, limit.single.slope=c("none","on","off"), sd.bg, a=0
     }
   } else if (best.fit=="double") {
     y.pred <- impulse.double(x, b1 = double['b1'], b2=double['b2'], h0 = double['h0'], h1 = double['h1'], h2=double['h2'], t1=double['t1'], t2=double['t2'])
+    if (onset.abs) y.pred <- abs(y.pred)
     # Is it convex or concave? (You still can't trust the previous function to fit them correctly.)
     outer <- mean(c(head(y.pred, 5), tail(y.pred, 5)))
     inner <- mean(y.pred[ceiling((length(y.pred)/2) + c(-5,5))])

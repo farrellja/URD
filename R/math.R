@@ -3,6 +3,7 @@
 #' Returns the arithmetic mean of values greater than 0.
 #' @param x (Numeric Vector) Input values
 #' @export mean.pos
+#' @keywords internal
 mean.pos <- function(x) {
   y <- which(x > 0)
   mean(x[y])
@@ -14,6 +15,7 @@ mean.pos <- function(x) {
 #' @param x (Numeric vector) Input values
 #' @param base (Numeric) Log base to use (default: 2)
 #' @export mean.of.logs
+#' @keywords internal
 mean.of.logs <- function(x, base=2) {
   log(mean((base ^ x) - 1) + 1, base = base)
 }
@@ -24,6 +26,7 @@ mean.of.logs <- function(x, base=2) {
 #' @param x (Numeric vector) Input values
 #' @param base (Numeric) Log base to use (default: 2)
 #' @export sum.of.logs
+#' @keywords internal
 sum.of.logs <- function(x, base=2) {
   log(sum((base ^ x) - 1) + 1, base = base)
 }
@@ -34,6 +37,7 @@ sum.of.logs <- function(x, base=2) {
 #' @param x (Numeric vector) Input values
 #' @param base (Numeric) Log base to use (default: 2)
 #' @export mean.of.logs.pos
+#' @keywords internal
 mean.of.logs.pos <- function(x, base=2) {
   y <- x[x>0]
   if (length(y) > 0) {
@@ -50,6 +54,7 @@ mean.of.logs.pos <- function(x, base=2) {
 #' @param x (Numeric vector) Input values
 #' @param y (Numeric vector) Input values
 #' @export pmax.abs
+#' @keywords internal
 pmax.abs <- function(x, y) {
   z <- y
   x.bigger <- (abs(x) > abs(y))
@@ -59,11 +64,13 @@ pmax.abs <- function(x, y) {
 
 #' Returns proportion of expressing cells
 #' 
-#' Determines proportion of input values > 0.
+#' Determines proportion of input values > exp.thresh.
 #' @param x (Numeric vector) Input values
-#' @export prop.exp
-prop.exp <- function(x) {
-  return(length(which(x>0)) / length (x))
+#' @param exp.thresh (Numeric) Minimum value considered expressed
+#' @export prop.exp 
+#' @keywords internal
+prop.exp <- function(x, exp.thresh=0) {
+  return(length(which(x>exp.thresh)) / length (x))
 }
 
 #' Returns proportion of non-expressing cells
@@ -71,6 +78,7 @@ prop.exp <- function(x) {
 #' Determines proportion of input values <= 0.
 #' @param x (Numeric vector) Input values
 #' @export prop.nonexp
+#' @keywords internal
 prop.nonexp <- function(x) {
   return(length(which(x<=0)) / length (x))
 }
@@ -82,6 +90,7 @@ prop.nonexp <- function(x) {
 #' @param k (Numeric) Slope
 #' @param c (Numeric) Max value (default: 1)
 #' 
+#' @export
 #' @keywords internal
 logistic <- function(x, x0, k, c=1) {
   c / (1 + exp(-1*k*(x-x0)))
@@ -105,6 +114,7 @@ inv.logistic <- function(x, x0, k, c=1) {
 #' @param y (Numeric vector) 
 #' @param signed (Logical)
 #' 
+#' @export
 #' @keywords internal
 preference <- function(x, y, signed=F) {
   z <- as.data.frame(cbind(x, y))
@@ -120,6 +130,9 @@ preference <- function(x, y, signed=F) {
 
 #' Arithmetic Mean of As Numeric
 #' 
+#' @param x (Vector) Input values (character OK)
+#' 
+#' @export
 #' @keywords internal
 num.mean <- function(x) mean(as.numeric(x))
 

@@ -102,13 +102,14 @@ markersBinom <- function(object, pseudotime, clust.1=NULL,clust.2=NULL,cells.1=N
 #' @param clustering (Character) Name of a clustering (i.e. a column in \code{@@group.ids})
 #' @param effect.size (Numeric) Minimum log fold-change for two genes to be considered differentially expressed
 #' @param frac.must.express (Numeric) Gene must be expressed in at least this fraction of cells in one of the two clusters to be considered.
+#' @param exp.thresh (Numeric) Minimum expression value to consider 'expressed.'
 #' @param frac.min.diff (Numeric) Fraction of cells expressing the gene must be at least this different between two populations to be considered.
 #' @param genes.use (Character vector) Genes to compare, default is NULL (all genes)
 #' 
 #' @return (data.frame)
 #' 
 #' @export
-markersAUCPR <- function(object, clust.1=NULL, clust.2=NULL, cells.1=NULL, cells.2=NULL, clustering=NULL, effect.size=0.25, frac.must.express=0.1, frac.min.diff=0, genes.use=NULL) {
+markersAUCPR <- function(object, clust.1=NULL, clust.2=NULL, cells.1=NULL, cells.2=NULL, clustering=NULL, effect.size=0.25, frac.must.express=0.1, exp.thresh=0, frac.min.diff=0, genes.use=NULL) {
   if (is.null(genes.use)) genes.use <- rownames(object@logupx.data)
   
   if (is.null(clustering)) {
@@ -135,8 +136,8 @@ markersAUCPR <- function(object, clust.1=NULL, clust.2=NULL, cells.1=NULL, cells
   
   # Figure out proportion expressing and mean expression
   genes.data <- data.frame(
-    frac.1=round(apply(object@logupx.data[genes.use, cells.1, drop=F], 1, prop.exp), digits=3),
-    frac.2=round(apply(object@logupx.data[genes.use, cells.2, drop=F], 1, prop.exp), digits=3),
+    frac.1=round(apply(object@logupx.data[genes.use, cells.1, drop=F], 1, prop.exp, exp.thresh=exp.thresh), digits=3),
+    frac.2=round(apply(object@logupx.data[genes.use, cells.2, drop=F], 1, prop.exp, exp.thresh=exp.thresh), digits=3),
     exp.1=round(apply(object@logupx.data[genes.use, cells.1, drop=F], 1, mean.of.logs), digits=3),
     exp.2=round(apply(object@logupx.data[genes.use, cells.2, drop=F], 1, mean.of.logs), digits=3)
   )
@@ -172,6 +173,10 @@ markersAUCPR <- function(object, clust.1=NULL, clust.2=NULL, cells.1=NULL, cells
 #' @param y (Numeric vector) Gene expression values from the other population
 #' 
 #' @return (Numeric) Area under the precision-recall curve
+#' 
+#' @export
+#' @keywords internal
+#' 
 differentialAUCPR = function (x, y) {
   prediction.use <- ROCR::prediction(predictions = c(x, y), labels = c(rep(x = 1, length(x = x)), rep(x = 0, length(x = y))), label.ordering = 0:1)
   perf1 <- ROCR::performance(prediction.use, "prec", "rec")
@@ -659,7 +664,7 @@ aucprTestByFactor <- function(object, cells.1, cells.2, label, groups, log.effec
 #' @return (Numeric) AUC threshold
 #' 
 #' @export
-aucprThreshold <- function(cells.1, cells.2, factor, max.auc) {
+aucprThreshold <- function(cells.1, cells.2, factor=1, max.auc=Inf) {
   # Random is P / (P+N)
   random.auc <- length(cells.1) / (length(cells.1) + length(cells.2))
   # Multiply be factor

@@ -4,7 +4,7 @@
 \alias{reformatSegmentJoins}
 \title{Reformat Segment Joins}
 \usage{
-reformatSegmentJoins(object)
+reformatSegmentJoins(object, segment.joins.initial = F)
 }
 \description{
 Reformat Segment Joins
