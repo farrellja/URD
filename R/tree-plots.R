@@ -92,6 +92,8 @@ plotTree <- function(object, label=NULL, label.type="search", title=label, legen
       color.min <- min(c(0, color.data.for.scale))
       color.limits <- c(color.min, color.max)
     }
+  } else if (!is.null(label) && !color.discrete) {
+    if (abs(color.limits[1]) == abs(color.limits[2])) symmetric.color.scale <- T else symmetric.color.scale <- F
   }
   
   # Add cells to graph
