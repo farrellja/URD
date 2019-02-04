@@ -361,7 +361,7 @@ plotTreeForce <- function(object, label, label.type="search", view="default", al
         color.limits <- c(0, max(expression.data$data))
       }
     }
-    if (is.null(colors)) colors <- defaultURDContinuousColors(symmetric = symmetric.color.scale)
+    if (is.null(colors) && !expression.data$discrete) colors <- defaultURDContinuousColors(symmetric = symmetric.color.scale)
     
     # Set color, alpha, and point size
     if (!is.null(label)) {
