@@ -168,14 +168,14 @@ treeForceDirectedLayout <- function(object, num.nn=NULL, method=c("fr", "drl", "
   
   # Trim cells that are no longer well connected to the graph
   if (verbose) print(paste0(Sys.time(), ": Trimming cells that are no longer well connected."))
-  connections.remaining <- table(edges$V1)
-  cells.without.enough.connections <- sum(connections.remaining < min.final.neighbors)
+  connections.remaining <- table(edges[edges$dists > 0,"V1"])
   cells.with.enough.connections <- names(which(connections.remaining >= min.final.neighbors))
+  cells.without.enough.connections <- length(unique(edges$V1)) - length(cells.with.enough.connections)
   while(cells.without.enough.connections > 0) {
-    cells.with.enough.connections <- names(which(connections.remaining >= min.final.neighbors))
     edges <- edges[which(edges$V1 %in% cells.with.enough.connections & edges$V2 %in% cells.with.enough.connections),]
-    connections.remaining <- table(edges$V1)
-    cells.without.enough.connections <- sum(connections.remaining < min.final.neighbors)
+    connections.remaining <- table(edges[edges$dists > 0,"V1"])
+    cells.with.enough.connections <- names(which(connections.remaining >= min.final.neighbors))
+    cells.without.enough.connections <- length(unique(edges$V1)) - length(cells.with.enough.connections)
   }
   if (verbose) print(paste0(Sys.time(), ": ", round(length(cells.with.enough.connections)/starting.cells*100, digits=2), "% of starting cells preserved."))
   
@@ -209,19 +209,21 @@ treeForceDirectedLayout <- function(object, num.nn=NULL, method=c("fr", "drl", "
   if (dim==2) {
     # Calculate weighted pseudotime of cells' neighbors for tree layout.
     if (verbose) print(paste0(Sys.time(), ": Calculating Z."))
-    neighbor.pt <- unlist(lapply(1:dim(walk.nn$nn.label)[1], function(i) {
+    neighbor.pt <- unlist(lapply(cells.with.enough.connections, function(i) {
       # Deal with points with 0 distance, by setting their weight to the sum of all other weights.
       weights <- 1/walk.nn$nn.dists[i,]
       weights[!is.finite(weights)] <- sum(weights[is.finite(weights)])
       weighted.mean(x=object@tree$pseudotime[walk.nn$nn.label[i,]], w=weights)
     }))
-    names(neighbor.pt) <- rownames(walk.nn$nn.label)
+    names(neighbor.pt) <- cells.with.enough.connections
+    
     # Store the layout
     object@tree$walks.force.layout <- as.data.frame(igraph.walk.layout, stringsAsFactors=F)
     names(object@tree$walks.force.layout) <- c("x","y")
     rownames(object@tree$walks.force.layout) <- igraph::V(igraph.walk.weights)$name
+    
     # Normalize neighbor.pt range
-    neighbor.pt.factor <- mean(apply(object@tree$walks.force.layout[,c("x","y")], 2, max)) / max(neighbor.pt)
+    neighbor.pt.factor <- mean(apply(object@tree$walks.force.layout[,c("x","y")], 2, max)) / max(neighbor.pt, na.rm=T)
     object@tree$walks.force.layout$telescope.pt <- neighbor.pt[rownames(object@tree$walks.force.layout)] * neighbor.pt.factor
     
     # Calculate local density for adjusting alpha
