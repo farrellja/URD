@@ -222,6 +222,13 @@ treeForceDirectedLayout <- function(object, num.nn=NULL, method=c("fr", "drl", "
     names(object@tree$walks.force.layout) <- c("x","y")
     rownames(object@tree$walks.force.layout) <- igraph::V(igraph.walk.weights)$name
     
+    # Remove points with NA values for force-directed layout
+    fdl.failed <- length(which(!(complete.cases(object@tree$walks.force.layout))))
+    if (fdl.failed > 0) {
+      warning(fdl.failed, " cells were not assigned coordinates during the force-directed layout.")
+      object@tree$walks.force.layout <- object@tree$walks.force.layout[complete.cases(object@tree$walks.force.layout),]
+    }
+    
     # Normalize neighbor.pt range
     neighbor.pt.factor <- mean(apply(object@tree$walks.force.layout[,c("x","y")], 2, max)) / max(neighbor.pt, na.rm=T)
     object@tree$walks.force.layout$telescope.pt <- neighbor.pt[rownames(object@tree$walks.force.layout)] * neighbor.pt.factor
