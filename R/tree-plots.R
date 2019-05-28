@@ -196,3 +196,111 @@ output.uniform <- function(x, na.rm=F) {
   if (na.rm) y <- setdiff(y, NA)
   if (length(y) == 1) return(y) else return(NA)
 }
+
+#' Plot 2D Dendrogram of URD Tree, Discretized
+#'
+#' Plots cells on the URD 2D dendrogram. Cells are colored according to which of 
+#' 1-3 \code{labels} are 'on' after conversion to  discrete on/off values 
+#' according to \code{label.min} and \code{label.max}. 
+#' All labels must be continuous variables (i.e. not cluster identities).
+#' 
+#' Shamelessly inspired by the behavior of FeaturePlot in Seurat when overlay is turned on. 
+#' 
+#' @import ggplot2
+#' @importFrom plyr mapvalues
+#' 
+#' @param object An URD object
+#' @param labels (Character vector, length 1-3) Data to plot
+#' @param label.types (Character vector, length 1-3) Type of data to search for the label for the first channel. Default is "search" which checks several data types in order. For more information: \code{\link{data.for.plot}}
+#' @param label.min (Numeric vector, length 1-3) Consider a cell positive for a feature if its value is between \code{label.min} and \code{label.max}
+#' @param label.max (Numeric vector, length 1-3) Consider a cell positive for a feature if its value is between \code{label.min} and \code{label.max}
+#' @param colors (Character vector) Colors to use for plotting. Color order is as follows: With one label (A): 1 A-, 2 A+; With two labels (A, B): 1 A- B-, 2 A+ B-, 3 A- B+, 4 A+ B+; With three labels (A, B, C): 1 A- B- C-, 2 A+ B- C-, 3 A- B+ C-, 4 A- B- C+, 5 A+ B+ C-, 6 A+ B- C+, 7 A- B+ C+, 8 A+ B+ C+
+#' @param title (Character) Title to display on the plot.
+#' @param tree.alpha (Numeric) Transparency of dendrogram (0 is transparent, 1 is opaque)
+#' @param tree.size (Numeric) Thickness of lines of dendrogram
+#' @param tree.color (Character) Color to use for tree lines
+#' @param cell.alpha (Numeric) Transparency of cells (0 is transparent, 1 is opaque)
+#' @param cell.size (Numeric) How large should cells be
+#' @param label.x (Logical) Should tips on the x-axis be labeled
+#' @param label.segments (Logical) Should segments of the dendrogram be labeled with their numbers
+#' 
+#' @return A ggplot2 object
+#' 
+#' @export
+plotTreeDiscretized <- function(object, labels, label.types=rep("search", length(labels)), label.min=rep(0, length(labels)), label.max=rep(Inf, length(labels)), colors=c("grey", "blue", "green", "red", "cyan", "magenta", "yellow", "black"), title=NULL, tree.alpha=1, tree.size=1, tree.color="grey", cell.alpha=0.5, cell.size=0.3, label.x=T, label.segments=F, hide.y.ticks=T) {
+  
+  # Validation of parameters
+  if (class(object) != "URD") stop("Must provide an URD object as input to plotTree.")
+  if (length(object@tree) == 0) stop("A tree has not been calculated for this URD object. buildTree must be run first.")
+  
+  # Grab various layouts from the object
+  segment.layout <- object@tree$segment.layout
+  tree.layout <- object@tree$tree.layout
+  cell.layout <- object@tree$cell.layout
+  
+  # Create title if needed
+  if (is.null(title)) title <- paste0(labels, collapse=" + ")
+  
+  # Initialize ggplot and do basic formatting
+  the.plot <- ggplot()
+  if (hide.y.ticks) {
+    the.plot <- the.plot + scale_y_reverse(c(1,0), name="Pseudotime", breaks=NULL)
+  } else {
+    the.plot <- the.plot + scale_y_reverse(c(1,0), name="Pseudotime", breaks=seq(0, 1, 0.1))
+  }
+  the.plot <- the.plot + theme_bw() + theme(axis.ticks=element_blank(), panel.grid.major=element_blank(), panel.grid.minor=element_blank())
+  the.plot <- the.plot + labs(x="", title=title)
+  
+  # Grab data to color by
+  data <- lapply(1:length(labels), function(i) data.for.plot(object=object, label=labels[i], label.type=label.types[i], as.color=F, as.discrete.list=T, cells.use = rownames(cell.layout)))
+  if (any(unlist(lapply(data, function(i) i$discrete)))) stop("plotDimDiscretized cannot plot labels that are discrete. Only select continuous labels.")
+  data <- lapply(data, function(i) i$data)
+  
+  # Compare data to cut-offs
+  data.thresh <- as.data.frame(lapply(1:length(labels), function (i) (!is.na(data[[i]]) & data[[i]] > label.min[i] & data[[i]] < label.max[i])))
+  colnames(data.thresh) <- 1:ncol(data.thresh)
+  
+  # Convert to a color value
+  data.thresh$bit <- apply(data.thresh, 1, function(x) paste0(as.numeric(x), collapse=""))
+  if (length(labels) == 1) {
+    cell.layout$color.plot <- plyr::mapvalues(x=data.thresh$bit, from=c("0", "1"), to=colors[1:2], warn_missing=F)
+  } else if (length(labels) == 2) {
+    cell.layout$color.plot <- plyr::mapvalues(x=data.thresh$bit, from=c("00", "10", "01", "11"), to=colors[1:4], warn_missing=F)
+  } else if (length(labels) == 3) {
+    cell.layout$color.plot <- plyr::mapvalues(x=data.thresh$bit, from=c("000", "100", "010", "001", "110", "101", "011", "111"), to=colors[1:8], warn_missing=F)
+  }
+  
+  # Add cells to graph
+  the.plot <- the.plot + geom_point(data=cell.layout, aes(x=x,y=y,color=color.plot), alpha=cell.alpha, size=cell.size) + scale_color_identity()
+  
+  # Add tree to graph
+  the.plot <- the.plot + geom_segment(data=tree.layout, aes(x=x1, y=y1, xend=x2, yend=y2), color=tree.color, alpha=tree.alpha, size=tree.size, lineend="square")
+  
+  # Label segment names along the x-axis?
+  if (label.x) {
+    if ("segment.names" %in% names(object@tree)) {
+      # Add segment names to segment.layout
+      segment.layout$name <- object@tree$segment.names[segment.layout$segment]
+      tip.layout <- segment.layout[complete.cases(segment.layout),]
+    } else {
+      # Find terminal tips
+      tip.layout <- segment.layout[which(segment.layout$segment %in% object@tree$tips),]
+      tip.layout$name <- as.character(tip.layout$segment)
+    }
+    the.plot <- the.plot + scale_x_continuous(breaks=as.numeric(tip.layout$x), labels=as.character(tip.layout$name))
+    if (any(unlist(lapply(tip.layout$name, nchar)) > 2)) {
+      the.plot <- the.plot + theme(axis.text.x = element_text(angle = 68, vjust = 1, hjust=1))
+    }
+  } else {
+    the.plot <- the.plot + theme(axis.text.x=element_blank())
+  }
+  
+  # Label the segments with their number?
+  if (label.segments) {
+    segment.labels <- as.data.frame(segment.layout[,c("segment","x")])
+    segment.labels$y <- apply(object@tree$segment.pseudotime.limits, 1, num.mean)[segment.labels$segment]
+    the.plot <- the.plot + geom_label(data=segment.labels, aes(x=x, y=y, label=segment), alpha=0.5)
+  }
+  
+  return(the.plot)
+}
