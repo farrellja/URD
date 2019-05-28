@@ -12,6 +12,18 @@ corner <- function(data.frame, n=5) {
   data.frame[1:height,1:width]
 }
 
+#' Cut string into fields
+#'
+#' Reworks \code{\link{strsplit}} to act like Unix cut. Instead of returning a list, returns a vector of the chosen field.
+#' @param x (Character) A character vector
+#' @param delimiter (Character) Delimiter character to use to split
+#' @param field (Numeric) Which field to return; count starts at left with 1.
+#' @return Character vector
+#' @export
+cutstring <- function(x, delimiter, field) {
+  unlist(lapply(strsplit(x, split = delimiter), function(y) y[field]))
+}
+
 #' Arrange multiple ggplots into several gridded pages
 #' 
 #' Arranges several plots into a multi-page gridded graph
