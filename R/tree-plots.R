@@ -31,6 +31,10 @@
 #' @export
 plotTree <- function(object, label=NULL, label.type="search", title=label, legend=T, legend.title="", legend.point.size=6*cell.size, plot.tree=T, tree.alpha=1, tree.size=1, plot.cells=T, cell.alpha=0.25, cell.size=0.5, label.x=T, label.segments=F, discrete.ignore.na=F, color.tree=NULL, continuous.colors=NULL, discrete.colors=NULL, color.limits=NULL, symmetric.color.scale=NULL, hide.y.ticks=T) {
   
+  # Validation of parameters
+  if (class(object) != "URD") stop("Must provide an URD object as input to plotTree.")
+  if (length(object@tree) == 0) stop("A tree has not been calculated for this URD object. buildTree must be run first.")
+  
   # Grab various layouts from the object
   segment.layout <- object@tree$segment.layout
   tree.layout <- object@tree$tree.layout
@@ -213,7 +217,11 @@ plotTree <- function(object, label=NULL, label.type="search", title=label, legen
 #' 
 #' @export
 plotTreeDual <- function(object, label.red, label.green, label.type.red="search", label.type.green="search", title=NULL, legend=T, legend.title="", plot.tree=T, tree.alpha=1, tree.size=1, plot.cells=T, cell.alpha=0.25, cell.size=0.5, label.x=T, label.segments=F, color.tree=T, color.limits.red=NULL, color.limits.green=NULL, hide.y.ticks=T) {
-  
+
+  # Validation of parameters
+  if (class(object) != "URD") stop("Must provide an URD object as input to plotTree.")
+  if (length(object@tree) == 0) stop("A tree has not been calculated for this URD object. buildTree must be run first.")
+    
   # Grab various layouts from the object
   segment.layout <- object@tree$segment.layout
   tree.layout <- object@tree$tree.layout
