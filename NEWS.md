@@ -1,5 +1,14 @@
 # News
 
+## 1.0.3 - May 28, 2019
+### Added
+- Added `plotTreeDual` function which can plot two labels as red/green on the tree dendrogram layout
+### Changed
+- Fixed bug in `processRandomWalks` when a cell occurs in in walks that is not in `@diff.data`
+- Fixed bug in `plotTree` when using `color.limits` without explicitly setting `symmetric.scale`.
+- Fixed bug in `plotTreeForce` when plotting discrete values.
+- Fixed bugs in `treeForceDirectedLayout` that result from cells with duplicate random walk parameters or cells assigned NA by force-directed layout.
+
 ## 1.0.2 - October 1, 2018
 ### Added
 - Plots now search slot `@nmf.c1` as well.

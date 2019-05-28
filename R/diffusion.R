@@ -274,7 +274,7 @@ processRandomWalks <- function(object, walks, walks.name, aggregate.fun=mean, n.
   walks <- walks[!unlist(lapply(walks, is.null))]
   # Calculate cells' relative position in the diffusion list
   # (e.g. instead of ordinal positioning, fractional position from 0 to 1)
-  hops.melt <- as.data.frame(rbindlist(lapply(walks, function(i) {
+  hops.melt <- as.data.frame(data.table::rbindlist(lapply(walks, function(i) {
     data.frame(hops=(1:length(i))/length(i), cell=i, stringsAsFactors=F)
   })), stringsAsFactors=F)
   # Divide the walks up into sections for stability calculations
@@ -289,11 +289,12 @@ processRandomWalks <- function(object, walks, walks.name, aggregate.fun=mean, n.
     if (verbose) print(paste("Calculating pseudotime with", walks.in.division[section], "walks."))
     # Get number of times each cell has been visited so far
     visit.freq <- table(unlist(walks[1:walks.in.division[section]]))
-    walks.per.cell[names(visit.freq),section] <- visit.freq
+    walks.per.cell[,section] <- visit.freq[rownames(walks.per.cell)]
     # Calculate pseudotime per cell, given number of walks so far
     hops.melt.rows <- sum(walk.lengths[1:walks.in.division[section]])
-    hops.relative <- dcast(data=hops.melt[1:hops.melt.rows,], formula=cell~., fun.aggregate=aggregate.fun, value.var="hops")
-    pseudotime.stability[hops.relative$cell,section] <- hops.relative[,"."]
+    hops.relative <- reshape2::dcast(data=hops.melt[1:hops.melt.rows,], formula=cell~., fun.aggregate=aggregate.fun, value.var="hops")
+    rownames(hops.relative) <- hops.relative$cell
+    pseudotime.stability[,section] <- hops.relative[rownames(pseudotime.stability),"."]
   }
   # Store the results: matrices for stability plots
   object@pseudotime.stability$pseudotime <- pseudotime.stability
