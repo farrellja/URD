@@ -10,6 +10,8 @@
 #' sets of dimensions, and \code{\link{plotDim3D}} to plot in three dimensions.. Additionally, 
 #' \code{transitions.plot} can plot the connections from the diffusion map onto the plot.
 #' 
+#' @import ggplot2
+#' 
 #' @param object An URD object
 #' @param label (Character) Data to use for coloring points (e.g. a metadata name, group ID from clustering, or a gene name)
 #' @param label.type (Character) Type of data to search for the label. Default is "search" which checks several data types in order. For more information: \code{\link{data.for.plot}}
@@ -365,4 +367,99 @@ plotDimArray <- function(object, reduction.use=c("dm", "pca"), dims.to.plot, out
     grid.arrange(grobs=the.plots, n.cols=n.cols, top=outer.title)
     dev.off()
   }
+}
+
+#' Dimensionality Reduction Plot (Multi-Color, Discretized)
+#' 
+#' Plots cells according to their coordinates in a dimensionality reduction (tSNE by default).
+#' Cells are colored according to which of 1-3 \code{labels} are 'on' after conversion to 
+#' discrete on/off values according to \code{label.min} and \code{label.max}. 
+#' All labels must be continuous variables (i.e. not cluster identities).
+#' 
+#' Shamelessly inspired by the behavior of FeaturePlot in Seurat when overlay is turned on.
+#' 
+#' @param object An URD object
+#' @param labels (Character vector, length 1-3) Data to plot
+#' @param label.types (Character vector, length 1-3) Type of data to search for the label for the first channel. Default is "search" which checks several data types in order. For more information: \code{\link{data.for.plot}}
+#' @param label.min (Numeric vector, length 1-3) Consider a cell positive for a feature if its value is between \code{label.min} and \code{label.max}
+#' @param label.max (Numeric vector, length 1-3) Consider a cell positive for a feature if its value is between \code{label.min} and \code{label.max}
+#' @param colors (Character vector) Colors to use for plotting. Color order is as follows: With one label (A): 1 A-, 2 A+; With two labels (A, B): 1 A- B-, 2 A+ B-, 3 A- B+, 4 A+ B+; With three labels (A, B, C): 1 A- B- C-, 2 A+ B- C-, 3 A- B+ C-, 4 A- B- C+, 5 A+ B+ C-, 6 A+ B- C+, 7 A- B+ C+, 8 A+ B+ C+
+#' @param reduction.use (Character) Dimensionality reduction to use (tSNE, PCA, or Diffusion Map)
+#' @param dim.x (Numeric) Component to use on x-axis
+#' @param dim.y (Numeric) Component to use on y-axis
+#' @param point.size (Numeric) Size of points on plot
+#' @param alpha (Numeric) Transparency of points on plot: 0 (Transparent) - 1 (Opaque)
+#' @param plot.title (Character) Title of the plot
+#' @param x.lim (Numeric) Limits of x-axis (NULL autodetects)
+#' @param y.lim (Numeric) Limits of y-axis (NULL autodetects)
+#' 
+#' @return A ggplot2 object
+#' 
+#' @export
+plotDimDiscretized <- function(object, labels, label.types=rep("search", length(labels)), label.min=rep(0, length(labels)), label.max=rep(Inf, length(labels)), colors=c("grey", "blue", "green", "red", "cyan", "magenta", "yellow", "black"), reduction.use=c("tsne", "pca", "dm"), dim.x=1, dim.y=2, point.size=1, alpha=1, plot.title=NULL, x.lim=NULL, y.lim=NULL) {
+  
+  # Check input lengths
+  if (length(label.types) != length(labels) ||
+      length(label.min) != length(labels) ||
+      length(label.max) != length(labels) ||
+      length(labels) > 3) stop ("labels, label.types, label.min, and label.max must all have the same length (maximum of 3).")
+  
+  # Get the data to plot
+  if (length(reduction.use) > 1) reduction.use <- reduction.use[1]
+  if (tolower(reduction.use)=="tsne") {
+    data.plot <- object@tsne.y
+    if (dim.x > dim(data.plot)[2] | dim.y > dim(data.plot)[2]) stop("Dimensions requested were not previously calculated.")
+    dim.x <- paste0("tSNE", dim.x)
+    dim.y <- paste0("tSNE", dim.y)
+  } else if (tolower(reduction.use)=="pca") {
+    data.plot <- object@pca.scores
+    if (dim.x > dim(data.plot)[2] | dim.y > dim(data.plot)[2]) stop("Dimensions requested were not previously calculated.")
+    dim.x <- paste0("PC", dim.x)
+    dim.y <- paste0("PC", dim.y)
+    data.plot <- data.plot[,c(dim.x, dim.y)]
+  } else if (tolower(reduction.use)=="dm") {
+    data.plot <- object@dm@eigenvectors
+    if (dim.x > dim(data.plot)[2] | dim.y > dim(data.plot)[2]) stop("Dimensions requested were not previously calculated.")
+    dim.x <- paste0("DC", dim.x)
+    dim.y <- paste0("DC", dim.y)
+    data.plot <- as.data.frame(data.plot[,c(dim.x, dim.y)])
+  } else {
+    stop("The reduction provided is invalid.")
+  }
+  
+  # Get label expression data out
+  data <- lapply(1:length(labels), function(i) data.for.plot(object=object, label=labels[i], label.type=label.types[i], as.color=F, as.discrete.list=T))
+  if (any(unlist(lapply(data, function(i) i$discrete)))) stop("plotDimDiscretized cannot plot labels that are discrete. Only select continuous labels.")
+  data <- lapply(data, function(i) i$data)
+  
+  # Compare data to cut-offs
+  data.thresh <- as.data.frame(lapply(1:length(labels), function (i) (!is.na(data[[i]]) & data[[i]] > label.min[i] & data[[i]] < label.max[i])))
+  colnames(data.thresh) <- 1:ncol(data.thresh)
+  
+  # Convert to a color value
+  data.thresh$bit <- apply(data.thresh, 1, function(x) paste0(as.numeric(x), collapse=""))
+  if (length(labels) == 1) {
+    data.plot$color.plot <- plyr::mapvalues(x=data.thresh$bit, from=c("0", "1"), to=colors[1:2], warn_missing=F)
+  } else if (length(labels) == 2) {
+    data.plot$color.plot <- plyr::mapvalues(x=data.thresh$bit, from=c("00", "10", "01", "11"), to=colors[1:4], warn_missing=F)
+  } else if (length(labels) == 3) {
+    data.plot$color.plot <- plyr::mapvalues(x=data.thresh$bit, from=c("000", "100", "010", "001", "110", "101", "011", "111"), to=colors[1:8], warn_missing=F)
+  }
+  
+  # Title if needed
+  if (is.null(plot.title)) plot.title <- paste0(labels, collapse=" + ")
+  
+  # Start plot with gene signature points
+  this.plot <- ggplot() + geom_point(data=data.plot, aes_string(x=dim.x, y=dim.y), color=data.plot$color.plot, size=point.size, alpha=alpha) + guides(color=FALSE) + scale_color_identity()
+  
+  # Label/title things appropriately
+  this.plot <- this.plot + labs(title=plot.title)
+  
+  # Format it to your liking.
+  this.plot <- this.plot + theme_bw() + theme(panel.grid.minor=element_blank(), panel.grid.major=element_blank(), plot.title=element_text(face="bold"))
+    
+  # Add limits if desired
+  if (!is.null(x.lim)) this.plot <- this.plot + xlim(x.lim[1],x.lim[2])
+  if (!is.null(y.lim)) this.plot <- this.plot + ylim(y.lim[1],y.lim[2])
+  return(this.plot)
 }
