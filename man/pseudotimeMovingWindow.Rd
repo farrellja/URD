@@ -5,9 +5,28 @@
 \title{Moving window through pseudotime}
 \usage{
 pseudotimeMovingWindow(object, pseudotime, cells, moving.window,
-  cells.per.window, name.by = c("mean", "min", "max"))
+  cells.per.window = NULL, pseudotime.per.window = NULL,
+  name.by = c("mean", "min", "max"))
+}
+\arguments{
+\item{object}{A URD object}
+
+\item{pseudotime}{(Character) Name of column in \code{@pseudotime} to use for pseudotime}
+
+\item{cells}{(Character vector) Names of cells to include}
+
+\item{moving.window}{(Numeric) Number of bins to use per window}
+
+\item{cells.per.window}{(Numeric or \code{NULL}) Size of bins (number of cells)}
+
+\item{pseudotime.per.window}{(Numeric or \code{NULL}) Size of bins (pseudotime)}
+
+\item{name.by}{(Character: "mean", "min", or "max")}
+}
+\value{
+List of windows of cells, named by either the mean, min, or max pseudotime of those cells (depending on \code{name.by}).
 }
 \description{
-Moving window through pseudotime
+Generates lists of cells using a moving window. Size of windows is either determined by pseudotime (if \code{pseudotime.per.window} is set) or by number of cells (if \code{cells.per.window} is set).
 }
 \keyword{internal}

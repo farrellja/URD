@@ -2,11 +2,28 @@
 % Please edit documentation in R/impulse.R
 \name{impulse.start.double}
 \alias{impulse.start.double}
-\title{Starting Conditions for impulse model (double sigmoid)}
+\title{Starting Conditions for Impulse Model (double sigmoid)}
 \usage{
-impulse.start.double(x, y, k, limit.shape = c("none", "concave", "convex"))
+impulse.start.double(x, y, k, h0.frac = 0.2, h2.frac = 0.2,
+  interpolate = NULL)
+}
+\arguments{
+\item{x}{(Numeric vector) Expression data to fit (x)}
+
+\item{y}{(Numeric vector) Expression data to fit (y)}
+
+\item{k}{(Numeric) Number of starting conditions to determine}
+
+\item{h0.frac}{(Numeric, 0 to 1) Portion of data (along x-axis, from beginning) to use to estimate h0}
+
+\item{h2.frac}{(Numeric, 0 to 1) Portion of data (along x-axis, from end) to use to estimate h2}
+
+\item{interpolate}{(Numeric or NULL) If low number of data points, can interpolate them linearly to this number of points. Default (\code{NULL}) does not do any interpolation.}
+}
+\value{
+Returns a data frame of potential starting conditions for fitting functions for double sigmoid ("impulse") model
 }
 \description{
-Function to determine k sets of initial starting conditions for impulse fitting
+This function determines \code{k} sets of initial starting conditions for impulse fitting by choosing combinations of points from the data randomly. h0 and h2 (initial and final values) are taken from points chosen at random from data at the beginning and end of the data series (along the x-axis). h1 is chosen from points in the middle of the data (along the x-axis) that are either greater than both h0 and h2 or less than both h0 and h2. t1 and t2 are then estimated as the midpoints (along x-axis) between points randomly chosen to determine h0, h1, and h2. b1 and b2 are estimated as linear slopes between points chosen to determine h0, h1, and h2. If \code{k} is larger than the number of possible combinations that fit these conditions, additional sets of starting conditions are chosen totally randomly that fit within the bounds of the existing data with a small margin of padding.
 }
 \keyword{internal}
