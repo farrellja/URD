@@ -125,6 +125,9 @@ data.for.plot <- function(object, label, label.type=c("search", "meta", "group",
     }
   }
   
+  # If data is logical, convert to character
+  if (class(data) == "logical") data <- as.character(data)
+  
   # Convert to color values if desired
   if (as.color || as.single.color) {
     if (discrete) {
