@@ -32,29 +32,6 @@ segChildren <- function(object, segment) {
 
 #' All children of segment
 #' 
-#' @export
-segChildrenAll <- function(object, segment, include.self=F, original.joins=F, point.at.segment.joins.initial=original.joins) {
-  children <- c()
-  new.children <- segment
-  while(length(new.children) > 0) {
-    if (!original.joins) {
-      new.children <- object@tree$segment.joins[which(object@tree$segment.joins$parent %in% new.children), "child"]
-    } else {
-      if (point.at.segment.joins.initial) {
-        new.children <- unlist(object@tree$segment.joins.initial[which(object@tree$segment.joins.initial$parent %in% new.children), c("child.1", "child.2")])
-      } else {
-        new.children <- unlist(object@tree$segment.joins[which(object@tree$segment.joins$parent %in% new.children), c("child.1", "child.2")])
-      }
-    }
-    children <- c(children, new.children)
-  }
-  if (include.self) children <- c(children, segment)
-  children <- unique(children)
-  return(children)
-}
-
-#' All children of segment
-#' 
 #' Returns the segment ids of all segments that are children (and grandchildren and great-grandchildren...)
 #' or a parent segment specified.
 #' 
@@ -70,6 +47,7 @@ segChildrenAll <- function(object, segment, include.self=F, original.joins=F, po
 #'  
 #' @export
 segChildrenAll <- function(object, segment, include.self=F, original.joins=F, format=c("unary", "binary")) {
+  if (length(format) > 1) format <- format[1]
   # Get desired segment.joins or segment.joins.initial out
   if (original.joins) sj <- object@tree$segment.joins.initial else sj <- object@tree$segment.joins
   # Initialize
