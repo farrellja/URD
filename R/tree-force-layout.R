@@ -51,6 +51,7 @@
 #' @param tips (Character vector) Tips for which walk visitation data should be used in the construction of the nearest neighbor graph. (Default is all tips )
 #' @param coords (Matrix: Cells as rows, 2 columns) Starting coordinates for the force directed layout. Default (\code{"auto"}) takes them from the cell layout of the dendrogram.
 #' @param start.temp (Numeric) Starting temperature for the force-directed layout (if \code{method="fr"}), which controls how much cells can move in the initial iterations of the algorithm. Default (\code{NULL}) is the square root of the number of cells.
+#' @param n.iter (Numeric or \code{NULL}) Sets the number (or maximum number) of iterations used in the force-directed layout; if \code{NULL}, observes defaults suggested by igraph.
 #' @param density.neighbors (Numeric) Distance to this nearest neighbor (default is 10th nearest neighbor) is used as a proxy for local density in the force-directed layout. This is used by \code{\link{plotTreeForce}} if \code{density.alpha=T} for increasing transparency in more high density regions of the layout. This can be adjusted after generating the layout by re-running the \code{\link{fdlDensity}} function.
 #' @param plot.outlier.cuts (Logical) If \code{cut.outlier.cells=T} or \code{cut.outlier.edges=T}, this displays the 
 #' @param verbose (Logical) Print progress and time stamps?
@@ -60,7 +61,7 @@
 #' 
 #' @export
 
-treeForceDirectedLayout <- function(object, num.nn=NULL, method=c("fr", "drl", "kk"), cells.to.do=NULL, cut.outlier.cells=NULL, cut.outlier.edges=NULL, max.pseudotime.diff=NULL, cut.unconnected.segments=2, min.final.neighbors=2, tips=object@tree$tips, coords="auto", start.temp=NULL, density.neighbors=10, plot.outlier.cuts=F, verbose=F) {
+treeForceDirectedLayout <- function(object, num.nn=NULL, method=c("fr", "drl", "kk"), cells.to.do=NULL, cut.outlier.cells=NULL, cut.outlier.edges=NULL, max.pseudotime.diff=NULL, cut.unconnected.segments=2, min.final.neighbors=2, tips=object@tree$tips, coords="auto", start.temp=NULL, n.iter=NULL, density.neighbors=10, plot.outlier.cuts=F, verbose=F) {
   # Params
   if (length(method) > 1) method <- method[1]
   if (is.null(cells.to.do)) cells.to.do <- rownames(object@diff.data)
@@ -199,11 +200,17 @@ treeForceDirectedLayout <- function(object, num.nn=NULL, method=c("fr", "drl", "
   
   if (is.null(start.temp)) start.temp <- sqrt(igraph::vcount(igraph.walk.weights))
   
+  # Define number of iterations to do
+  if (is.null(n.iter)) {
+    if (method == "fr") n.iter = 500
+    if (method == "kk") n.iter = 50*igraph::vcount(igraph.walk.weights)
+  }
+  
   # Do force-directed layout
   if (verbose) print(paste0(Sys.time(), ": Doing force-directed layout."))
-  if (method=="fr") igraph.walk.layout <- igraph::layout_with_fr(igraph.walk.weights, dim=dim, coords=coords, start.temp=start.temp)
+  if (method=="fr") igraph.walk.layout <- igraph::layout_with_fr(igraph.walk.weights, dim=dim, coords=coords, start.temp=start.temp, niter=n.iter)
   if (method=="drl") igraph.walk.layout <- igraph::layout_with_drl(igraph.walk.weights, dim=dim, options=list(edge.cut=0))
-  if (method=="kk") igraph.walk.layout <- igraph::layout_with_kk(igraph.walk.weights, dim=dim, coords=coords)
+  if (method=="kk") igraph.walk.layout <- igraph::layout_with_kk(igraph.walk.weights, dim=dim, coords=coords, maxiter=n.iter)
   
   # Store the layout
   if (dim==2) {
@@ -244,7 +251,7 @@ treeForceDirectedLayout <- function(object, num.nn=NULL, method=c("fr", "drl", "
   }
   
   # Position labels if segments have been named.
-  if (!is.null(object@tree$esgment.names)) {
+  if (!is.null(object@tree$segment.names)) {
     object@tree$walks.force.labels <- treeForcePositionLabels(object)
   }
   
