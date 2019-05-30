@@ -1,6 +1,6 @@
 Package: URD
 Title: URD
-Version: 1.0.3.9000
+Version: 1.0.3.9001
 Authors@R: person("Jeffrey", "Farrell", email = "jfarrell@g.harvard.edu", role = c("aut", "cre"))
 Description: URD reconstructs transcriptional trajectories underlying specification or differentiation processes in the form of a branching tree from single-cell RNAseq data.
 Depends: 

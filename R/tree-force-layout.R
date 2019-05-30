@@ -30,7 +30,7 @@
 #' @importFrom RANN nn2
 #' @importFrom stats quantile
 #' @importFrom reshape2 melt
-#' @importFrom igraph graph_from_data_frame layout_with_fr layout_with_drl layout_with_kk vcount V distances
+#' @importFrom igraph graph_from_data_frame layout_with_fr layout_with_drl layout_with_kk vcount V distances is_connected decompose
 #' 
 #' @param object An URD object
 #' @param num.nn (Numeric) Number of nearest neighbors to use. (\code{NULL} will use the square root of the number of cells as default.)
@@ -197,7 +197,18 @@ treeForceDirectedLayout <- function(object, num.nn=NULL, method=c("fr", "drl", "
     coords.remain <- rownames(coords) %in% cells.remain
     coords <- coords[coords.remain,]
   }
-  
+
+  # DrL force-directed layout only works on connected graphs, so check for graph connectivity
+  if (method == "drl" && !igraph::is_connected(igraph.walk.weights)) {
+    igraph.walk.weights.decomposed <- decompose(igraph.walk.weights)
+    graph.keep <- which.max(unlist(lapply(igraph.walk.weights.decomposed, function(x) length(V(x)))))
+    warning("DrL method can only operate on fully connected graphs. Using more nearest neighbors will increase graph connectivity. For now, using largest subgraph: ", length(V(igraph.walk.weights.decomposed[[graph.keep]])), " of ", length(V(igraph.walk.weights)), " cells.")
+    igraph.walk.weights <- igraph.walk.weights.decomposed[[graph.keep]]
+    coords <- coords[rownames(coords) %in% names(V(igraph.walk.weights)),]
+    cells.with.enough.connections <- intersect(cells.with.enough.connections, names(V(igraph.walk.weights)))
+  }
+    
+  # Define start temp, if set to default
   if (is.null(start.temp)) start.temp <- sqrt(igraph::vcount(igraph.walk.weights))
   
   # Define number of iterations to do
