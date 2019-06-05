@@ -5,7 +5,8 @@
 \title{Weight transition matrix by pseudotime}
 \usage{
 pseudotimeWeightTransitionMatrix(object, pseudotime, x0 = NULL, k = NULL,
-  logistic.params = NULL, pseudotime.direction = "<")
+  logistic.params = NULL, pseudotime.direction = "<",
+  max.records = 2.25e+08, verbose = F)
 }
 \arguments{
 \item{object}{An URD object}
@@ -19,6 +20,10 @@ pseudotimeWeightTransitionMatrix(object, pseudotime, x0 = NULL, k = NULL,
 \item{logistic.params}{(List) Output from \code{\link{pseudotimeDetermineLogistic}} that specifies both \code{x0} and \code{k}.}
 
 \item{pseudotime.direction}{(Character: ">" or "<") Which direction to bias the transition probabilities (\code{"<"} is default, which biases them to move toward cells with younger pseudotime.)}
+
+\item{max.records}{(Numeric) To prevent RAM / addressable space problems, maximum transitions to process at a time}
+
+\item{verbose}{(Logical) Provide status updates?}
 }
 \value{
 Sparse Matrix (dgCMatrix) of transition probabilities, weighted by pseudotime
