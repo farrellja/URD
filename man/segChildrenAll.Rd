@@ -24,5 +24,5 @@ is only used internally, and all user queries should be \code{unary}.}
 }
 \description{
 Returns the segment ids of all segments that are children (and grandchildren and great-grandchildren...)
-or a parent segment specified.
+of a parent segment specified.
 }
