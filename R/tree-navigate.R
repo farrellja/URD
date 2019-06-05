@@ -33,7 +33,7 @@ segChildren <- function(object, segment) {
 #' All children of segment
 #' 
 #' Returns the segment ids of all segments that are children (and grandchildren and great-grandchildren...)
-#' or a parent segment specified.
+#' of a parent segment specified.
 #' 
 #' @param object An URD object
 #' @param segment (Character) Name of segment to start from
