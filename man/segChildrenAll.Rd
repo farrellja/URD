@@ -2,12 +2,8 @@
 % Please edit documentation in R/tree-navigate.R
 \name{segChildrenAll}
 \alias{segChildrenAll}
-\alias{segChildrenAll}
 \title{All children of segment}
 \usage{
-segChildrenAll(object, segment, include.self = F, original.joins = F,
-  format = c("unary", "binary"))
-
 segChildrenAll(object, segment, include.self = F, original.joins = F,
   format = c("unary", "binary"))
 }
@@ -27,8 +23,6 @@ final structure of the tree, after segments have been removed due to insufficien
 is only used internally, and all user queries should be \code{unary}.}
 }
 \description{
-All children of segment
-
 Returns the segment ids of all segments that are children (and grandchildren and great-grandchildren...)
-or a parent segment specified.
+of a parent segment specified.
 }

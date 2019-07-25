@@ -27,10 +27,12 @@
 #' into place and to increase the angular distance at the first branchpoint in the blastoderm
 #' so that the more fine-grained branches from the different germ layers didn't overlap.)
 #' 
+#' Thanks for Dorde Relic for debugging and creating the \code{remove.duplicate.cells} parameter.
+#' 
 #' @importFrom RANN nn2
 #' @importFrom stats quantile
 #' @importFrom reshape2 melt
-#' @importFrom igraph graph_from_data_frame layout_with_fr layout_with_drl layout_with_kk vcount V distances
+#' @importFrom igraph graph_from_data_frame layout_with_fr layout_with_drl layout_with_kk vcount V distances is_connected decompose
 #' 
 #' @param object An URD object
 #' @param num.nn (Numeric) Number of nearest neighbors to use. (\code{NULL} will use the square root of the number of cells as default.)
@@ -48,9 +50,11 @@
 #' and permit all connections.
 #' @param min.final.neighbors (Numeric) After trimming outlier and unconnected connections in the nearest
 #' neighbor graph, remove any cells that remain connected to fewer than this many other cells.
+#' @param remove.duplicate.cells (Logical) If cells have exactly the same visitation during the random walks from each tip, this can create problems in the force-directed layout where cells are pushed to the outside of the layout. To avoid this if \code{remove.duplicate.cells=T}, only one cell from each group of cells with duplicated coordinates will be used in the layout.
 #' @param tips (Character vector) Tips for which walk visitation data should be used in the construction of the nearest neighbor graph. (Default is all tips )
 #' @param coords (Matrix: Cells as rows, 2 columns) Starting coordinates for the force directed layout. Default (\code{"auto"}) takes them from the cell layout of the dendrogram.
 #' @param start.temp (Numeric) Starting temperature for the force-directed layout (if \code{method="fr"}), which controls how much cells can move in the initial iterations of the algorithm. Default (\code{NULL}) is the square root of the number of cells.
+#' @param n.iter (Numeric or \code{NULL}) Sets the number (or maximum number) of iterations used in the force-directed layout; if \code{NULL}, observes defaults suggested by igraph.
 #' @param density.neighbors (Numeric) Distance to this nearest neighbor (default is 10th nearest neighbor) is used as a proxy for local density in the force-directed layout. This is used by \code{\link{plotTreeForce}} if \code{density.alpha=T} for increasing transparency in more high density regions of the layout. This can be adjusted after generating the layout by re-running the \code{\link{fdlDensity}} function.
 #' @param plot.outlier.cuts (Logical) If \code{cut.outlier.cells=T} or \code{cut.outlier.edges=T}, this displays the 
 #' @param verbose (Logical) Print progress and time stamps?
@@ -60,7 +64,7 @@
 #' 
 #' @export
 
-treeForceDirectedLayout <- function(object, num.nn=NULL, method=c("fr", "drl", "kk"), cells.to.do=NULL, cut.outlier.cells=NULL, cut.outlier.edges=NULL, max.pseudotime.diff=NULL, cut.unconnected.segments=2, min.final.neighbors=2, tips=object@tree$tips, coords="auto", start.temp=NULL, density.neighbors=10, plot.outlier.cuts=F, verbose=F) {
+treeForceDirectedLayout <- function(object, num.nn=NULL, method=c("fr", "drl", "kk"), cells.to.do=NULL, cut.outlier.cells=NULL, cut.outlier.edges=NULL, max.pseudotime.diff=NULL, cut.unconnected.segments=2, min.final.neighbors=2, remove.duplicate.cells=T, tips=object@tree$tips, coords="auto", start.temp=NULL, n.iter=NULL, density.neighbors=10, plot.outlier.cuts=F, verbose=F) {
   # Params
   if (length(method) > 1) method <- method[1]
   if (is.null(cells.to.do)) cells.to.do <- rownames(object@diff.data)
@@ -94,6 +98,15 @@ treeForceDirectedLayout <- function(object, num.nn=NULL, method=c("fr", "drl", "
   walk.data <- sweep(walk.data, 1, walk.total, "/")
   walk.data$pseudotime <- object@tree$pseudotime[cells.to.do]
   walk.data <- as.matrix(walk.data)
+  
+  duped <- which(duplicated(walk.data))
+  if (length(duped) > 0 && remove.duplicate.cells) {
+    warning(length(duped), " cells have duplicate random walk coordinates and are being removed from the layout.")
+    walk.data <- unique(walk.data)
+  } else if (length(duped) > 0) {
+    warning(length(duped), " cells have duplicate random walk coordinates. This may cause a problem in the layout. If so, set remove.duplicate.cells=T")
+  }
+  
   
   # Calculate nearest neighbor graph
   if (verbose) print(paste0(Sys.time(), ": Calculating nearest neighbor graph."))
@@ -196,14 +209,31 @@ treeForceDirectedLayout <- function(object, num.nn=NULL, method=c("fr", "drl", "
     coords.remain <- rownames(coords) %in% cells.remain
     coords <- coords[coords.remain,]
   }
-  
+
+  # DrL force-directed layout only works on connected graphs, so check for graph connectivity
+  if (method == "drl" && !igraph::is_connected(igraph.walk.weights)) {
+    igraph.walk.weights.decomposed <- decompose(igraph.walk.weights)
+    graph.keep <- which.max(unlist(lapply(igraph.walk.weights.decomposed, function(x) length(V(x)))))
+    warning("DrL method can only operate on fully connected graphs. Using more nearest neighbors will increase graph connectivity. For now, using largest subgraph: ", length(V(igraph.walk.weights.decomposed[[graph.keep]])), " of ", length(V(igraph.walk.weights)), " cells.")
+    igraph.walk.weights <- igraph.walk.weights.decomposed[[graph.keep]]
+    coords <- coords[rownames(coords) %in% names(V(igraph.walk.weights)),]
+    cells.with.enough.connections <- intersect(cells.with.enough.connections, names(V(igraph.walk.weights)))
+  }
+    
+  # Define start temp, if set to default
   if (is.null(start.temp)) start.temp <- sqrt(igraph::vcount(igraph.walk.weights))
+  
+  # Define number of iterations to do
+  if (is.null(n.iter)) {
+    if (method == "fr") n.iter = 500
+    if (method == "kk") n.iter = 50*igraph::vcount(igraph.walk.weights)
+  }
   
   # Do force-directed layout
   if (verbose) print(paste0(Sys.time(), ": Doing force-directed layout."))
-  if (method=="fr") igraph.walk.layout <- igraph::layout_with_fr(igraph.walk.weights, dim=dim, coords=coords, start.temp=start.temp)
+  if (method=="fr") igraph.walk.layout <- igraph::layout_with_fr(igraph.walk.weights, dim=dim, coords=coords, start.temp=start.temp, niter=n.iter)
   if (method=="drl") igraph.walk.layout <- igraph::layout_with_drl(igraph.walk.weights, dim=dim, options=list(edge.cut=0))
-  if (method=="kk") igraph.walk.layout <- igraph::layout_with_kk(igraph.walk.weights, dim=dim, coords=coords)
+  if (method=="kk") igraph.walk.layout <- igraph::layout_with_kk(igraph.walk.weights, dim=dim, coords=coords, maxiter=n.iter)
   
   # Store the layout
   if (dim==2) {
@@ -244,7 +274,7 @@ treeForceDirectedLayout <- function(object, num.nn=NULL, method=c("fr", "drl", "
   }
   
   # Position labels if segments have been named.
-  if (!is.null(object@tree$esgment.names)) {
+  if (!is.null(object@tree$segment.names)) {
     object@tree$walks.force.labels <- treeForcePositionLabels(object)
   }
   

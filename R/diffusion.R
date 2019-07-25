@@ -86,6 +86,8 @@ pseudotimeDetermineLogistic <- function(object, pseudotime, optimal.cells.forwar
 #' @param k (Numeric) Slope of the logistic function. Can be left \code{NULL} if \code{logistic.params} is specified.
 #' @param logistic.params (List) Output from \code{\link{pseudotimeDetermineLogistic}} that specifies both \code{x0} and \code{k}.
 #' @param pseudotime.direction (Character: ">" or "<") Which direction to bias the transition probabilities (\code{"<"} is default, which biases them to move toward cells with younger pseudotime.)
+#' @param max.records (Numeric) To prevent RAM / addressable space problems, maximum transitions to process at a time
+#' @param verbose (Logical) Provide status updates?
 #' 
 #' @return Sparse Matrix (dgCMatrix) of transition probabilities, weighted by pseudotime
 #' 
@@ -103,7 +105,7 @@ pseudotimeDetermineLogistic <- function(object, pseudotime, optimal.cells.forwar
 #' object <- processRandomWalks(object, walks = these.walks, walks.name = "10", verbose = F)
 #' 
 #' @export
-pseudotimeWeightTransitionMatrix <- function(object, pseudotime, x0=NULL, k=NULL, logistic.params=NULL, pseudotime.direction="<") {
+pseudotimeWeightTransitionMatrix <- function(object, pseudotime, x0=NULL, k=NULL, logistic.params=NULL, pseudotime.direction="<", max.records=225e6, verbose=F) {
   # Check that pseudotime.direction is valid
   if (!(pseudotime.direction %in% c(">", "<"))) stop ("pseudotime.direction parameter must be either \">\" or \"<\"")
   # Unpack logistic.params
@@ -120,11 +122,32 @@ pseudotimeWeightTransitionMatrix <- function(object, pseudotime, x0=NULL, k=NULL
   cells.w.pt <- which(!is.na(pseudotime.vec))
   cell.names <- cell.names[cells.w.pt]
   pseudotime.vec <- pseudotime.vec[cells.w.pt]
-  # Calculate delta-pt matrix
-  time.transition.matrix <- t(sapply(pseudotime.vec, function(y) {
-    logistic(x=(pseudotime.vec - y), x0=x0, k=k) 
-  }))
-  time.transition.matrix <- time.transition.matrix * object@dm@transitions[cells.w.pt, cells.w.pt]
+  if (verbose) message(paste0(Sys.time(), ": Starting with ", length(pseudotime.vec), " cells."))
+  # Divide up into groups of cells
+  cells.at.a.time <- floor(max.records / length(pseudotime.vec))
+  x.start <- seq(1, length(pseudotime.vec), by = cells.at.a.time)
+  x.end <- c(tail(x.start, -1)-1, length(pseudotime.vec))
+  if (verbose) message(paste0(Sys.time(), ": Processing in ", length(x.start), " groups."))
+  # Process by group
+  time.transition.matrices <- lapply(1:length(x.start), function(i) {
+    if (verbose) message(paste0(Sys.time(), ": Preparing to calculate delta-pt matrix ", i))
+    time.transition.matrix <- t(sapply(pseudotime.vec, function(y) {
+      logistic(x=(pseudotime.vec[x.start[i]:x.end[i]] - y), x0=x0, k=k) 
+    }))
+    these.cells.w.pt <- cells.w.pt[x.start[i]:x.end[i]]
+    if (verbose) message(paste0(Sys.time(), ": Preparing to multiply by transitions ", i))
+    time.transition.matrix <- time.transition.matrix * object@dm@transitions[cells.w.pt, these.cells.w.pt]
+    return(time.transition.matrix)
+  })
+  if (verbose) message(paste0(Sys.time(), ": About to assemble matrices."))
+  # Assemble groups
+  if (length(x.start) > 1) {
+    time.transition.matrix <- do.call("cbind", time.transition.matrices)
+  } else {
+    time.transition.matrix <- time.transition.matrices[[1]]
+  }
+  if (verbose) message(paste0(Sys.time(), ": Succesfully assembled matrices."))
+  if (verbose) message(paste0(Sys.time(), ": Class is ", class(time.transition.matrix)))
   rownames(time.transition.matrix) <- cell.names
   colnames(time.transition.matrix) <- cell.names
   return(time.transition.matrix)

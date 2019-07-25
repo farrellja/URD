@@ -123,6 +123,7 @@ setMethod(
 #' first dash (-) or underscore (_) in slot \code{group.ids}.
 #' 
 #' @importClassesFrom Matrix dgCMatrix
+#' @importFrom methods new
 #' 
 #' @param count.data (Matrix or dgCMatrix) UMI expression data, with rows as genes and columns as cells
 #' @param meta (data.frame) Metadata, with rows as cells (row names should match column names of \code{count.data})
@@ -163,7 +164,7 @@ createURD <- function(count.data, meta=NULL, min.cells=3, min.genes=500, min.cou
 
   # Create an URD object
   if (verbose) message(paste0(Sys.time(), ": Creating URD object."))
-  object <- new("URD", count.data=as(count.data[genes.use, cells.enough.genes], "dgCMatrix"))
+  object <- methods::new("URD", count.data=as(count.data[genes.use, cells.enough.genes], "dgCMatrix"))
   shhhh <- gc()
   
   # Determine normalization factor
