@@ -17,5 +17,27 @@ cropSmoothFit(smoothed.fit, pt.min = -Inf, pt.max = Inf)
 (List) Result from \code{\link{geneSmoothFit}}, but cropped to the range of \code{pt.min} and \code{pt.max}.
 }
 \description{
-This crops a result from \code{\link{geneSmoothFit}} to a particular pseudotime range. Can be used to split a smoothed result into segments for labeling in \code{\link{plotSmoothFitMultiCascade}}.
+This crops a result from \code{\link{geneSmoothFit}} to a particular pseudotime range. Can be used to split a smoothed result into segments in order to label them separately or combine them for use with \code{\link{plotSmoothFitMultiCascade}}.
+}
+\examples{
+# Identify the pseudotime of the branchpoint
+pt.crop <- as.numeric(unlist(hydra.en.tree@tree$segment.pseudotime.limits)[1])
+# Crop according to the pseudotime of the branchpoint
+foot.only.spline <- cropSmoothFit(tentacle.spline, pt.max = pt.crop)
+hypostome.only.spline <- cropSmoothFit(hypo.spline, pt.min = pt.crop)
+tentacle.only.spline <- cropSmoothFit(tentacle.spline, pt.min = pt.crop)
+# Combine into a list
+# Names in the plots are determined by names of the smooth objects in the list
+splines <- list(foot.only.spline, tentacle.only.spline, hypostome.only.spline)
+names(splines) <- c("Foot/Body", "Tentacle", "Hypostome")
+# Plot expression of genes on the curves
+endoderm.genes.plot <- c("t14194aep|WNT3_MOUSE", "t20768aep|BRAC_CANLF", 
+  "t25396aep|NKX26_HUMAN", "t18735aep|FOXA2_ORYLA")
+plotSmoothFitMultiCascade(smoothed.fits = splines, 
+  genes = endoderm.genes.plot, scaled = F, 
+  colors = c(`Foot/Body` = "#FF8C00", Hypostome = "#1E90FF", 
+    Tentacle = "#32CD32"
+  )
+)
+
 }

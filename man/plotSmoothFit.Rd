@@ -33,3 +33,17 @@ A ggplot2 object
 \description{
 This plots gene expression in groups of cells and a curve representing its mean expression (generated using a smoothing algorithm). It takes output from either \code{\link{geneSmoothFit}} or \code{\link{geneCascadeProcess}}. (Output from \code{\link{geneCascadeProcess}} may also be plotted with \code{\link{geneCascadeImpulsePlots}}.) If multiple genes are provided, they are plotted on the same plot in different colors if \code{multiplot=F} or as a grid of plots per gene if \code{multiplot=T}.
 }
+\examples{
+# Calculate spline fit
+expressed.spline <- geneSmoothFit(hydra.spumous, method = "spline", 
+  pseudotime = "pseudotime", cells = colnames(hydra.spumous@logupx.data),
+  genes = expressed.genes, moving.window = 1, cells.per.window = 5, 
+  spar = 0.875
+)
+# Plot a few genes on the fit curves
+genes.spline.plot <- c("t14194aep|WNT3_MOUSE", "t15597aep|WNT1_DANRE",
+  "t20768aep|BRAC_CANLF", "t29725aep|BRAC_CHICK", "t22116aep|ETV1_MOUSE"
+)
+plotSmoothFit(expressed.spline, genes = genes.spline.plot, scaled = T)
+
+}

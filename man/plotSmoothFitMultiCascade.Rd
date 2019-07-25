@@ -2,7 +2,7 @@
 % Please edit documentation in R/gene-smooth.R
 \name{plotSmoothFitMultiCascade}
 \alias{plotSmoothFitMultiCascade}
-\title{Gene Smooth: Plot multiple fit}
+\title{Gene Smooth: Plot multiple fits}
 \usage{
 plotSmoothFitMultiCascade(smoothed.fits, genes, colors = NULL, scaled = T,
   plot.data = T, alpha.data = 0.2, alpha.smooth = 1, lwd.smooth = 1,
@@ -31,5 +31,27 @@ plotSmoothFitMultiCascade(smoothed.fits, genes, colors = NULL, scaled = T,
 A ggplot2 object
 }
 \description{
-This plots gene expression in groups of cells and a curve representing its mean expression (generated using a smoothing algorithm). It takes output from multiple runs of \code{\link{geneSmoothFit}} (i.e. for different trajectories or different segments of the same trajectory).  If multiple genes are provided, a grid of plots is produced.
+This plots gene expression in groups of cells and a curve representing its mean expression (generated using a smoothing algorithm). It takes output from multiple runs of \code{\link{geneSmoothFit}} (i.e. for different trajectories or different segments of the same trajectory). The individual results from \code{\link{geneSmoothFit}} should be combined into a list, and the names of the elements will be used to define the names of the segments in the plot. If multiple genes are provided, a grid of plots is produced.
+}
+\examples{
+# Identify the pseudotime of the branchpoint
+pt.crop <- as.numeric(unlist(hydra.en.tree@tree$segment.pseudotime.limits)[1])
+# Crop according to the pseudotime of the branchpoint
+foot.only.spline <- cropSmoothFit(tentacle.spline, pt.max = pt.crop)
+hypostome.only.spline <- cropSmoothFit(hypo.spline, pt.min = pt.crop)
+tentacle.only.spline <- cropSmoothFit(tentacle.spline, pt.min = pt.crop)
+# Combine into a list
+# Names in the plots are determined by names of the smooth objects in the list
+splines <- list(foot.only.spline, tentacle.only.spline, hypostome.only.spline)
+names(splines) <- c("Foot/Body", "Tentacle", "Hypostome")
+# Plot expression of genes on the curves
+endoderm.genes.plot <- c("t14194aep|WNT3_MOUSE", "t20768aep|BRAC_CANLF", 
+  "t25396aep|NKX26_HUMAN", "t18735aep|FOXA2_ORYLA")
+plotSmoothFitMultiCascade(smoothed.fits = splines, 
+  genes = endoderm.genes.plot, scaled = F, 
+  colors = c(`Foot/Body` = "#FF8C00", Hypostome = "#1E90FF", 
+    Tentacle = "#32CD32"
+  )
+)
+
 }

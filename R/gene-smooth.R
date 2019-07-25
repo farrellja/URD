@@ -1,7 +1,7 @@
 
 #' Gene Smooth: Fit expression of genes
 #' 
-#' This takes a group of genes and cells, averages gene expression in groups of cells (determined using a moving window through pseudotime), and then uses smoothing algorithms (e.g. LOESS or spline fitting) to describe the expression of each gene. The results are returned for use in \code{\link{plotSmoothFit}} to visualize the fits or several sets of results (e.g. from different trajectories) can be combined with \code{\link{cropSmoothFit}} and \code{\link{combineSmoothFit}} and plotted with \code{\link{plotSmoothFitMultiCascade}}.
+#' This takes a group of genes and cells, averages gene expression in groups of cells (determined using a moving window through pseudotime), and then uses smoothing algorithms (e.g. LOESS or spline fitting) to describe the expression of each gene. The results are returned for use in \code{\link{plotSmoothFit}} to visualize the fits or several sets of results (e.g. from different trajectories) can be combined with \code{\link{cropSmoothFit}} and plotted with \code{\link{plotSmoothFitMultiCascade}}.
 #'
 #' @importFrom stats lowess smooth.spline
 #'
@@ -27,6 +27,15 @@
 #'   \item{\strong{\code{scaled.expression.red}}: (data.frame) Scaled expression reduced to the same dimensions of \code{scaled.smooth}.}
 #'   \item{\strong{\code{method}}: (Character) Identify fit method ("impulse")}
 #' }
+#' 
+#' @examples 
+#' # Fit a gene expression curve using "spline" method for
+#' # genes "endo.genes" and cells in segments 47 and 46 in the tree.
+#' tentacle.spline <- geneSmoothFit(urd.object, method = "spline", 
+#'   pseudotime = "pseudotime", 
+#'   cells = cellsInCluster(urd.object, "segment", c("47", "46")), 
+#'   genes = endo.genes, moving.window = 1, cells.per.window = 5, spar = 0.9
+#' )
 #' 
 #' @export
 ## TO DO: Special case for considering single-cells only that skips apply step, and will run faster.
@@ -135,6 +144,19 @@ geneSmoothFit <- function(object, pseudotime, cells, genes, method=c("lowess", "
 #' 
 #' @return A ggplot2 object
 #' 
+#' @examples
+#' # Calculate spline fit
+#' expressed.spline <- geneSmoothFit(hydra.spumous, method = "spline", 
+#'   pseudotime = "pseudotime", cells = colnames(hydra.spumous@logupx.data),
+#'   genes = expressed.genes, moving.window = 1, cells.per.window = 5, 
+#'   spar = 0.875
+#' )
+#' # Plot a few genes on the fit curves
+#' genes.spline.plot <- c("t14194aep|WNT3_MOUSE", "t15597aep|WNT1_DANRE",
+#'   "t20768aep|BRAC_CANLF", "t29725aep|BRAC_CHICK", "t22116aep|ETV1_MOUSE"
+#' )
+#' plotSmoothFit(expressed.spline, genes = genes.spline.plot, scaled = T)
+#' 
 #' @export
 plotSmoothFit <- function(smoothed.fit, genes, scaled=T, multiplot=F, plot.data=T, alpha.data=0.2, alpha.smooth=1, lwd.smooth=1, plot.title=NULL) {
   
@@ -195,13 +217,34 @@ plotSmoothFit <- function(smoothed.fit, genes, scaled=T, multiplot=F, plot.data=
 
 #' Gene Smooth: Crop to particular pseudotimes
 #' 
-#' This crops a result from \code{\link{geneSmoothFit}} to a particular pseudotime range. Can be used to split a smoothed result into segments for labeling in \code{\link{plotSmoothFitMultiCascade}}.
+#' This crops a result from \code{\link{geneSmoothFit}} to a particular pseudotime range. Can be used to split a smoothed result into segments in order to label them separately or combine them for use with \code{\link{plotSmoothFitMultiCascade}}.
 #' 
 #' @param smoothed.fit (List) Result from \code{\link{geneSmoothFit}}
 #' @param pt.min (Numeric) Minimum pseudotime to retain
 #' @param pt.max (Numeric) Maximum pseudotime to retain
 #' 
 #' @return (List) Result from \code{\link{geneSmoothFit}}, but cropped to the range of \code{pt.min} and \code{pt.max}.
+#' 
+#' @examples 
+#' # Identify the pseudotime of the branchpoint
+#' pt.crop <- as.numeric(unlist(hydra.en.tree@tree$segment.pseudotime.limits)[1])
+#' # Crop according to the pseudotime of the branchpoint
+#' foot.only.spline <- cropSmoothFit(tentacle.spline, pt.max = pt.crop)
+#' hypostome.only.spline <- cropSmoothFit(hypo.spline, pt.min = pt.crop)
+#' tentacle.only.spline <- cropSmoothFit(tentacle.spline, pt.min = pt.crop)
+#' # Combine into a list
+#' # Names in the plots are determined by names of the smooth objects in the list
+#' splines <- list(foot.only.spline, tentacle.only.spline, hypostome.only.spline)
+#' names(splines) <- c("Foot/Body", "Tentacle", "Hypostome")
+#' # Plot expression of genes on the curves
+#' endoderm.genes.plot <- c("t14194aep|WNT3_MOUSE", "t20768aep|BRAC_CANLF", 
+#'   "t25396aep|NKX26_HUMAN", "t18735aep|FOXA2_ORYLA")
+#' plotSmoothFitMultiCascade(smoothed.fits = splines, 
+#'   genes = endoderm.genes.plot, scaled = F, 
+#'   colors = c(`Foot/Body` = "#FF8C00", Hypostome = "#1E90FF", 
+#'     Tentacle = "#32CD32"
+#'   )
+#' )
 #' 
 #' @export
 cropSmoothFit <- function(smoothed.fit, pt.min=-Inf, pt.max=Inf) {
@@ -240,7 +283,6 @@ cropSmoothFit <- function(smoothed.fit, pt.min=-Inf, pt.max=Inf) {
 #' @param smoothed.fit (List) A list of smoothed.fits to combine
 #' @param fits.use (Character) Names of smoothed.fits in the list to use
 #' @return (List) 
-#' @export
 #' @keywords internal
 combineSmoothFit <- function(smoothed.fit, fits.use) {
   # Grab those smoothed fits that you want to use
@@ -285,9 +327,9 @@ combineSmoothFit <- function(smoothed.fit, fits.use) {
   ))
 }
 
-#' Gene Smooth: Plot multiple fit
+#' Gene Smooth: Plot multiple fits
 #' 
-#' This plots gene expression in groups of cells and a curve representing its mean expression (generated using a smoothing algorithm). It takes output from multiple runs of \code{\link{geneSmoothFit}} (i.e. for different trajectories or different segments of the same trajectory).  If multiple genes are provided, a grid of plots is produced.
+#' This plots gene expression in groups of cells and a curve representing its mean expression (generated using a smoothing algorithm). It takes output from multiple runs of \code{\link{geneSmoothFit}} (i.e. for different trajectories or different segments of the same trajectory). The individual results from \code{\link{geneSmoothFit}} should be combined into a list, and the names of the elements will be used to define the names of the segments in the plot. If multiple genes are provided, a grid of plots is produced.
 #' 
 #' @param smoothed.fit (List of lists) A list containing several lists that are the output of \code{\link{geneSmoothFit}}. Each one will generate a separate segment in the plot, labeled according to its name in the list.
 #' @param genes (Character vector) Genes to include in the plot(s)
@@ -300,6 +342,27 @@ combineSmoothFit <- function(smoothed.fit, fits.use) {
 #' @param ncol (Numeric) Number of columns to use if several plots are produced (i.e. if several \code{genes} are provided). (Default \code{NULL} will attempt to produce a square aspect ratio.)
 #' 
 #' @return A ggplot2 object
+#' 
+#' @examples 
+#' # Identify the pseudotime of the branchpoint
+#' pt.crop <- as.numeric(unlist(hydra.en.tree@tree$segment.pseudotime.limits)[1])
+#' # Crop according to the pseudotime of the branchpoint
+#' foot.only.spline <- cropSmoothFit(tentacle.spline, pt.max = pt.crop)
+#' hypostome.only.spline <- cropSmoothFit(hypo.spline, pt.min = pt.crop)
+#' tentacle.only.spline <- cropSmoothFit(tentacle.spline, pt.min = pt.crop)
+#' # Combine into a list
+#' # Names in the plots are determined by names of the smooth objects in the list
+#' splines <- list(foot.only.spline, tentacle.only.spline, hypostome.only.spline)
+#' names(splines) <- c("Foot/Body", "Tentacle", "Hypostome")
+#' # Plot expression of genes on the curves
+#' endoderm.genes.plot <- c("t14194aep|WNT3_MOUSE", "t20768aep|BRAC_CANLF", 
+#'   "t25396aep|NKX26_HUMAN", "t18735aep|FOXA2_ORYLA")
+#' plotSmoothFitMultiCascade(smoothed.fits = splines, 
+#'   genes = endoderm.genes.plot, scaled = F, 
+#'   colors = c(`Foot/Body` = "#FF8C00", Hypostome = "#1E90FF", 
+#'     Tentacle = "#32CD32"
+#'   )
+#' )
 #' 
 #' @export
 plotSmoothFitMultiCascade <- function(smoothed.fits, genes, colors=NULL, scaled=T, plot.data=T, alpha.data=0.2, alpha.smooth=1, lwd.smooth=1, ncol=NULL) {

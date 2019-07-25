@@ -43,5 +43,15 @@ geneSmoothFit(object, pseudotime, cells, genes, method = c("lowess",
 }
 }
 \description{
-This takes a group of genes and cells, averages gene expression in groups of cells (determined using a moving window through pseudotime), and then uses smoothing algorithms (e.g. LOESS or spline fitting) to describe the expression of each gene. The results are returned for use in \code{\link{plotSmoothFit}} to visualize the fits or several sets of results (e.g. from different trajectories) can be combined with \code{\link{cropSmoothFit}} and \code{\link{combineSmoothFit}} and plotted with \code{\link{plotSmoothFitMultiCascade}}.
+This takes a group of genes and cells, averages gene expression in groups of cells (determined using a moving window through pseudotime), and then uses smoothing algorithms (e.g. LOESS or spline fitting) to describe the expression of each gene. The results are returned for use in \code{\link{plotSmoothFit}} to visualize the fits or several sets of results (e.g. from different trajectories) can be combined with \code{\link{cropSmoothFit}} and plotted with \code{\link{plotSmoothFitMultiCascade}}.
+}
+\examples{
+# Fit a gene expression curve using "spline" method for
+# genes "endo.genes" and cells in segments 47 and 46 in the tree.
+tentacle.spline <- geneSmoothFit(urd.object, method = "spline", 
+  pseudotime = "pseudotime", 
+  cells = cellsInCluster(urd.object, "segment", c("47", "46")), 
+  genes = endo.genes, moving.window = 1, cells.per.window = 5, spar = 0.9
+)
+
 }
