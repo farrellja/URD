@@ -3,7 +3,7 @@
 **URD** is an R package designed for reconstructing transcriptional trajectories underlying specification or differentiation processes in the form of a branching tree, using single cell RNA-sequencing data. It is named after the [Norse mythological figure](https://en.wikipedia.org/wiki/Urdr) who nurtures the world tree and decides all fates.
 
 **URD** is described in:<br />
-[Single-cell reconstruction of developmental trajectories during zebrafish embryogenesis.](https://www.ncbi.nlm.nih.gov/pubmed/29700225)<br .>
+[Single-cell reconstruction of developmental trajectories during zebrafish embryogenesis.](https://www.ncbi.nlm.nih.gov/pubmed/29700225)<br />
 Farrell JA & Wang Y (equal contribution), Riesenfeld SJ, Shekhar K, Regev A & Schier AF (equal contribution).<br />
 Science 26 Apr 2018. doi: 10.1126/science.aar3131
 
