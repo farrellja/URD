@@ -1,5 +1,23 @@
 # News
 
+## 1.1.0 - July 25, 2019
+### Added
+- Added functions for using expression of NMF modules to identify cells that
+are potentially doublets: `NMFDoubletsDefineModules`, `NMFDoubletsPlotModuleThresholds`, `NMFDoubletsDetermineCells`, `NMFDoubletsPlotModulesInCell`, and `NMFDoubletsPlotModuleCombos`. The idea is that many NMF modules encode cell type programs; if you identify modules that are not expressed in overlapping gradients (which might represent legitimate developmental transitions), and are strongly expressed in distinct sets of cells, then small numbers of cells that express both modules are likely to represent technical or biological doublets where two distinct cells (which each have their own cell type program expressed) have been detected as a single cell. Removing these can improve trajectory inference, as they often create 'short-circuits' between distinct portions of the developmental process.
+- Added new functions for calculating smoothed expression and plotting expression curves: `geneSmoothFit`, `plotSmoothFit`, `cropSmoothFit`, `plotSmoothFitMultiCascade`. Provides alternative, less parametric options (LOESS smoothing and spline curves) to the previous impulse model
+- Added `whichCells` to help identify cells that match particular criteria for use in plotting, subsetting, and differential expression testing.
+- Added `plotDimDiscretized` and `plotTreeDiscretized` to allow plotting expression or other metadata in an on/off fashion (based on user-defined thresholds) to improve some visualizations.
+
+### Changed
+- Changed behavior of `pseudotimeWeightTransitionMatrix` to allow processing of more than 46,503 cells by processing the matrix in pieces.
+- Fixed (another) bug in `treeForceDirectedLayout` that results from cells with duplicate random walk parameters
+- Fixed an issue where `createURD` would fail because it would not find `method::new` for some reason.
+- Structure of impulse fits has been modified to allow plotting with the original functions, but also the new `plotSmoothFit` and `plotSmoothFitMultiCascade` functions.
+- Added additional input checking to `plotTree`, `plotTreeDual` to help identify bad inputs.
+- Fixed bug in `plotTreeForce` when plotting TRUE/FALSE metadata
+- Modified `treeForceDirectedLayout` to check for graph connectivity prior to calling some FDL routines that require connected graphs
+- Fixed bug with segment names in `treeForceDirectedLayout`.
+
 ## 1.0.3 - May 28, 2019
 ### Added
 - Added `plotTreeDual` function which can plot two labels as red/green on the tree dendrogram layout
