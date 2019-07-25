@@ -1,6 +1,8 @@
 # News
 
 ## 1.1.0 - July 25, 2019
+This release accompanies the release of our manuscript **[Stem cell differentiation trajectories in Hydra resolved at single-cell resolution](https://science.sciencemag.org/content/365/6451/eaav9314)** and includes new functions developed during the analysis presented in that work.
+
 ### Added
 - Added functions for using expression of NMF modules to identify cells that
 are potentially doublets: `NMFDoubletsDefineModules`, `NMFDoubletsPlotModuleThresholds`, `NMFDoubletsDetermineCells`, `NMFDoubletsPlotModulesInCell`, and `NMFDoubletsPlotModuleCombos`. The idea is that many NMF modules encode cell type programs; if you identify modules that are not expressed in overlapping gradients (which might represent legitimate developmental transitions), and are strongly expressed in distinct sets of cells, then small numbers of cells that express both modules are likely to represent technical or biological doublets where two distinct cells (which each have their own cell type program expressed) have been detected as a single cell. Removing these can improve trajectory inference, as they often create 'short-circuits' between distinct portions of the developmental process.
