@@ -19,6 +19,8 @@ Science 26 Apr 2018. doi: 10.1126/science.aar3131
 
 - The full supplementary analysis from Siebert, Farrell, *et al.* that describes the reconstruction of developmental trajectories in adult Hydra is also [available](https://github.com/cejuliano/hydra_single_cell).
 
+- A tutorial for plotting the processed data from Siebert, Farrell, *et al.* (see below for download) is available [here](https://github.com/cejuliano/hydra_single_cell/blob/master/URD_Hydra_Plotting_Tutorial.md)
+
 ## Processed Data to Explore
 
 - The processed URD object from zebrafish embryogenesis (3.3 - 12 hours post-fertilization) from Farrell & Wang, *et al.* can be downloaded from the [Broad Single-cell Portal](https://portals.broadinstitute.org/single_cell/data/public/single-cell-reconstruction-of-developmental-trajectories-during-zebrafish-embryogenesis?filename=URD_Zebrafish_Object.rds) (requires log-in).
