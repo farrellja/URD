@@ -4,17 +4,16 @@
 \alias{geneCascadeHeatmap}
 \title{Plot Gene Cascade Heatmap}
 \usage{
-geneCascadeHeatmap(cascade, color.scale = brewer.pal(9, "YlOrRd"),
-  add.time = NULL, times.annotate = seq(0, 1, 0.1), title = "",
+geneCascadeHeatmap(cascade, color.scale = RColorBrewer::brewer.pal(9,
+  "YlOrRd"), add.time = NULL, times.annotate = seq(0, 1, 0.1), title = "",
   annotation.list = NULL, row.font.size = 1, max.font.size = 0.9)
 }
 \arguments{
 \item{cascade}{(list) A processed gene cascade from \code{\link{geneCascadeProcess}}}
 
-\item{color.scale}{(Character vector)}
+\item{color.scale}{(Character vector) List of color values to use for the heatmap}
 
-\item{add.time}{(Character or NULL) Either the name of a column of \code{@meta} that contains actual time information
-to label the x-axis of the heatmap or NULL to instead use pseudotime}
+\item{add.time}{(Character or NULL) Either the name of a column of \code{@meta} that contains actual time information to label the x-axis of the heatmap or NULL to instead use pseudotime}
 
 \item{times.annotate}{(Numeric vector)}
 

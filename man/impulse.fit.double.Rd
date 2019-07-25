@@ -4,19 +4,23 @@
 \alias{impulse.fit.double}
 \title{Fit Impulse Model (Double sigmoid)}
 \usage{
-impulse.fit.double(x, y, k = 20, limit.shape = c("none", "convex",
-  "concave"))
+impulse.fit.double(x, y, k = 20, maxiter = 200, interpolate = NULL)
 }
 \arguments{
-\item{x}{(Numeric)}
+\item{x}{(Numeric) Expression data}
 
-\item{y}{(Numeric)}
+\item{y}{(Numeric) Expression data}
 
 \item{k}{(Numeric) Number of starting conditions to try}
 
-\item{limit.shape}{("none", "convex", "concave")}
+\item{maxiter}{(Numeric) Maximum number of iterations to try fitting}
+
+\item{interpolate}{(Numeric or NULL) If low number of data points, can interpolate them linearly to this number of points for choosing potential starting conditions. Default (\code{NULL}) does not do any interpolation. Interpolation is NOT used during actual function fitting.}
+}
+\value{
+(Named vector, length 8) Returns the coefficients and sum of squared residuals of the best fitting double sigmoid out of \code{k} conditions. If all attempts to fit fail to converge, returns vector of same length, with all values \code{NA}.
 }
 \description{
-Fit Impulse Model (Double sigmoid)
+Attempts to fit a double sigmoid ("impulse" model) to given expression data using expectation maximization.
 }
 \keyword{internal}

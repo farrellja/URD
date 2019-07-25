@@ -2,46 +2,62 @@
 % Please edit documentation in R/gene-cascade.R
 \name{geneCascadeProcess}
 \alias{geneCascadeProcess}
-\title{Process a gene cascade}
+\title{Gene Cascade: Fit expression of genes}
 \usage{
-geneCascadeProcess(object, pseudotime, cells, genes,
-  background.genes = sample(setdiff(rownames(object@logupx.data),
-  object@var.genes), 1000), moving.window = 3, cells.per.window = 10,
-  plot.scaled = T, verbose = T, verbose.genes = F,
-  limit.single.sigmoid.slopes = c("none", "on", "off"), k = 50, a = 0.05)
+geneCascadeProcess(object, pseudotime, cells, genes, moving.window = 3,
+  cells.per.window = NULL, pseudotime.per.window = NULL, scale.data = T,
+  k = 50, pt.windows = NULL, interpolate = NULL, pulse.only = T,
+  verbose = T, verbose.genes = F)
 }
 \arguments{
 \item{object}{An URD object}
 
-\item{pseudotime}{(Character) Name of pseudotime}
+\item{pseudotime}{(Character) Name of pseudotime (i.e. a column name of \code{@pseudotime})}
 
 \item{cells}{(Character vector) Cells to include}
 
 \item{genes}{(Character vector) Genes to include}
 
-\item{background.genes}{(Character vector) Genes to use for calculation of background noise model}
+\item{moving.window}{(Numeric) Number of bins to use per window}
 
-\item{moving.window}{(Numeric)}
+\item{cells.per.window}{(Numeric or \code{NULL}) Size of bins (number of cells)}
 
-\item{cells.per.window}{(Numeric)}
+\item{pseudotime.per.window}{(Numeric or \code{NULL}) Size of bins (pseudotime)}
 
-\item{plot.scaled}{(Logical)}
+\item{scale.data}{(Logical) If \code{TRUE}, fit impulse model to gene expression that has been scaled to its maximum expression in the chosen cells, otherwise fit to the original data.}
 
-\item{verbose}{(Logical)}
+\item{k}{(Numeric) Number of sets of initial conditions to try for fitting expression of each gene}
 
-\item{verbose.genes}{(Logical) If \code{verbose=T}, should the start time of each gene be printed?}
+\item{pt.windows}{(List or \code{NULL}) Cells that belong to each pseudotime window -- if \code{NULL} will determine automatically, or provide a list of character vectors of cell ids.}
 
-\item{gene.cuts}{(Numeric) Number of groups}
+\item{interpolate}{(Numeric or NULL) If low number of data points, can interpolate them linearly to this number of points for choosing potential starting conditions. Default (\code{NULL}) does not do any interpolation. Interpolation is NOT used during actual function fitting.}
 
-\item{expression.thresh}{(Numeric)}
+\item{pulse.only}{(Logical) If \code{TRUE}, filters out double sigmoid functions that are monotonous and prefers either single sigmoid or linear fit for them instead.}
 
-\item{ignore.expression.before}{(Numeric)}
+\item{verbose}{(Logical) Print major status updates?}
 
-\item{limit.single.sigmoid}{("none", "on", "off")}
+\item{verbose.genes}{(Logical) Report fitting of each gene?}
 }
 \value{
-List
+Named list: "pt.windows" ; "mean.expression" Mean expression of each gene in each pseudotime window; "scaled.expression" Scaled mean expression of each gene in each pseudotime window, if \code{scale.data=T}, otherwise same as \code{mean.expression}; "impulse.fits" List of fit parameters for each gene; "timing" (data.frame) of earliest onset time and latest offset time for each gene.
+
+(Named List):
+\itemize{ 
+  \item{\strong{\code{pt.windows}}: (List) Character vectors of cell IDs of cells in each window, named by either the mean, min, or max pseudotime of those cells (depending on \code{name.by})}
+  \item{\strong{\code{pt.info}}: (data.frame) Mean, min, max, and range of pseudotime in each window of cells.}
+  \item{\strong{\code{mean.expression}}: (data.frame) Mean expression of each gene in each pseudotime window}
+  \item{\strong{\code{scaled.expression}}: (data.frame) Mean expression of each gene in each pseudotime window, scaled to the maximum observed expression}
+  \item{\strong{\code{mean.smooth}}: (data.frame) Value of fit curve for each pseudotime window (i.e. to predict value of mean.expression)}
+  \item{\strong{\code{scaled.smooth}}: (data.frame) Value of fit curve for each pseudotime window, scaled to max expression (i.e. to predict value of scaled.expression)}
+  \item{\strong{\code{impulse.fits}}: (List) Parameters of fit for each gene. See \code{\link{impulseFit}}.}
+  \item{\strong{\code{timing}}: (data.frame) Earliest onset and latest offset pseudotime determined for each gene.}
+  \item{\strong{\code{method}}: (Character) Identify fit method ("impulse")}
+  \item{\strong{\code{fit.scaled}}: (Logical) Was data scaled before fitting?}
+}
 }
 \description{
-Process a gene cascade
+This takes a group of genes and cells, averages gene expression in groups of cells (determined using a moving window through pseudotime), and then fits either a linear, single sigmoid, or double sigmoid ("impulse") model to describe the expression of each gene. The results are returned for use in \code{\link{geneCascadeImpulsePlots}} to visualize the fits or \code{\link{geneCascadeHeatmap}} to plot gene expression cascades in heatmap format.
+}
+\details{
+Thanks to Yiqun Wang for considerable improvements to the impulse fitting functions.
 }

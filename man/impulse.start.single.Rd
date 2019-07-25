@@ -2,11 +2,28 @@
 % Please edit documentation in R/impulse.R
 \name{impulse.start.single}
 \alias{impulse.start.single}
-\title{Starting Conditions for impulse model (single sigmoid)}
+\title{Starting conditions for single sigmoid model}
 \usage{
-impulse.start.single(x, y, k, limit.slope)
+impulse.start.single(x, y, k, h.frac = 0.2, l.frac = 0.2,
+  interpolate = NULL)
+}
+\arguments{
+\item{x}{(Numeric vector) Expression data to fit (x)}
+
+\item{y}{(Numeric vector) Expression data to fit (y)}
+
+\item{k}{(Numeric) Number of starting conditions to determine}
+
+\item{h.frac}{(Numeric, 0 to 1) Portion of data (highest along y-axis) to use to estimate h0/h1}
+
+\item{l.frac}{(Numeric, 0 to 1) Portion of data (lowest along y-axis) to use to estimate h0/h1}
+
+\item{interpolate}{(Numeric or NULL) If low number of data points, can interpolate them linearly to this number of points. Default (\code{NULL}) does not do any interpolation.}
+}
+\value{
+Returns a data frame of potential starting conditions for fitting functions for double sigmoid ("impulse") model
 }
 \description{
-Function to determine k sets of initial starting conditions for impulse fitting
+This function determines \code{k} sets of initial starting conditions for single sigmoid fitting by choosing combinations of points from the data randomly. h0 and h1 (initial and final values) are taken from points chosen at random from data with the highest and lowest y-axis values. t1 and b1 are then estimated from two randomly chosen points in the middle of the data (along the y-axis). If \code{k} is larger than the number of possible combinations that fit these conditions, additional sets of starting conditions are chosen totally randomly that fit within the bounds of the existing data with a small margin of padding.
 }
 \keyword{internal}

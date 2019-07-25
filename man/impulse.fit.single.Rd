@@ -2,20 +2,25 @@
 % Please edit documentation in R/impulse.R
 \name{impulse.fit.single}
 \alias{impulse.fit.single}
-\title{Fit Impulse Model (Single sigmoid)}
+\title{Fit Single Sigmoid Model}
 \usage{
-impulse.fit.single(x, y, k = 20, limit.slope = c("none", "on", "off"))
+impulse.fit.single(x, y, k = 20, maxiter = 200, interpolate = NULL)
 }
 \arguments{
-\item{x}{(Numeric)}
+\item{x}{(Numeric) Expression data}
 
-\item{y}{(Numeric)}
+\item{y}{(Numeric) Expression data}
 
 \item{k}{(Numeric) Number of starting conditions to try}
 
-\item{limit.slope}{("none", "on", "off")}
+\item{maxiter}{(Numeric) Maximum number of iterations to try fitting}
+
+\item{interpolate}{(Numeric or NULL) If low number of data points, can interpolate them linearly to this number of points for choosing potential starting conditions. Default (\code{NULL}) does not do any interpolation. Interpolation is NOT used during actual function fitting.}
+}
+\value{
+(Named vector, length 5) Returns the coefficients and sum of squared residuals of the best fitting double sigmoid out of \code{k} conditions. If all attempts to fit fail to converge, returns vector of same length, with all values \code{NA}.
 }
 \description{
-Fit Impulse Model (Single sigmoid)
+Attempts to fit a single sigmoid to given expression data using expectation maximization.
 }
 \keyword{internal}
