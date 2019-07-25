@@ -10,16 +10,18 @@ NMFDoubletsPlotModulesInCell(object, modules, cells,
 \arguments{
 \item{object}{An URD object}
 
-\item{modules}{(Character vector) Modules to plot (Currently column names of @gene.sig.z)}
+\item{modules}{(Character vector) Modules to plot (Column names of @nmf.c1)}
 
 \item{cells}{(Character vector) Cells to plot on y-axis}
 
-\item{module.expressed.thresh}{(Numeric) Threshold for module expression. Will change the shape of points to emphasize whether they made cut-offs}
+\item{module.expressed.thresh}{(Numeric) Threshold for module expression. Will change the shape of points to emphasize whether they made cut-offs.}
 }
 \value{
 A ggplot2 object
 }
 \description{
-For inspecting why particular cells do or don't get called as doublets
-Looks for module expression in object@gene.sig.z for now
+For inspecting why particular cells do or don't get called as doublets. Makes a
+dot plot to represent NMF module expression within a particular group of cells.
+Expression level is represented by color and whether the cell passes the threshold
+for expression of that module is represented by shape.
 }

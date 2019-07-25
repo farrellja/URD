@@ -12,27 +12,43 @@ NMFDoubletsDetermineCells(object, module.combos, module.expressed.thresh,
 
 \item{module.combos}{(List) Output from \code{\link{NMFDoubletsDefineModules}}}
 
-\item{module.expressed.thresh}{(Numeric) Treshold for considering a module 'expressed' in a cell}
+\item{module.expressed.thresh}{(Numeric) Threshold for considering a module 'expressed' in a cell}
 
-\item{frac.overlap.max}{(Numeric)}
+\item{frac.overlap.max}{(Numeric) Only pairs of NMF modules where the maximum portion of cells that express both is less than \code{frac.overlap.max} are used.}
 
-\item{frac.overlap.diff.max}{(Numeric)}
+\item{frac.overlap.diff.max}{(Numeric) Only pairs of NMF modules where the portion of co-expressing cells increases less than \code{frac.overlap.diff.max} when the detection threshold is lowered are used. (See \code{\link{NMFDoubletsDefineModules}} for more information.)}
 }
 \value{
-(Character Vector) Cell Names that are potentially doublets
+(Character Vector) Cell Names that express multiple distinct NMF modules
 }
 \description{
-This uses NMF modules (as loaded into slot \code{@nmf.c1}) to determine cells
-that express pairs of non-overlapping NMF modules and are likely to be technical
-doublets.
+This identifies which cells express multiple NMF modules that the user
+has determined should probably not be co-expressed in single-cells, as
+a way of identifying potential doublets in the data.
 }
 \details{
-#' This considers NMF modules (as loaded into slot \code{@nmf.c1}) pairwise
-to determine how many cells have overlapping expression of that pair of
-modules. Two thresholds are used to determine whether a cell 'expresses'
+Expression of NMF modules are considered pairwise in 
+\code{\link{NMFDoubletsDefineModules}}. Thresholds for pairs of NMF modules that
+probably define doublets (versus ones that might define legitimate developmental
+transitions) can be determined by using the \code{\link{NMFDoubletsPlotModuleThresholds}}
+and \code{\link{NMFDoubletsPlotModuleCombos}} functions. 
+Two thresholds are used to determine whether a cell 'expresses'
 a module -- this helps differentiate between totally distinct modules (in
 which case the number of co-expressing cells is similar with either threshold)
 from pairs of modules expressed in an overlapping gradient (in which case
 the number of cells that co-express them increases dramatically as the threshold
 is lowered).
+
+Cells that express a pair of modules that are totally distinct are often
+useful for identifying doublets -- where one detected cell contains cells that
+are highly expressing two cell type programs that don't usually occur together.
+Excluding module pairs that are expressed in an overlapping gradient is important,
+however, as these often identify cells that are participating in a developmental
+transition and should not be excluded.
+
+This function requires that a matrix of NMF modules expression per cell is put
+into slot \code{@nmf.c1}. It should be a sparse matrix of class dgCMatrix
+(\code{object@nmf.c1 <- as(as.matrix(nmf.modules), 'dgCMatrix')}), where rows
+are cells and columns are modules. In general, we generally normalize each
+module from 0-1 across all cells.
 }

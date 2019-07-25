@@ -17,15 +17,35 @@ NMFDoubletsDefineModules(object, modules.use, module.thresh.high = 0.3,
 \item{module.thresh.low}{(Numeric) Lower threshold to use for 'expression' of an NMF module}
 }
 \value{
-(List) For use in \code{\link{NMFDoubletsPlotModuleThresholds}}
+(List) For use in \code{\link{NMFDoubletsPlotModuleThresholds}} and \code{\link{NMFDoubletsDetermineCells}}
 }
 \description{
-This considers NMF modules (as loaded into slot \code{@nmf.c1}) pairwise
+This considers NMF module expression within cells pairwise
 to determine how many cells have overlapping expression of that pair of
-modules. Two thresholds are used to determine whether a cell 'expresses'
+modules. It generates a list that can be used as input into
+\code{\link{NMFDoubletsPlotModuleThresholds}} to choose which module pairs to
+use for selection and then \code{\link{NMFDoubletsDetermineCells}} to identify
+cells that express multiple NMF modules that should not overlap and thus seem
+to be doublets.
+}
+\details{
+Two thresholds are used to determine whether a cell 'expresses'
 a module -- this helps differentiate between totally distinct modules (in
 which case the number of co-expressing cells is similar with either threshold)
 from pairs of modules expressed in an overlapping gradient (in which case
 the number of cells that co-express them increases dramatically as the threshold
 is lowered).
+
+Cells that express a pair of modules that are totally distinct are often
+useful for identifying doublets -- where one detected cell contains cells that
+are highly expressing two cell type programs that don't usually occur together.
+Excluding module pairs that are expressed in an overlapping gradient is important,
+however, as these often identify cells that are participating in a developmental
+transition and should not be excluded.
+
+This function requires that a matrix of NMF modules expression per cell is put
+into slot \code{@nmf.c1}. It should be a sparse matrix of class dgCMatrix
+(\code{object@nmf.c1 <- as(as.matrix(nmf.modules), 'dgCMatrix')}), where rows
+are cells and columns are modules. In general, we generally normalize each
+module from 0-1 across all cells.
 }

@@ -8,30 +8,46 @@ NMFDoubletsPlotModuleCombos(object, path, module.combos,
   module.expressed.thresh, frac.overlap.max, frac.overlap.diff.max,
   boundary = c("pass", "discarded"), sort = c("near", "random"),
   only.combos.with.doublets = T, n.plots = 50, width = 1400,
-  height = 600)
+  height = 600, ...)
 }
 \arguments{
 \item{object}{An URD object}
+
+\item{path}{(Character) Path to a directory to save plots}
 
 \item{module.combos}{(List) Output from \code{\link{NMFDoubletsDefineModules}}}
 
 \item{module.expressed.thresh}{(Numeric) Threshold for calling a cell as an expresser of a module}
 
-\item{frac.overlap.max}{(Numeric) Maximum}
+\item{frac.overlap.max}{(Numeric) Threshold to determine which NMF module pairs to use for doublet detecction -- only pairs of NMF modules where the maximum portion of cells that express both is less than \code{frac.overlap.max} are used.}
 
-\item{frac.overlap.diff.max}{(Numeric) Max}
+\item{frac.overlap.diff.max}{(Numeric) Threshold to determine which NMF module pairs to use for doublet detecction -- only pairs of NMF modules where the portion of co-expressing cells increases less than \code{frac.overlap.diff.max} when the detection threshold is lowered are used.}
 
-\item{boundary}{(Character) Should plots be for module combinations that \code{"pass"} the thresholds or that would be \code{"discarded"}}
+\item{boundary}{(Character) Should plots be made for module combinations that \code{"pass"} the thresholds or that would be \code{"discarded"}}
 
 \item{sort}{(Character) Should plots be for those module combinations \code{"near"} the boundary or chosen at \code{"random"}}
 
 \item{only.combos.with.doublets}{(Logical) Should plots be limited to those module combinations that identify doublet cells?}
 
 \item{n.plots}{(Numeric) What is the maximum number of plots that should be generated?}
+
+\item{width}{(Numeric) Width of each plot (in pixels)}
+
+\item{height}{(Numeric) Height of each plot (in pixels)}
+
+\item{...}{Additional parameters to pass to \code{\link{plotDimDual}} and \code{\link{plotDimHighlight}} -- for instance to control which dimensionality reduction is plotted.}
 }
 \value{
-A ggplot2 object
+Nothing. A series of plots are generated using ggplot2 and saved to the directory specified in \code{path}.
 }
 \description{
-Plot NMF module combinations and dual-expressing cells
+This function creates dimensionality reduction plots that show the expression
+of pairs of NMF modules and the cells that are selected as doublets, given the
+chosen set of parameters. It can used to inspect how cells are chosen and refine
+thresholds to ensure that pairs of modules are not being chosen that might remove
+legitimate transitions from the data. It produces a plot that shows the expression
+of each pair of modules (one in red, one in green, overlap in yellow) and a second
+plot that highlights which cells would be chosen as doublets, given the current
+parameters. A series of these plots (chosen by \code{boundary}, \code{sort}, and
+\code{n.plots} parameters) are saved for further inspection.
 }

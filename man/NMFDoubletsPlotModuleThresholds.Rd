@@ -10,9 +10,9 @@ NMFDoubletsPlotModuleThresholds(module.combos, frac.overlap.max,
 \arguments{
 \item{module.combos}{(List) Output from \code{\link{NMFDoubletsDefineModules}}}
 
-\item{frac.overlap.max}{(Numeric) Value to highlight on x-axis as a potential parameter.}
+\item{frac.overlap.max}{(Numeric) Value to highlight on x-axis as a potential parameter. (Maximum portion of cells that express both modules from a pair.)}
 
-\item{frac.overlap.diff.max}{(Numeric) Value to highlight on y-axis as a potential parameter.}
+\item{frac.overlap.diff.max}{(Numeric) Value to highlight on y-axis as a potential parameter. (Maximum change in proportion of cells that express both modules from a pair as the threshold is lowered.)}
 
 \item{modules.highlight}{(Character Vector) Any module pairs with both modules in this vector will be highlighted in green}
 }
@@ -21,8 +21,9 @@ A ggplot2 object
 }
 \description{
 This plots each module pair (calculated by \code{\link{NMFDoubletsDefineModules}})
-in terms of the propotion of 'overlapping' cells (on the x-axis) and the change in
+in terms of the proportion of 'overlapping' cells (on the x-axis) and the change in
 proportion of overlapping cells between the high and low thresholds (on the y-axis).
 This can be used to select parameters for choosing module pairs that likely
-identify doublets for use in \code{\link{NMFDoubletsDetermineCells}}.
+identify doublets for use in \code{\link{NMFDoubletsDetermineCells}}. See documentation
+of \code{\link{NMFDoubletsDefineModules}} for more information.
 }

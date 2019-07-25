@@ -1,13 +1,32 @@
 #' NMF Doublets: Calculate module pair overlap
 #' 
-#' This considers NMF modules (as loaded into slot \code{@@nmf.c1}) pairwise
+#' This considers NMF module expression within cells pairwise
 #' to determine how many cells have overlapping expression of that pair of
-#' modules. Two thresholds are used to determine whether a cell 'expresses'
+#' modules. It generates a list that can be used as input into
+#' \code{\link{NMFDoubletsPlotModuleThresholds}} to choose which module pairs to
+#' use for selection and then \code{\link{NMFDoubletsDetermineCells}} to identify
+#' cells that express multiple NMF modules that should not overlap and thus seem
+#' to be doublets.
+#' 
+#' Two thresholds are used to determine whether a cell 'expresses'
 #' a module -- this helps differentiate between totally distinct modules (in
 #' which case the number of co-expressing cells is similar with either threshold)
 #' from pairs of modules expressed in an overlapping gradient (in which case
 #' the number of cells that co-express them increases dramatically as the threshold
 #' is lowered).
+#' 
+#' Cells that express a pair of modules that are totally distinct are often
+#' useful for identifying doublets -- where one detected cell contains cells that
+#' are highly expressing two cell type programs that don't usually occur together.
+#' Excluding module pairs that are expressed in an overlapping gradient is important,
+#' however, as these often identify cells that are participating in a developmental
+#' transition and should not be excluded.
+#' 
+#' This function requires that a matrix of NMF modules expression per cell is put
+#' into slot \code{@@nmf.c1}. It should be a sparse matrix of class dgCMatrix
+#' (\code{object@@nmf.c1 <- as(as.matrix(nmf.modules), 'dgCMatrix')}), where rows
+#' are cells and columns are modules. In general, we generally normalize each
+#' module from 0-1 across all cells.
 #' 
 #' @importFrom utils combn
 #' 
@@ -16,7 +35,7 @@
 #' @param module.thresh.high (Numeric) High threshold to use for 'expression' of an NMF module
 #' @param module.thresh.low (Numeric) Lower threshold to use for 'expression' of an NMF module
 #' 
-#' @return (List) For use in \code{\link{NMFDoubletsPlotModuleThresholds}}
+#' @return (List) For use in \code{\link{NMFDoubletsPlotModuleThresholds}} and \code{\link{NMFDoubletsDetermineCells}}
 #' @export
 
 NMFDoubletsDefineModules <- function(object, modules.use, module.thresh.high=0.3, module.thresh.low=0.15) {
@@ -72,16 +91,17 @@ NMFDoubletsDefineModules <- function(object, modules.use, module.thresh.high=0.3
 #' NMF Doublets: Plot module overlaps
 #' 
 #' This plots each module pair (calculated by \code{\link{NMFDoubletsDefineModules}})
-#' in terms of the propotion of 'overlapping' cells (on the x-axis) and the change in
+#' in terms of the proportion of 'overlapping' cells (on the x-axis) and the change in
 #' proportion of overlapping cells between the high and low thresholds (on the y-axis).
 #' This can be used to select parameters for choosing module pairs that likely
-#' identify doublets for use in \code{\link{NMFDoubletsDetermineCells}}.
+#' identify doublets for use in \code{\link{NMFDoubletsDetermineCells}}. See documentation
+#' of \code{\link{NMFDoubletsDefineModules}} for more information.
 #' 
 #' @import ggplot2
 #' 
 #' @param module.combos (List) Output from \code{\link{NMFDoubletsDefineModules}}
-#' @param frac.overlap.max (Numeric) Value to highlight on x-axis as a potential parameter.
-#' @param frac.overlap.diff.max (Numeric) Value to highlight on y-axis as a potential parameter.
+#' @param frac.overlap.max (Numeric) Value to highlight on x-axis as a potential parameter. (Maximum portion of cells that express both modules from a pair.)
+#' @param frac.overlap.diff.max (Numeric) Value to highlight on y-axis as a potential parameter. (Maximum change in proportion of cells that express both modules from a pair as the threshold is lowered.)
 #' @param modules.highlight (Character Vector) Any module pairs with both modules in this vector will be highlighted in green
 #' 
 #' @return A ggplot2 object
@@ -103,26 +123,43 @@ NMFDoubletsPlotModuleThresholds <- function(module.combos, frac.overlap.max, fra
 
 #' NMF Doublets: Identify cells that express non-overlapping NMF modules
 #' 
-#' This uses NMF modules (as loaded into slot \code{@@nmf.c1}) to determine cells
-#' that express pairs of non-overlapping NMF modules and are likely to be technical
-#' doublets.
+#' This identifies which cells express multiple NMF modules that the user
+#' has determined should probably not be co-expressed in single-cells, as
+#' a way of identifying potential doublets in the data. 
 #' 
-#' #' This considers NMF modules (as loaded into slot \code{@@nmf.c1}) pairwise
-#' to determine how many cells have overlapping expression of that pair of
-#' modules. Two thresholds are used to determine whether a cell 'expresses'
+#' Expression of NMF modules are considered pairwise in 
+#' \code{\link{NMFDoubletsDefineModules}}. Thresholds for pairs of NMF modules that
+#' probably define doublets (versus ones that might define legitimate developmental
+#' transitions) can be determined by using the \code{\link{NMFDoubletsPlotModuleThresholds}}
+#' and \code{\link{NMFDoubletsPlotModuleCombos}} functions. 
+#' Two thresholds are used to determine whether a cell 'expresses'
 #' a module -- this helps differentiate between totally distinct modules (in
 #' which case the number of co-expressing cells is similar with either threshold)
 #' from pairs of modules expressed in an overlapping gradient (in which case
 #' the number of cells that co-express them increases dramatically as the threshold
 #' is lowered).
 #' 
+#' Cells that express a pair of modules that are totally distinct are often
+#' useful for identifying doublets -- where one detected cell contains cells that
+#' are highly expressing two cell type programs that don't usually occur together.
+#' Excluding module pairs that are expressed in an overlapping gradient is important,
+#' however, as these often identify cells that are participating in a developmental
+#' transition and should not be excluded.
+#' 
+#' This function requires that a matrix of NMF modules expression per cell is put
+#' into slot \code{@@nmf.c1}. It should be a sparse matrix of class dgCMatrix
+#' (\code{object@@nmf.c1 <- as(as.matrix(nmf.modules), 'dgCMatrix')}), where rows
+#' are cells and columns are modules. In general, we generally normalize each
+#' module from 0-1 across all cells.
 #' 
 #' @param object An URD object
 #' @param module.combos (List) Output from \code{\link{NMFDoubletsDefineModules}}
-#' @param module.expressed.thresh (Numeric) Treshold for considering a module 'expressed' in a cell
-#' @param frac.overlap.max (Numeric) 
-#' @param frac.overlap.diff.max (Numeric)
-#' @return (Character Vector) Cell Names that are potentially doublets
+#' @param module.expressed.thresh (Numeric) Threshold for considering a module 'expressed' in a cell
+#' @param frac.overlap.max (Numeric) Only pairs of NMF modules where the maximum portion of cells that express both is less than \code{frac.overlap.max} are used.
+#' @param frac.overlap.diff.max (Numeric) Only pairs of NMF modules where the portion of co-expressing cells increases less than \code{frac.overlap.diff.max} when the detection threshold is lowered are used. (See \code{\link{NMFDoubletsDefineModules}} for more information.)
+#' 
+#' @return (Character Vector) Cell Names that express multiple distinct NMF modules
+#' 
 #' @export
 NMFDoubletsDetermineCells <- function(object, module.combos, module.expressed.thresh, frac.overlap.max, frac.overlap.diff.max) {
   
@@ -148,13 +185,18 @@ NMFDoubletsDetermineCells <- function(object, module.combos, module.expressed.th
 
 #' Plot cells' expression of modules
 #'
-#' For inspecting why particular cells do or don't get called as doublets
-#' Looks for module expression in object@gene.sig.z for now
+#' For inspecting why particular cells do or don't get called as doublets. Makes a
+#' dot plot to represent NMF module expression within a particular group of cells.
+#' Expression level is represented by color and whether the cell passes the threshold
+#' for expression of that module is represented by shape.
+#' 
 #' @param object An URD object
-#' @param modules (Character vector) Modules to plot (Currently column names of @gene.sig.z)
+#' @param modules (Character vector) Modules to plot (Column names of @nmf.c1)
 #' @param cells (Character vector) Cells to plot on y-axis
-#' @param module.expressed.thresh (Numeric) Threshold for module expression. Will change the shape of points to emphasize whether they made cut-offs
+#' @param module.expressed.thresh (Numeric) Threshold for module expression. Will change the shape of points to emphasize whether they made cut-offs.
+#' 
 #' @return A ggplot2 object
+#' 
 #' @export
 
 NMFDoubletsPlotModulesInCell <- function(object, modules, cells, module.expressed.thresh=Inf) {
@@ -167,19 +209,35 @@ NMFDoubletsPlotModulesInCell <- function(object, modules, cells, module.expresse
 
 #' Plot NMF module combinations and dual-expressing cells
 #' 
+#' This function creates dimensionality reduction plots that show the expression
+#' of pairs of NMF modules and the cells that are selected as doublets, given the
+#' chosen set of parameters. It can used to inspect how cells are chosen and refine
+#' thresholds to ensure that pairs of modules are not being chosen that might remove
+#' legitimate transitions from the data. It produces a plot that shows the expression
+#' of each pair of modules (one in red, one in green, overlap in yellow) and a second
+#' plot that highlights which cells would be chosen as doublets, given the current
+#' parameters. A series of these plots (chosen by \code{boundary}, \code{sort}, and
+#' \code{n.plots} parameters) are saved for further inspection.
+#' 
 #' @param object An URD object
+#' @param path (Character) Path to a directory to save plots
 #' @param module.combos (List) Output from \code{\link{NMFDoubletsDefineModules}}
 #' @param module.expressed.thresh (Numeric) Threshold for calling a cell as an expresser of a module
-#' @param frac.overlap.max (Numeric) Maximum 
-#' @param frac.overlap.diff.max (Numeric) Max
-#' @param boundary (Character) Should plots be for module combinations that \code{"pass"} the thresholds or that would be \code{"discarded"}
+#' @param frac.overlap.max (Numeric) Threshold to determine which NMF module pairs to use for doublet detecction -- only pairs of NMF modules where the maximum portion of cells that express both is less than \code{frac.overlap.max} are used.
+#' @param frac.overlap.diff.max (Numeric) Threshold to determine which NMF module pairs to use for doublet detecction -- only pairs of NMF modules where the portion of co-expressing cells increases less than \code{frac.overlap.diff.max} when the detection threshold is lowered are used.
+#' @param boundary (Character) Should plots be made for module combinations that \code{"pass"} the thresholds or that would be \code{"discarded"}
 #' @param sort (Character) Should plots be for those module combinations \code{"near"} the boundary or chosen at \code{"random"}
 #' @param only.combos.with.doublets (Logical) Should plots be limited to those module combinations that identify doublet cells?
 #' @param n.plots (Numeric) What is the maximum number of plots that should be generated?
-#' @return A ggplot2 object
+#' @param width (Numeric) Width of each plot (in pixels)
+#' @param height (Numeric) Height of each plot (in pixels)
+#' @param ... Additional parameters to pass to \code{\link{plotDimDual}} and \code{\link{plotDimHighlight}} -- for instance to control which dimensionality reduction is plotted.
+#' 
+#' @return Nothing. A series of plots are generated using ggplot2 and saved to the directory specified in \code{path}.
+#' 
 #' @export
 
-NMFDoubletsPlotModuleCombos <- function(object, path, module.combos, module.expressed.thresh, frac.overlap.max, frac.overlap.diff.max, boundary=c("pass", "discarded"), sort=c("near", "random"), only.combos.with.doublets=T, n.plots=50, width=1400, height=600) {
+NMFDoubletsPlotModuleCombos <- function(object, path, module.combos, module.expressed.thresh, frac.overlap.max, frac.overlap.diff.max, boundary=c("pass", "discarded"), sort=c("near", "random"), only.combos.with.doublets=T, n.plots=50, width=1400, height=600, ...) {
   
   if (length(boundary) > 1) boundary <- boundary[1]
   if (length(sort) > 1) sort <- sort[1]
@@ -237,11 +295,11 @@ NMFDoubletsPlotModuleCombos <- function(object, path, module.combos, module.expr
   # Actually loop through and generate the plots
   for (i in 1:n.plots) {
     p1.title <- paste0(module.combos.to.plot[i, "Mod1"], " + ", module.combos.to.plot[i, "Mod2"], " (Overlap: ", 100*module.combos.to.plot[i, "frac.overlap.high"], "%; Δ Overlap: ", 100*module.combos.to.plot[i, "frac.overlap.diff"], "%)")
-    p1 <- plotDimDual(object, module.combos.to.plot[i,"Mod1"], module.combos.to.plot[i,"Mod2"], plot.title = p1.title)
+    p1 <- plotDimDual(object, module.combos.to.plot[i,"Mod1"], module.combos.to.plot[i,"Mod2"], plot.title = p1.title, ...)
     overlap.cells <- intersect(intersect(cells.express.mod.crop[[module.combos.to.plot[i,"Mod1"]]],cells.express.mod.crop[[module.combos.to.plot[i,"Mod2"]]]), colnames(object@logupx.data))
     object <- groupFromCells(object, "overlap.cells", overlap.cells)
     p2.title <- paste0("(", length(overlap.cells), " doublets identified)")
-    p2 <- plotDimHighlight(object, clustering = "overlap.cells", cluster="TRUE", plot.title=p2.title, highlight.color = "blue", legend.title="Doublet?")
+    p2 <- plotDimHighlight(object, clustering = "overlap.cells", cluster="TRUE", plot.title=p2.title, highlight.color = "blue", legend.title="Doublet?", ...)
     file.path <- paste0(path, sprintf(fmt = "%04d", i), "-", module.combos.to.plot[i, "Mod1"], "-", module.combos.to.plot[i, "Mod2"], ".png")
     png(file=file.path, width=width, height=height)
     gridExtra::grid.arrange(grobs=list(p1,p2), ncol=2)
