@@ -2,9 +2,9 @@
 
 **URD** is an R package designed for reconstructing transcriptional trajectories underlying specification or differentiation processes in the form of a branching tree, using single cell RNA-sequencing data. It is named after the [Norse mythological figure](https://en.wikipedia.org/wiki/Urdr) who nurtures the world tree and decides all fates.
 
-**URD** is described in:
-[Single-cell reconstruction of developmental trajectories during zebrafish embryogenesis.](https://www.ncbi.nlm.nih.gov/pubmed/29700225)
-Farrell JA & Wang Y (equal contribution), Riesenfeld SJ, Shekhar K, Regev A & Schier AF (equal contribution).
+**URD** is described in:<br />
+[Single-cell reconstruction of developmental trajectories during zebrafish embryogenesis.](https://www.ncbi.nlm.nih.gov/pubmed/29700225)<br .>
+Farrell JA & Wang Y (equal contribution), Riesenfeld SJ, Shekhar K, Regev A & Schier AF (equal contribution).<br />
 Science 26 Apr 2018. doi: 10.1126/science.aar3131
 
 ## Installation
@@ -15,15 +15,15 @@ Science 26 Apr 2018. doi: 10.1126/science.aar3131
 
 - To get started, check out the Quick Start Tutorial: ([View](Analyses/QuickStart/URD-QuickStart-AxialMesoderm.md)) ([Download](Analyses/QuickStart/URD-QuickStart-AxialMesoderm.Rmd))
 
-- The full supplementary analysis from Farrell & Wang, *et al.* that describes the reconstruction of developmental trajectories during zebrafish embryogenesis (3.3-12 hours post-fertilization) is also [available](Analyses/SupplementaryAnalysis)
+- The full supplementary analysis from Farrell & Wang, *et al.* that describes the reconstruction of developmental trajectories during zebrafish embryogenesis (3.3-12 hours post-fertilization) is also [available](Analyses/SupplementaryAnalysis).
 
-- The full supplementary analysis from Siebert, Farrell, *et al.* that describes the reconstruction of developmental trajectories in adult Hydra is also [available](https://github.com/cejuliano/hydra_single_cell)
+- The full supplementary analysis from Siebert, Farrell, *et al.* that describes the reconstruction of developmental trajectories in adult Hydra is also [available](https://github.com/cejuliano/hydra_single_cell).
 
 ## Data
 
 - The processed URD object from zebrafish embryogenesis (3.3 - 12 hours post-fertilization) from Farrell & Wang, *et al.* can be downloaded from the [Broad Single-cell Portal](https://portals.broadinstitute.org/single_cell/data/public/single-cell-reconstruction-of-developmental-trajectories-during-zebrafish-embryogenesis?filename=URD_Zebrafish_Object.rds) (requires log-in).
 
-- The processed URD objects from adult Hydra from Siebert, Farrell, et al. can be downloaded from the [Broad Single-cell Portal](https://portals.broadinstitute.org/single_cell/study/SCP260/stem-cell-differentiation-trajectories-in-hydra-resolved-at-single-cell-resolution) (requires log-in) or from [Data Dryad](https://datadryad.org/resource/doi:10.5061/dryad.v5r6077).
+- The processed URD objects from adult Hydra from Siebert, Farrell, *et al.* can be downloaded from the [Broad Single-cell Portal](https://portals.broadinstitute.org/single_cell/study/SCP260/stem-cell-differentiation-trajectories-in-hydra-resolved-at-single-cell-resolution) (requires log-in) or from [Data Dryad](https://datadryad.org/resource/doi:10.5061/dryad.v5r6077).
 
 ## Version History
 
