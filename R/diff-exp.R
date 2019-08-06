@@ -125,15 +125,22 @@ markersAUCPR <- function(object, clust.1=NULL, clust.2=NULL, cells.1=NULL, cells
   if (is.null(cells.1)) {
     if (is.null(clust.1)) stop("Must provide either cells.1 or clust.1")
     cells.1 <- names(clust.use[which(clust.use%in%clust.1)])
+    label.1 <- clust.1
+  } else {
+    label.1 <- "1"
   }
   
   if (is.null(cells.2)) {
     if (is.null(clust.2)) {
       clust.2 <- "rest"
       cells.2 <- setdiff(names(clust.use), cells.1)
+      label.2 <- "rest"
     } else {
       cells.2 <- names(clust.use[which(clust.use%in%clust.2)])
+      label.2 <- clust.2
     }
+  } else {
+    label.2 <- "2"
   }
   
   # Figure out proportion expressing and mean expression
@@ -166,7 +173,7 @@ markersAUCPR <- function(object, clust.1=NULL, clust.2=NULL, cells.1=NULL, cells
   
   # Order by AUC
   genes.data <- genes.data[order(genes.data$AUCPR, decreasing=T),c("AUCPR", "AUCPR.ratio", "exp.fc", "frac.1", "frac.2", "exp.1", "exp.2")]
-  names(genes.data)[3:6] <- paste(c("posFrac", "posFrac", "nTrans", "nTrans"), c(clust.1, clust.2, clust.1, clust.2), sep="_")
+  names(genes.data)[4:7] <- paste(c("posFrac", "posFrac", "nTrans", "nTrans"), c(label.1, label.2, label.1, label.2), sep="_")
   
   # Return
   return(genes.data)
