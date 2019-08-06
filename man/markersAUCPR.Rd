@@ -7,7 +7,7 @@
 markersAUCPR(object, clust.1 = NULL, clust.2 = NULL, cells.1 = NULL,
   cells.2 = NULL, clustering = NULL, effect.size = 0.25,
   frac.must.express = 0.1, exp.thresh = 0, frac.min.diff = 0,
-  genes.use = NULL)
+  auc.factor = 1, max.auc.threshold = 1, genes.use = NULL)
 }
 \arguments{
 \item{object}{An URD object}
@@ -28,7 +28,10 @@ markersAUCPR(object, clust.1 = NULL, clust.2 = NULL, cells.1 = NULL,
 
 \item{exp.thresh}{(Numeric) Minimum expression value to consider 'expressed.'}
 
-\item{frac.min.diff}{(Numeric) Fraction of cells expressing the gene must be at least this different between two populations to be considered.}
+\item{frac.min.diff}{(Numeric) Fraction of cells expressing the gene must be at least this different between two populations to be considered.
+@param auc.factor (Numeric) The precision-recall AUC is determined for a random classifier is determined based on the size of populations. To be considered differential, genes must have an AUC that is \code{auc.factor} times the expected AUC for a random classifier.}
+
+\item{max.auc.threshold}{(Numeric) This acts as an upper bound for how high the AUC must be for a gene to be considered differential (i.e. you can choose that no matter the expectation for a random classifier, any gene with an AUC > 0.9 is considered differential).}
 
 \item{genes.use}{(Character vector) Genes to compare, default is NULL (all genes)}
 }

@@ -104,12 +104,14 @@ markersBinom <- function(object, pseudotime, clust.1=NULL,clust.2=NULL,cells.1=N
 #' @param frac.must.express (Numeric) Gene must be expressed in at least this fraction of cells in one of the two clusters to be considered.
 #' @param exp.thresh (Numeric) Minimum expression value to consider 'expressed.'
 #' @param frac.min.diff (Numeric) Fraction of cells expressing the gene must be at least this different between two populations to be considered.
+#'  @param auc.factor (Numeric) The precision-recall AUC is determined for a random classifier is determined based on the size of populations. To be considered differential, genes must have an AUC that is \code{auc.factor} times the expected AUC for a random classifier.
+#' @param max.auc.threshold (Numeric) This acts as an upper bound for how high the AUC must be for a gene to be considered differential (i.e. you can choose that no matter the expectation for a random classifier, any gene with an AUC > 0.9 is considered differential).
 #' @param genes.use (Character vector) Genes to compare, default is NULL (all genes)
 #' 
 #' @return (data.frame)
 #' 
 #' @export
-markersAUCPR <- function(object, clust.1=NULL, clust.2=NULL, cells.1=NULL, cells.2=NULL, clustering=NULL, effect.size=0.25, frac.must.express=0.1, exp.thresh=0, frac.min.diff=0, genes.use=NULL) {
+markersAUCPR <- function(object, clust.1=NULL, clust.2=NULL, cells.1=NULL, cells.2=NULL, clustering=NULL, effect.size=0.25, frac.must.express=0.1, exp.thresh=0, frac.min.diff=0, auc.factor=1, max.auc.threshold=1, genes.use=NULL) {
   if (is.null(genes.use)) genes.use <- rownames(object@logupx.data)
   
   if (is.null(clustering)) {
@@ -156,8 +158,14 @@ markersAUCPR <- function(object, clust.1=NULL, clust.2=NULL, cells.1=NULL, cells
   genes.data$AUCPR <- unlist(lapply(genes.use, function(gene) differentialAUCPR(object@logupx.data[gene,cells.1], object@logupx.data[gene,cells.2])))
   genes.data[is.na(genes.data$AUCPR),"AUCPR"] <- 0
   
+  # Calculate ratio, compared to AUCPR for random classifier, 
+  thresh <- aucprThreshold(cells.1=cells.1, cells.2=cells.2)
+  thresh.select <- min(thresh, max.auc.threshold)
+  genes.data$AUCPR.ratio <- genes.data$AUCPR / thresh
+  genes.data <- genes.data[genes.data$AUCPR >= thresh.select,]
+  
   # Order by AUC
-  genes.data <- genes.data[order(genes.data$AUCPR, decreasing=T),c("AUCPR", "exp.fc", "frac.1", "frac.2", "exp.1", "exp.2")]
+  genes.data <- genes.data[order(genes.data$AUCPR, decreasing=T),c("AUCPR", "AUCPR.ratio", "exp.fc", "frac.1", "frac.2", "exp.1", "exp.2")]
   names(genes.data)[3:6] <- paste(c("posFrac", "posFrac", "nTrans", "nTrans"), c(clust.1, clust.2, clust.1, clust.2), sep="_")
   
   # Return
@@ -298,15 +306,6 @@ binomTestAlongTree <- function(object, pseudotime, tips, log.effect.size=log(2),
     markers.2 <- markers.2[1:keep.markers.until]
     tip.list <- tip.list[1:keep.markers.until]
   }
-  
-  # # Now, determine the remaining markers
-  # if (must.beat.all.sibs) {
-  #   markers.remain <- unique(unlist(lapply(unique(tip.list), function(tip) {
-  #     Reduce(intersect, lapply(markers.2[which(tip.list == tip)], function(m) rownames(m)[m$log.effect > 0]))
-  #   })))
-  # } else {
-  #   markers.remain <- unique(unlist(lapply(markers.2, function(m) rownames(m)[m$log.effect > 0])))
-  # }
 
   # Now, determine how many siblings each marker beats and curate them.
   markers.3 <- markers.2
