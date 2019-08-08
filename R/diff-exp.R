@@ -167,7 +167,7 @@ markersAUCPR <- function(object, clust.1=NULL, clust.2=NULL, cells.1=NULL, cells
   
   # Calculate ratio, compared to AUCPR for random classifier, 
   thresh <- aucprThreshold(cells.1=cells.1, cells.2=cells.2)
-  thresh.select <- min(thresh, max.auc.threshold)
+  thresh.select <- min(thresh * auc.factor, max.auc.threshold)
   genes.data$AUCPR.ratio <- genes.data$AUCPR / thresh
   genes.data <- genes.data[genes.data$AUCPR >= thresh.select,]
   
