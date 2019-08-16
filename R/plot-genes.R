@@ -7,13 +7,27 @@
 #' @param clustering (Character) Name of clustering to use (i.e. a column name of \code{@@group.ids})
 #' @param clusters.use (Character vector) Names of specific clusters to plot (default: all clusters)
 #' @param min.exp (Numeric) Minimum proportion of expressing cells (0-1) to be shown on the plot
+#' @param size.min (Numeric) Point size for clusters with no cells expressing
+#' @param size.max (Numeric) Point size for clusters with all cells expressing
+#' @param scale.by (Character) Should point size scale by \code{radius} or \code{area}? See \code{\link[ggplot2]{scale_radius}} and \code{\link[ggplot2]{scale_size}}.
+#' @param colors (Character vector) Vector of colors to use for a palette.
 #' @param mean.expressing.only (Logical) Should mean expression value exclude cells with no expression
 #' @param title (Character) How should the plot be titled? (Default: no title)
 #' 
 #' @return A ggplot2 object
 #' 
 #' @export
-plotDot <- function(object, genes, clustering, clusters.use=NULL, min.exp=.05, mean.expressing.only=F, title="") {
+plotDot <- function(object, genes, clustering, clusters.use=NULL, min.exp=.05, size.min=0, size.max=5, scale.by=c("radius", "area"), colors=NULL, mean.expressing.only=F, title="") {
+  # Decide on scale function
+  if (length(scale.by) > 1) scale.by <- scale.by[1]
+  if (tolower(scale.by) == "radius") {
+    scale.by <- ggplot2::scale_radius
+  } else if (tolower(scale.by) == "area") {
+    scale.by <- ggplot2::scale_size
+  } else {
+    stop("scale.by must be 'radius' or 'area'.")
+  }
+  
   # Get data out that you want to plot
   cluster.ids <- object@group.ids[colnames(object@logupx.data), clustering]
   if (is.null(clusters.use)) clusters.use <- sort(unique(cluster.ids))
@@ -32,11 +46,16 @@ plotDot <- function(object, genes, clustering, clusters.use=NULL, min.exp=.05, m
   names(expr.melt) <- c("Cluster", "Gene", "Prop.Exp")
   gg.data <- merge(mean.melt, expr.melt)
   
-  # Remove values where proportion expressing is too small and should not be plotted.
+  # Remove values where proportion expressing is too small and should not be plotted
   gg.data <- gg.data[which(gg.data$Prop.Exp >= min.exp),]
   
+  # Turn proportion into %
+  gg.data$Prop.Exp <- 100 * gg.data$Prop.Exp
+
+  if (is.null(colors)) colors <- defaultURDContinuousColors(evenly.spaced=T)
+  
   # Go ahead and ggplot
-  the.plot <- ggplot(data=gg.data, aes(x=Cluster, y=Gene, color=Mean, size=Prop.Exp)) + geom_point() + scale_color_gradientn(colours = defaultURDContinuousColors()) + ggtitle(title) + scale_y_discrete(limits=rev(genes))
+    the.plot <- ggplot(data=gg.data, aes(x=Cluster, y=Gene, color=Mean, size=Prop.Exp)) + geom_point() + scale_color_gradientn(colours = colors) + ggtitle(title) + scale_y_discrete(limits=rev(genes)) + scale.by(range=c(size.min,size.max), name="% Exp", breaks=c(20,40,60,80,100), limits=c(0,100))
   if (!is.null(clusters.use)) the.plot <- the.plot + scale_x_discrete(limits=clusters.use)
   return(the.plot)
 }
@@ -55,7 +74,7 @@ plotDot <- function(object, genes, clustering, clusters.use=NULL, min.exp=.05, m
 #' @return A ggplot2 object
 #' 
 #' @export
-plotViolin <- function(object, labels.plot, clustering, clusters.use=NULL, legend=T, free.axes=F) {
+plotViolin <- function(object, labels.plot, clustering, clusters.use=NULL, legend=T, free.axes=F, point.size=0.2, point.color='black', point.alpha=0.5) {
   # Get data.to.plot
   data.plot <- as.data.frame(lapply(labels.plot, function (label) {
     data.for.plot(object = object, label=label)
@@ -72,7 +91,7 @@ plotViolin <- function(object, labels.plot, clustering, clusters.use=NULL, legen
   data.plot.melt <- reshape2::melt(data.plot, id.vars = c("Cell", "Cluster"))
   data.plot.melt$Cluster <- factor(data.plot.melt$Cluster, levels=cluster.names, ordered=T)
   if (free.axes) {free="free"} else {free="fixed"}
-  the.plot <- ggplot(data.plot.melt, aes(x=Cluster, y=value, fill=Cluster)) + geom_violin() + facet_wrap(~variable, scales=free) + geom_jitter(size=0.5) + ylab("Expression (log2)") + theme_bw()
+  the.plot <- ggplot(data.plot.melt, aes(x=Cluster, y=value, fill=Cluster)) + geom_violin() + facet_wrap(~variable, scales=free) + geom_jitter(size=point.size, color=point.color, alpha=point.alpha) + ylab("Expression (log2)") + theme_bw()
   if (!legend) the.plot <- the.plot + guides(fill=F)
   return(the.plot)
 }

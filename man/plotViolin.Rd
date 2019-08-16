@@ -5,7 +5,8 @@
 \title{Violin plot of gene expression}
 \usage{
 plotViolin(object, labels.plot, clustering, clusters.use = NULL, legend = T,
-  free.axes = F)
+  free.axes = F, point.size = 0.2, point.color = "black",
+  point.alpha = 0.5)
 }
 \arguments{
 \item{object}{An URD object}
