@@ -1,6 +1,6 @@
 #' Moving window through pseudotime
 #' 
-#' Generates lists of cells using a moving window. Size of windows is either determined by pseudotime (if \code{pseudotime.per.window} is set) or by number of cells (if \code{cells.per.window} is set).
+#' Generates lists of cells using a moving window. Size of windows is either determined by pseudotime (if \code{pseudotime.per.window} is set) or by number of cells (if \code{cells.per.window} is set). If both are set, windows are determined by number of cells, but then windows whose pseudotime differ by less than \code{pseudotime.per.window} are collapsed.
 #' 
 #' @param object A URD object
 #' @param pseudotime (Character) Name of column in \code{@@pseudotime} to use for pseudotime
@@ -34,7 +34,6 @@ pseudotimeMovingWindow <- function(object, pseudotime, cells, moving.window, cel
     pt.cut <- cut(pt, n.windows, labels = FALSE)
     c.windows <- lapply(1:n.windows, function(x) return(cells[which(pt.cut==x)]))
     
-    
   } else {
     n.windows <- round(length(cells) / cells.per.window)
     c.windows.end <- round((1:n.windows) * (length(cells) / n.windows))
@@ -55,6 +54,58 @@ pseudotimeMovingWindow <- function(object, pseudotime, cells, moving.window, cel
   if (length(name.by) > 1) name.by <- name.by[1]
   namefunc <- get(name.by)
   names(pt.windows) <- round(unlist(lapply(pt.windows, function(window.cells) namefunc(object@pseudotime[window.cells,pseudotime]))), digits=3)
+  
+  return(pt.windows)
+}
+
+pseudotimeMovingWindow <- function(object, pseudotime, cells, moving.window, cells.per.window=NULL, pseudotime.per.window=NULL, name.by=c("mean","min","max")) {
+  # Configure function to work based on mode
+  # This is a hacky patch...
+  if (!is.null(pseudotime.per.window) && is.null(cells.per.window)) {
+    moving.pt.window <- T
+  } else if (!is.null(cells.per.window)) {
+    moving.pt.window <- F
+  } else stop("Define either cells.per.window or pseudotime.per.window.")
+  
+  # Figure out pseudotime of cells
+  pt <- object@pseudotime[cells,pseudotime]
+  pt.order <- order(pt)
+  
+  # Figure out window size
+  if (moving.pt.window) {
+    n.windows <- round((max(pt,na.rm=T)-min(pt,na.rm=T)) / pseudotime.per.window)
+    pt.cut <- cut(pt, n.windows, labels = FALSE)
+    c.windows <- lapply(1:n.windows, function(x) return(cells[which(pt.cut==x)]))
+  } else {
+    n.windows <- round(length(cells) / cells.per.window)
+    c.windows.end <- round((1:n.windows) * (length(cells) / n.windows))
+    c.windows.start <- c(0,head(c.windows.end, -1))+1
+    c.windows <- lapply(1:n.windows, function(window) return(cells[pt.order[c.windows.start[window]:c.windows.end[window]]]))
+  }
+  
+  # Assign cells to windows
+  i.windows <- embed(x=1:n.windows, dimension=moving.window)
+  pt.windows <- lapply(1:dim(i.windows)[1], function(window) unlist(c.windows[i.windows[window,]]))
+  
+  # Remove any empty window (can occur in pseudotime.per.window mode)
+  if (moving.pt.window) {
+    pt.windows <- pt.windows[which(unlist(lapply(pt.windows, length))>0)]
+  }
+  
+  # Figure out min/mean/max pseudotime of each window and name list.
+  if (length(name.by) > 1) name.by <- name.by[1]
+  namefunc <- get(name.by)
+  names(pt.windows) <- round(unlist(lapply(pt.windows, function(window.cells) namefunc(object@pseudotime[window.cells,pseudotime]))), digits=3)
+  
+  # If both cells.per.window & pseudotime.per.window, collapse windows with not enough pseudotime diff
+  if (!is.null(cells.per.window) && !is.null(pseudotime.per.window)) {
+    window.pt.int <- floor(as.numeric(names(pt.windows)) / pseudotime.per.window)
+    pt.windows.new <- lapply(unique(window.pt.int), function(i) {
+      unique(unlist(pt.windows[which(window.pt.int == i)]))
+    })
+    names(pt.windows.new) <- round(unlist(lapply(pt.windows.new, function(window.cells) namefunc(object@pseudotime[window.cells,pseudotime]))), digits=3)
+    pt.windows <- pt.windows.new
+  }
   
   return(pt.windows)
 }
