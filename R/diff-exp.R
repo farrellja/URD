@@ -150,7 +150,8 @@ markersAUCPR <- function(object, clust.1=NULL, clust.2=NULL, cells.1=NULL, cells
     exp.1=round(apply(object@logupx.data[genes.use, cells.1, drop=F], 1, mean.of.logs), digits=3),
     exp.2=round(apply(object@logupx.data[genes.use, cells.2, drop=F], 1, mean.of.logs), digits=3)
   )
-  genes.data$exp.fc <- genes.data$exp.1 - genes.data$exp.2
+  genes.data$exp.fc <- log2((2^genes.data$exp.1-1)/(2^genes.data$exp.2-1))
+  #genes.data$exp.fc <- genes.data$exp.1 - genes.data$exp.2
   
   # Throw out genes that don't mark either population or obviously change between the two
   # populations to reduce downstream computation.
