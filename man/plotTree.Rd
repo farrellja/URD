@@ -10,7 +10,8 @@ plotTree(object, label = NULL, label.type = "search", title = label,
   cell.alpha = 0.25, cell.size = 0.5, label.x = T, label.segments = F,
   discrete.ignore.na = F, color.tree = NULL, continuous.colors = NULL,
   discrete.colors = NULL, color.limits = NULL,
-  symmetric.color.scale = NULL, hide.y.ticks = T)
+  symmetric.color.scale = NULL, hide.y.ticks = T, cells.highlight = NULL,
+  cells.highlight.alpha = 1, cells.highlight.size = 2)
 }
 \arguments{
 \item{object}{An URD object}
@@ -54,6 +55,12 @@ plotTree(object, label = NULL, label.type = "search", title = label,
 \item{symmetric.color.scale}{(Logical) Should the color scale be symmetric and centered around 0? (Default \code{NULL} is \code{FALSE} if all values are positive, and \code{TRUE} if both positive and negative values are present.)}
 
 \item{hide.y.ticks}{(Logical) Should the pseudotime values on the y-axis be hidden?}
+
+\item{cells.highlight}{(Character vector) Group of cells to plot last, ensuring that they are highlighted on the tree.}
+
+\item{cells.highlight.alpha}{(Numeric) Transparency of highlighted cells (0 is transparent, 1 is opaque)}
+
+\item{cells.highlight.size}{(Numeric) Size of highlighted cells}
 
 \item{plot.tree}{(Logical) Whether cells should be plotted with the tree}
 }
