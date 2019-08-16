@@ -278,41 +278,33 @@ cropSmoothFit <- function(smoothed.fit, pt.min=-Inf, pt.max=Inf) {
 
 #' Gene Smooth: Combine smoothed fits
 #' 
-#' ???
+#' This function takes a list of smoothed.fits (i.e. output from \code{\link{geneSmoothFit}}) and combines them in the order provided into a single smoothed fit. This is useful, for instance, for combining multiple pieces of fits together for plotting on a heatmap with several panels.
 #' 
-#' @param smoothed.fit (List) A list of smoothed.fits to combine
-#' @param fits.use (Character) Names of smoothed.fits in the list to use
-#' @return (List) 
-#' @keywords internal
-combineSmoothFit <- function(smoothed.fit, fits.use) {
-  # Grab those smoothed fits that you want to use
-  if (!all(fits.use %in% names(smoothed.fit))) {
-    absent.names <- setdiff(fits.use, names(smoothed.fit))
-    stop("The following fits.use are not present in smoothed.fit: ", paste(absent.names, collapse=" "))
-  }
-  smoothed.fit <- smoothed.fit[fits.use]
-  
+#' @param fit.list (List) A list of smoothed.fits to combine
+#' @return (List) Akin to a single output from \code{\link{geneSmoothFit}}.
+#' @export
+#' 
+combineSmoothFit <- function(fit.list) {
   # Grab pseudotime names
-  pt.names.full <- unlist(lapply(smoothed.fit, function(x) colnames(x$mean.expression)))
-  pt.names.red <- unlist(lapply(smoothed.fit, function(x) colnames(x$mean.smooth)))
+  pt.names.full <- unlist(lapply(fit.list, function(x) colnames(x$mean.expression)))
+  pt.names.red <- unlist(lapply(fit.list, function(x) colnames(x$mean.smooth)))
   
   # Combine the many elements of each entry in the list
-  out.mean.expression <- do.call("cbind", lapply(smoothed.fit, function(x) x$mean.expression))
+  out.mean.expression <- do.call("cbind", lapply(fit.list, function(x) x$mean.expression))
   colnames(out.mean.expression) <- pt.names.full
-  out.scaled.expression <- do.call("cbind", lapply(smoothed.fit, function(x) x$scaled.expression))
-  colnames(out.scaled.expression) <- pt.names.full
-  out.mean.smooth <- do.call("cbind", lapply(smoothed.fit, function(x) x$mean.smooth))
+  out.mean.smooth <- do.call("cbind", lapply(fit.list, function(x) x$mean.smooth))
   colnames(out.mean.smooth) <- pt.names.red
-  out.scaled.smooth <- do.call("cbind", lapply(smoothed.fit, function(x) x$scaled.smooth))
-  colnames(out.scaled.smooth) <- pt.names.red
-  out.mean.expression.red <- do.call("cbind", lapply(smoothed.fit, function(x) x$mean.expression.red))
+  out.mean.expression.red <- do.call("cbind", lapply(fit.list, function(x) x$mean.expression.red))
   colnames(out.mean.expression.red) <- pt.names.red
-  out.scaled.expression.red <- do.call("cbind", lapply(smoothed.fit, function(x) x$scaled.expression.red))
-  colnames(out.scaled.expression.red) <- pt.names.red
-  out.method <- unique(unlist(lapply(smoothed.fit, function(x) x$method)))
+  out.method <- unique(unlist(lapply(fit.list, function(x) x$method)))
   if (length(out.method) > 1) warning("Smoothing method of all inputs was not the same.")
-  out.pt.windows <- unlist(lapply(smoothed.fit, function(x) x$pt.windows), recursive = F)
+  out.pt.windows <- unlist(lapply(fit.list, function(x) x$pt.windows), recursive = F)
   names(out.pt.windows) <- pt.names.full
+  
+  # Re-scale scaled values according to the max of any present 
+  out.scaled.expression <- sweep(out.mean.expression, 1, apply(out.mean.expression, 1, max), "/")
+  out.scaled.smooth <- sweep(out.mean.smooth, 1, apply(out.mean.smooth, 1, max), "/")
+  out.scaled.expression.red <- sweep(out.mean.expression.red, 1, apply(out.mean.expression.red, 1, max), "/")
   
   # Return a new list
   return(list(
