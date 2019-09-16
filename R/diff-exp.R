@@ -448,13 +448,12 @@ aucprTestAlongTree <- function(object, pseudotime, tips, log.effect.size=0.25, a
             stats <- rbind(stats, c(n.1, n.2, pt.1.mean, pt.2.mean, pt.1.median, pt.2.median, genes.1.mean, genes.2.mean, genes.1.median, genes.2.median, trans.1.mean, trans.2.mean, trans.1.median, trans.2.median))
           }
           # Test for markers of these cells with AUCPR test
-          these.markers <- markersAUCPR(object=object, cells.1=cells.1, cells.2=cells.2, genes.use=genes.use, effect.size=log.effect.size, frac.must.express=frac.must.express, frac.min.diff=frac.min.diff)
-          these.markers$AUCPR.ratio <- these.markers$AUCPR / aucprThreshold(cells.1, cells.2, factor=1, max.auc=Inf)
+          these.markers <- markersAUCPR(object=object, cells.1=cells.1, cells.2=cells.2, genes.use=genes.use, effect.size=log.effect.size, frac.must.express=frac.must.express, frac.min.diff=frac.min.diff, auc.factor = auc.factor, max.auc.threshold = max.auc.threshold)
           # Since AUCPR is not symmetric, must test explicitly for markers of the other branch ("anti-marker")
-          these.anti.markers <- markersAUCPR(object=object, cells.1=cells.2, cells.2=cells.1, genes.use=genes.use, effect.size=log.effect.size, frac.must.express=frac.must.express, frac.min.diff=frac.min.diff)
+          these.anti.markers <- markersAUCPR(object=object, cells.1=cells.2, cells.2=cells.1, genes.use=genes.use, effect.size=log.effect.size, frac.must.express=frac.must.express, frac.min.diff=frac.min.diff, auc.factor = auc.factor, max.auc.threshold = max.auc.threshold)
           # Limit markers to those that pass the minimum AUC and are positive markers of their respective branch
-          markers[[(length(markers)+1)]] <- these.markers[these.markers$AUCPR >= aucprThreshold(cells.1, cells.2, factor = auc.factor, max.auc = max.auc.threshold) & these.markers$exp.fc > 0,]
-          anti.markers[[(length(anti.markers)+1)]] <- these.anti.markers[these.anti.markers$AUCPR >= aucprThreshold(cells.2, cells.1, factor = auc.factor, max.auc = max.auc.threshold) & these.anti.markers$exp.fc > 0,]
+          markers[[(length(markers)+1)]] <- these.markers[these.markers$exp.fc > 0,]
+          anti.markers[[(length(anti.markers)+1)]] <- these.anti.markers[these.anti.markers$exp.fc > 0,]
           names(markers)[length(markers)] <- paste0(current.tip, "-", opposing.tip)
           names(anti.markers)[length(anti.markers)] <- paste0(current.tip, "-", opposing.tip)
         }
@@ -507,19 +506,17 @@ aucprTestAlongTree <- function(object, pseudotime, tips, log.effect.size=0.25, a
   
   # Summarize data by calculating across _all_ cells considered, and also max and min passing (by AUCPR.ratio) in any branch.
   if (only.return.global) {
-    markers.summary <- markersAUCPR(object=object, cells.1=cells.1.all, cells.2=cells.2.all, genes.use=markers.remain, frac.must.express = frac.must.express, effect.size=log.effect.size, frac.min.diff=frac.min.diff)
-    markers.summary <- markers.summary[markers.summary$AUCPR >= aucprThreshold(cells.1.all, cells.2.all, factor = auc.factor, max.auc = max.auc.threshold),]
+    markers.summary <- markersAUCPR(object=object, cells.1=cells.1.all, cells.2=cells.2.all, genes.use=markers.remain, frac.must.express = frac.must.express, effect.size=log.effect.size, frac.min.diff=frac.min.diff, auc.factor = auc.factor, max.auc.threshold = max.auc.threshold)
   } else {
     markers.summary <- markersAUCPR(object=object, cells.1=cells.1.all, cells.2=cells.2.all, genes.use=markers.remain, frac.must.express = 0, effect.size=0, frac.min.diff=0)
   }
-  markers.summary$AUCPR.ratio <- markers.summary$AUCPR / aucprThreshold(cells.1.all, cells.2.all, factor=auc.factor, max.auc=Inf)
-  names(markers.summary) <- c("AUCPR.all", "expfc.all", "posFrac_lineage", "posFrac_rest", "nTrans_lineage", "nTrans_rest", "AUCPR.ratio.all")
+  names(markers.summary) <- c("AUCPR.all", "AUCPR.ratio.all", "expfc.all", "posFrac_lineage", "posFrac_rest", "nTrans_lineage", "nTrans_rest")
   markers.max.segment <- c()
   markers.max <- lapply(rownames(markers.summary), function(marker) {
     id <- which.max(unlist(lapply(markers.3, function(x) x[marker,"AUCPR.ratio"])))
     to.return <- markers.3[[id]][marker,]
     markers.max.segment <<- c(markers.max.segment, names(markers.3)[id])
-    names(to.return) <- c("AUCPR_maxBranch", "expfc.maxBranch", "posFrac_maxBranch", "posFrac_opposingMaxBranch", "nTrans_maxBranch", "nTrans_opposingMaxBranch", "AUCPR.ratio.maxBranch")
+    names(to.return) <- c("AUCPR_maxBranch", "AUCPR.ratio.maxBranch", "expfc.maxBranch", "posFrac_maxBranch", "posFrac_opposingMaxBranch", "nTrans_maxBranch", "nTrans_opposingMaxBranch")
     return(to.return)  
   })
   markers.max <- do.call(what = "rbind", markers.max)
@@ -528,7 +525,7 @@ aucprTestAlongTree <- function(object, pseudotime, tips, log.effect.size=0.25, a
     id <- which.min(unlist(lapply(markers.3, function(x) x[marker,"AUCPR.ratio"])))
     to.return <- markers.3[[id]][marker,]
     markers.min.segment <<- c(markers.min.segment, names(markers.3)[id])
-    names(to.return) <- c("AUCPR_minBranch", "expfc.minBranch", "posFrac_minBranch", "posFrac_opposingMinBranch", "nTrans_minBranch", "nTrans_opposingMinBranch", "AUCPR.ratio.minBranch")
+    names(to.return) <- c("AUCPR_minBranch", "AUCPR.ratio.minBranch", "expfc.minBranch", "posFrac_minBranch", "posFrac_opposingMinBranch", "nTrans_minBranch", "nTrans_opposingMinBranch")
     return(to.return)  
   })
   markers.min <- do.call(what = "rbind", markers.min)
