@@ -158,7 +158,7 @@ markersAUCPR <- function(object, clust.1=NULL, clust.2=NULL, cells.1=NULL, cells
   genes.use <- names(which(
     (apply(genes.data[,c("frac.1", "frac.2")], 1, max) > frac.must.express) &
     (apply(genes.data[,c("frac.1", "frac.2")], 1, function(x) abs(diff(x))) > frac.min.diff) & 
-    (apply(genes.data[,c("exp.1", "exp.2")], 1, function(x) abs(diff(x))) > effect.size)
+    (genes.data$exp.fc > effect.size)
   ))
   genes.data <- genes.data[genes.use,]
   
