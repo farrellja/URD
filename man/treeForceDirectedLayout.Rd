@@ -5,12 +5,13 @@
 \title{Generate force-directed layout using tip-walk data.}
 \usage{
 treeForceDirectedLayout(object, num.nn = NULL, method = c("fr", "drl",
-  "kk"), cells.to.do = NULL, cut.outlier.cells = NULL,
-  cut.outlier.edges = NULL, max.pseudotime.diff = NULL,
-  cut.unconnected.segments = 2, min.final.neighbors = 2,
-  remove.duplicate.cells = T, tips = object@tree$tips, coords = "auto",
-  start.temp = NULL, n.iter = NULL, density.neighbors = 10,
-  plot.outlier.cuts = F, verbose = F)
+  "kk"), cells.to.do = NULL, cell.minimum.walks = 1,
+  cut.outlier.cells = NULL, cut.outlier.edges = NULL,
+  max.pseudotime.diff = NULL, cut.unconnected.segments = 2,
+  min.final.neighbors = 2, remove.duplicate.cells = T,
+  tips = object@tree$tips, coords = "auto", start.temp = NULL,
+  n.iter = NULL, density.neighbors = 10, plot.outlier.cuts = F,
+  verbose = F)
 }
 \arguments{
 \item{object}{An URD object}
@@ -20,6 +21,8 @@ treeForceDirectedLayout(object, num.nn = NULL, method = c("fr", "drl",
 \item{method}{(Character: "fr", "drl", or "kk") Which force-directed layout algorithm to use (\link[igraph:layout_with_fr]{Fruchterman-Reingold}, \link[igraph:layout_with_drl]{DrL}, or \link[igraph:layout_with_kk]{Kamada-Kawai})}
 
 \item{cells.to.do}{(Character vector) Cells to use in the layout (default \code{NULL} is all cells in the tree.)}
+
+\item{cell.minimum.walks}{(Numeric) Minimum number of times a cell must have been visited by random walks in order to be included in the force-directed layout (Cells that have been visited only a few times are more likely to be assigned incorrectly or poorly.)}
 
 \item{cut.outlier.cells}{(Numeric) If desired, omit cells with unusual second nearest neighbor distances (i.e. those that are likely outliers only well connected to one other cell). Parameter is given as a factor of the interquartile range calculated across all cells' distance to their second nearest neighbor. (Default is not to omit any cells.)}
 
@@ -83,7 +86,7 @@ layout, we used these functions to move the completely disconnected EVL and PGC 
 into place and to increase the angular distance at the first branchpoint in the blastoderm
 so that the more fine-grained branches from the different germ layers didn't overlap.)
 
-Thanks for Dorde Relic for debugging and creating the \code{remove.duplicate.cells} parameter.
+Thanks for Dorde Relic for debugging and creating the \code{remove.duplicate.cells} parameter and Simon Cai for debugging that led to the \code{cell.minimum.walks} parameter.
 }
 \examples{
 object.built <- treeForceDirectedLayout(object.built, num.nn=120, pseudotime="pseudotime", method = "fr", dim = 2, cells.to.do = robustly.visited.cells, tips=final.tips, cut.unconnected.segments = 2, min.final.neighbors=4, verbose=T)
