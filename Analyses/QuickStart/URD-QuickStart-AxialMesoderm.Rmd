@@ -270,8 +270,8 @@ We can then plot any metadata or gene expression on the dendrogram recovered by 
 plotTree(axial.tree, "stage", title="Developmental Stage")
 plotTree(axial.tree, "GSC", title="GSC (early prechordal plate marker)")
 plotTree(axial.tree, "NOTO", title="NOTO (early notochord marker)")
-plotTree(axial.tree, "HE1A", title="HE1A (prechordal plate differentiation marker")
-plotTree(axial.tree, "COL8A1A", title="COL8A1A (notochord differentiation marker")
+plotTree(axial.tree, "HE1A", title="HE1A (prechordal plate differentiation marker)")
+plotTree(axial.tree, "COL8A1A", title="COL8A1A (notochord differentiation marker)")
 ```
 
 Additionally, we can refer back to the tSNE representation to see where the branchpoint
