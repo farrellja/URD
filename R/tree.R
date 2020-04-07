@@ -88,6 +88,10 @@ buildTree <- function(object, pseudotime, tips.use=NULL, divergence.method=c("ks
   if (weighted.fusion) {
     tip.size <- unlist(lapply(object@tree$cells.in.tip, length))
     if (length(tip.size)==0) stop("Either weighted.fusion must be false, or loadTipCells must be run prior.")
+    tip.size <- tip.size[tip.size > 0]
+    if !all(tips.use %in% names(tip.size)) {
+      stop(paste0("tips.use included tips (", paste0(setdiff(tips.use, names(tip.size)), collapse=", "), ") for which no cells were defined by loadTipCells. Does that tip exist in your tip clustering?"))
+    }
   }
   # Load the pseudotime used into the tree object for use later with plotting
   object@tree$pseudotime <- object@pseudotime[,pseudotime]
