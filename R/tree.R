@@ -80,6 +80,11 @@ buildTree <- function(object, pseudotime, tips.use=NULL, divergence.method=c("ks
   # Check divergence.method parameter
   if (length(divergence.method) > 1) divergence.method <- divergence.method[1]
   if (!(divergence.method %in% c("ks", "preference"))) stop("Divergence method must be 'ks' or 'preference'.")
+  # If tips were not specified, define them.
+  if (is.null(tips.use)) {
+    tips.use <- suppressWarnings(as.character(setdiff(as.numeric(gsub("visitfreq.raw.", "", grep("visitfreq.raw.", colnames(object@diff.data), value=T))), NA)))
+    if (verbose) message(paste0("Tips not provided, so using: ", paste0(tips.use, collapse=", ")))
+  }
   # Make sure tips is a character vector
   tips <- as.character(tips.use)
   # Record tips for posterity
