@@ -13,7 +13,7 @@ Imports:
 	destiny,
 	diptest,
 	gdata,
-	ggraph,
+	ggraph (< 2.0.0),
 	gmodels,
 	gplots,
 	gridExtra,
