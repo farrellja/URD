@@ -9,6 +9,7 @@
 #' @references Pandey S, Shekhar K, Regev A, and Schier AF. Comprehensive Identification and Spatial Mapping of Habenular Neuronal Types Using Single-Cell RNA-Seq. 2018. Current Biology 28(7):1052-1065. DOI: https://doi.org/10.1016/j.cub.2018.02.040
 #' 
 #' @importFrom MASS fitdistr
+#' @importFrom Matrix rowMeans
 #' 
 #' @param object An URD object
 #' @param cells.fit (Character Vector) Cells to use for finding variable genes (if \code{NULL}, uses all cells.)
@@ -18,6 +19,7 @@
 #' @param mean.max (Numeric) Genes must have less than this maximum mean expression to be selected (Use to eliminate the high end if the null distribution fits very poorly there)
 #' @param main.use (Character) Title to display for the overall three-panel plot
 #' @param do.plot (Logical) Whether or not to display plots
+#' @param max.genes.in.ram (Numeric) Maximum number of genes to process at a time. This can be used to prevent memory errors on large data sets.
 #' 
 #' @return Either an URD object with \code{@@var.genes} set (if \code{set.object.var.genes=T}) or character vector of variable genes (if \code{set.object.var.genes=F})
 #' 
@@ -30,7 +32,7 @@
 #' 
 #' @export
 
-findVariableGenes <- function(object, cells.fit=NULL, set.object.var.genes=T, diffCV.cutoff=0.5, mean.min=0.005, mean.max=100, main.use="", do.plot=T) {
+findVariableGenes <- function(object, cells.fit=NULL, set.object.var.genes=T, diffCV.cutoff=0.5, mean.min=0.005, mean.max=100, main.use="", do.plot=T, max.genes.in.ram=1.6e9/ncol(object@count.data)) {
   
   # Format for the plot
   if (do.plot) par(mfrow=c(1,3), oma=c(0,0,2,0))
@@ -39,12 +41,12 @@ findVariableGenes <- function(object, cells.fit=NULL, set.object.var.genes=T, di
   if (is.null(cells.fit)) cells.fit <- colnames(object@count.data)
   
   # Calculate empirical mean, var and CV
-  mean_emp <- apply(object@count.data[,cells.fit], 1, mean)
-  var_emp <- apply(object@count.data[,cells.fit], 1, var)
+  mean_emp <- Matrix::rowMeans(object@count.data[,cells.fit])
+  var_emp <- sparseApply(object@count.data[,cells.fit], 1, var, max.dim = max.genes.in.ram, verbose=T)
   cv_emp <- sqrt(var_emp) / mean_emp
   
   # Fit gamma distribution to 'size factors' to build negative binomial
-  a <- colSums(object@count.data[,cells.fit])
+  a <- Matrix::colSums(object@count.data[,cells.fit])
   size_factor <- a/mean(a)
   fit <- fitdistr(size_factor, "Gamma")
   if (do.plot) {

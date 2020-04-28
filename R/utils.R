@@ -52,3 +52,67 @@ is.wholenumber <- function(x) {
   return(ceiling(x) == floor(x))
 }
 
+#' Equivalent of apply function for sparse matrices from Matrix
+#' 
+#' Matrix package will 'automagically' and silently convert dgCMatrix sparse matrices to a
+#' dense matrix when they are passed to the apply function. While rowMeans, colMeans, rowSums,
+#' and colSums functions exist to reduce need for apply function, sometimes other functions
+#' are needed. For loops are remarkably inefficient, so this will chunk the original matrix into
+#' pieces, process them using apply, convert the results back to sparse if needed, then assemble
+#' into a final result and return. It's a mediocre balance between memory usage and speed.
+#' 
+#' @param x (dgCMatrix) Input
+#' @param margin (Numeric) \code{1} for rows, \code{2} for columns
+#' @param fun (Function)
+#' @param max.dim (Numeric) Number of rows or columns to process at a time
+#' @param verbose (Logical) Report progress reports on chunks
+#' @param ... Additional arguments to pass to \code{fun}
+#' 
+#' @keywords internal
+#' @export
+sparseApply <- function(x, margin, fun, max.dim, verbose=F, ...) {
+  if (class(x) != "dgCMatrix") stop ("Designed to be used with sparse matrices.")
+  # Calculate sizes of chunks
+  n.chunks <- ceiling(dim(x)[margin] / max.dim)
+  dim.chunk <- dim(x)[margin]
+  # If only one chunk, then just use apply even though it's inefficient
+  if (n.chunks == 1) return(apply(x, margin, fun, ...))
+  if (margin == 1) {
+    # Cut data into chunks and process individually
+    done.chunks <- lapply(1:n.chunks, function(chunk) {
+      if (verbose) message(paste0(Sys.time(), ":   Chunk ", chunk, " of ", n.chunks))
+      shhh <- gc()
+      i <- (chunk-1) * max.dim + 1
+      j <- min((chunk * max.dim), dim.chunk)
+      k <- apply(x[i:j,], MARGIN = margin, FUN = fun, ...)
+      # Make sure matrices stay sparse
+      if (class(k) == "matrix") k <- as(k, "dgCMatrix")
+      return(k)
+    })
+    # Put results together and return
+    if (class(done.chunks[[1]]) == "dgCMatrix") {
+      return(do.call("cbind", done.chunks))
+    } else {
+      return(unlist(done.chunks))
+    }
+  }
+  if (margin == 2) {
+    # Cut data into chunks and process individually
+    done.chunks <- lapply(1:n.chunks, function(chunk) {
+      if (verbose) message(paste0(Sys.time(), ":   Chunk ", chunk, " of ", n.chunks))
+      shhh <- gc()
+      i <- (chunk-1) * max.dim + 1
+      j <- min((chunk * max.dim), dim.chunk)
+      k <- apply(x[,i:j], MARGIN = margin, FUN = fun, ...)
+      # Make sure matrices stay sparse
+      if (class(k) == "matrix") k <- as(k, "dgCMatrix")
+      return(k)
+    })
+    # Put results together and return
+    if (class(done.chunks[[1]]) == "dgCMatrix") {
+      return(do.call("rbind", done.chunks))
+    } else {
+      return(unlist(done.chunks))
+    }
+  }
+}

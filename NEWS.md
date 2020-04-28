@@ -1,5 +1,14 @@
 # News
 
+## 1.1.1.9000 - debug in progress
+
+### Added
+- `sparseApply` to use in place of `apply` on sparse matrices to prevent memory errors resulting from silent densification.
+
+### Changed
+- Fixed errors in `createURD` that would result from silent conversion of sparse matrix to dense matrix and create memory errors with large cell numbers.
+- Fixed error in `findVariableGenes` that would result from silent conversion of sparse matrix to dense matrix and create memory errors with large cell numbers.
+
 ## 1.1.1 - April 28, 2020
 This release incorporates fixes to many bugs uncovered by users over the last several months.
 

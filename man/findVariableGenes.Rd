@@ -12,7 +12,8 @@ findVariableGenes(
   mean.min = 0.005,
   mean.max = 100,
   main.use = "",
-  do.plot = T
+  do.plot = T,
+  max.genes.in.ram = 1.6e+09/ncol(object@count.data)
 )
 }
 \arguments{
@@ -31,6 +32,8 @@ findVariableGenes(
 \item{main.use}{(Character) Title to display for the overall three-panel plot}
 
 \item{do.plot}{(Logical) Whether or not to display plots}
+
+\item{max.genes.in.ram}{(Numeric) Maximum number of genes to process at a time. This can be used to prevent memory errors on large data sets.}
 }
 \value{
 Either an URD object with \code{@var.genes} set (if \code{set.object.var.genes=T}) or character vector of variable genes (if \code{set.object.var.genes=F})
