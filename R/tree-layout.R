@@ -19,6 +19,7 @@ treeLayoutDendrogram <- function(object) {
   igraph.layout <- create_layout(object@tree$tree.igraph, layout="dendrogram")
   # Label segments in layout
   igraph.layout$segment <- as.character(igraph.layout$name)
+  rownames(igraph.layout) <- igraph.layout$segment
   # Add it to the object
   object@tree$segment.layout <- igraph.layout
   
