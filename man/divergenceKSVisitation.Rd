@@ -4,8 +4,12 @@
 \alias{divergenceKSVisitation}
 \title{Calculate visitation divergence using KS-test}
 \usage{
-divergenceKSVisitation(visit.data, pseudotime.windows, cells.segment.1,
-  cells.segment.2)
+divergenceKSVisitation(
+  visit.data,
+  pseudotime.windows,
+  cells.segment.1,
+  cells.segment.2
+)
 }
 \arguments{
 \item{visit.data}{(data.frame) Rows are cells, columns are: "segment.1" and "segment.2" (visitation frequency from random walks

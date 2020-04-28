@@ -4,13 +4,32 @@
 \alias{plotDim}
 \title{Dimensionality Reduction Plot}
 \usage{
-plotDim(object, label, label.type = "search", reduction.use = c("tsne",
-  "pca", "dm"), dim.x = 1, dim.y = 2, colors = NULL,
-  discrete.colors = NULL, point.size = 1, alpha = 1, point.shapes = F,
-  plot.title = label, legend = T, legend.title = "",
-  legend.point.size = 3 * point.size, label.clusters = F, cells = NULL,
-  x.lim = NULL, y.lim = NULL, color.lim = NULL, na.rm = F,
-  transitions.plot = 0, transitions.alpha = 0.5, transitions.df = NULL)
+plotDim(
+  object,
+  label,
+  label.type = "search",
+  reduction.use = c("tsne", "pca", "dm"),
+  dim.x = 1,
+  dim.y = 2,
+  colors = NULL,
+  discrete.colors = NULL,
+  point.size = 1,
+  alpha = 1,
+  point.shapes = F,
+  plot.title = label,
+  legend = T,
+  legend.title = "",
+  legend.point.size = 3 * point.size,
+  label.clusters = F,
+  cells = NULL,
+  x.lim = NULL,
+  y.lim = NULL,
+  color.lim = NULL,
+  na.rm = F,
+  transitions.plot = 0,
+  transitions.alpha = 0.5,
+  transitions.df = NULL
+)
 }
 \arguments{
 \item{object}{An URD object}

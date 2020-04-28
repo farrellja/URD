@@ -4,10 +4,22 @@
 \alias{geneCascadeProcess}
 \title{Gene Cascade: Fit expression of genes}
 \usage{
-geneCascadeProcess(object, pseudotime, cells, genes, moving.window = 3,
-  cells.per.window = NULL, pseudotime.per.window = NULL, scale.data = T,
-  k = 50, pt.windows = NULL, interpolate = NULL, pulse.only = T,
-  verbose = T, verbose.genes = F)
+geneCascadeProcess(
+  object,
+  pseudotime,
+  cells,
+  genes,
+  moving.window = 3,
+  cells.per.window = NULL,
+  pseudotime.per.window = NULL,
+  scale.data = T,
+  k = 50,
+  pt.windows = NULL,
+  interpolate = NULL,
+  pulse.only = T,
+  verbose = T,
+  verbose.genes = F
+)
 }
 \arguments{
 \item{object}{An URD object}

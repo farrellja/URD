@@ -4,9 +4,17 @@
 \alias{dsMetaTrim}
 \title{Plot and trim Dropseq DGE tables by metadata}
 \usage{
-dsMetaTrim(dge.table, ds.meta, cell.name = "CELL", meta.name,
-  meta.min = NULL, meta.max = NULL, title = "UMIs per cell",
-  x.lim = NULL, breaks = 150)
+dsMetaTrim(
+  dge.table,
+  ds.meta,
+  cell.name = "CELL",
+  meta.name,
+  meta.min = NULL,
+  meta.max = NULL,
+  title = "UMIs per cell",
+  x.lim = NULL,
+  breaks = 150
+)
 }
 \arguments{
 \item{dge.table}{(Matrix or data.frame) Gene expression table}

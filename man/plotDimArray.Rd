@@ -4,9 +4,16 @@
 \alias{plotDimArray}
 \title{Dimensionality Reduction Plot Array}
 \usage{
-plotDimArray(object, reduction.use = c("dm", "pca"), dims.to.plot,
-  outer.title = NULL, file = NULL, file.width = 750, file.height = 600,
-  ...)
+plotDimArray(
+  object,
+  reduction.use = c("dm", "pca"),
+  dims.to.plot,
+  outer.title = NULL,
+  file = NULL,
+  file.width = 750,
+  file.height = 600,
+  ...
+)
 }
 \arguments{
 \item{object}{An URD object}

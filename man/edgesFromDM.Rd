@@ -4,8 +4,12 @@
 \alias{edgesFromDM}
 \title{Create an edge list from the transition matrix of the diffusion map}
 \usage{
-edgesFromDM(object, cells = NULL, include.connected.cells = F,
-  edges.return = NULL)
+edgesFromDM(
+  object,
+  cells = NULL,
+  include.connected.cells = F,
+  edges.return = NULL
+)
 }
 \arguments{
 \item{object}{An URD object}

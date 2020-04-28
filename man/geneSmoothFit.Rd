@@ -4,9 +4,19 @@
 \alias{geneSmoothFit}
 \title{Gene Smooth: Fit expression of genes}
 \usage{
-geneSmoothFit(object, pseudotime, cells, genes, method = c("lowess",
-  "spline"), moving.window = 3, cells.per.window = NULL,
-  pseudotime.per.window = NULL, verbose = T, verbose.genes = F, ...)
+geneSmoothFit(
+  object,
+  pseudotime,
+  cells,
+  genes,
+  method = c("lowess", "spline"),
+  moving.window = 3,
+  cells.per.window = NULL,
+  pseudotime.per.window = NULL,
+  verbose = T,
+  verbose.genes = F,
+  ...
+)
 }
 \arguments{
 \item{object}{An URD object}

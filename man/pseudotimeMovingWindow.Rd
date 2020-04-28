@@ -4,9 +4,15 @@
 \alias{pseudotimeMovingWindow}
 \title{Moving window through pseudotime}
 \usage{
-pseudotimeMovingWindow(object, pseudotime, cells, moving.window,
-  cells.per.window = NULL, pseudotime.per.window = NULL,
-  name.by = c("mean", "min", "max"))
+pseudotimeMovingWindow(
+  object,
+  pseudotime,
+  cells,
+  moving.window,
+  cells.per.window = NULL,
+  pseudotime.per.window = NULL,
+  name.by = c("mean", "min", "max")
+)
 }
 \arguments{
 \item{object}{A URD object}

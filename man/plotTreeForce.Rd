@@ -4,16 +4,31 @@
 \alias{plotTreeForce}
 \title{Plot force-directed layout of tree}
 \usage{
-plotTreeForce(object, label, label.type = "search", view = "default",
-  alpha = 0.8, alpha.fade = 0.1, size = 5, title = NULL,
-  title.cex = 3, title.line = 0,
+plotTreeForce(
+  object,
+  label,
+  label.type = "search",
+  view = "default",
+  alpha = 0.8,
+  alpha.fade = 0.1,
+  size = 5,
+  title = NULL,
+  title.cex = 3,
+  title.line = 0,
   label.tips = (!is.null(object@tree$segment.names) |
-  !is.null(object@tree$segment.names.short)),
+    !is.null(object@tree$segment.names.short)),
   use.short.names = !is.null(object@tree$segment.names.short),
-  seg.show = NULL, cells.show = NULL, fade.below = (2/9),
-  density.alpha = T, label.spacing = 5, text.cex = 0.8, colors = NULL,
-  discrete.colors = NULL, color.limits = NULL,
-  symmetric.color.scale = NULL)
+  seg.show = NULL,
+  cells.show = NULL,
+  fade.below = (2/9),
+  density.alpha = T,
+  label.spacing = 5,
+  text.cex = 0.8,
+  colors = NULL,
+  discrete.colors = NULL,
+  color.limits = NULL,
+  symmetric.color.scale = NULL
+)
 }
 \arguments{
 \item{object}{An URD object}

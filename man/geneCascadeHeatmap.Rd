@@ -4,9 +4,16 @@
 \alias{geneCascadeHeatmap}
 \title{Plot Gene Cascade Heatmap}
 \usage{
-geneCascadeHeatmap(cascade, color.scale = RColorBrewer::brewer.pal(9,
-  "YlOrRd"), add.time = NULL, times.annotate = seq(0, 1, 0.1), title = "",
-  annotation.list = NULL, row.font.size = 1, max.font.size = 0.9)
+geneCascadeHeatmap(
+  cascade,
+  color.scale = RColorBrewer::brewer.pal(9, "YlOrRd"),
+  add.time = NULL,
+  times.annotate = seq(0, 1, 0.1),
+  title = "",
+  annotation.list = NULL,
+  row.font.size = 1,
+  max.font.size = 0.9
+)
 }
 \arguments{
 \item{cascade}{(list) A processed gene cascade from \code{\link{geneCascadeProcess}}}

@@ -4,9 +4,18 @@
 \alias{plotTreeForce2D}
 \title{Plot tree force-directed layout in 2D}
 \usage{
-plotTreeForce2D(object, label = NULL, label.type = "search",
-  title = label, show.points = T, point.alpha = 1, point.size = 1,
-  show.neighbors = F, neighbors.max = 10000, colors = NULL)
+plotTreeForce2D(
+  object,
+  label = NULL,
+  label.type = "search",
+  title = label,
+  show.points = T,
+  point.alpha = 1,
+  point.size = 1,
+  show.neighbors = F,
+  neighbors.max = 10000,
+  colors = NULL
+)
 }
 \arguments{
 \item{object}{An URD object}

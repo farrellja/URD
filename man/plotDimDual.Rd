@@ -4,12 +4,27 @@
 \alias{plotDimDual}
 \title{Dimensionality Reduction Plot (Dual Color)}
 \usage{
-plotDimDual(object, label.red, label.green, label.red.type = "search",
-  label.green.type = "search", reduction.use = c("tsne", "pca", "dm"),
-  dim.x = 1, dim.y = 2, point.size = 1, alpha = 1, plot.title = "",
-  legend = T, legend.size = 1/5.5, legend.offset.x = 0,
-  legend.offset.y = 0, x.lim = NULL, y.lim = NULL, na.rm = F,
-  na.alpha = 0.4 * alpha)
+plotDimDual(
+  object,
+  label.red,
+  label.green,
+  label.red.type = "search",
+  label.green.type = "search",
+  reduction.use = c("tsne", "pca", "dm"),
+  dim.x = 1,
+  dim.y = 2,
+  point.size = 1,
+  alpha = 1,
+  plot.title = "",
+  legend = T,
+  legend.size = 1/5.5,
+  legend.offset.x = 0,
+  legend.offset.y = 0,
+  x.lim = NULL,
+  y.lim = NULL,
+  na.rm = F,
+  na.alpha = 0.4 * alpha
+)
 }
 \arguments{
 \item{object}{An URD object}

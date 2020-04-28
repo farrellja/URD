@@ -4,9 +4,16 @@
 \alias{createURD}
 \title{Create a new URD object}
 \usage{
-createURD(count.data, meta = NULL, min.cells = 3, min.genes = 500,
-  min.counts = 10, gene.max.cut = 5000, max.genes.in.ram = 5000,
-  verbose = T)
+createURD(
+  count.data,
+  meta = NULL,
+  min.cells = 3,
+  min.genes = 500,
+  min.counts = 10,
+  gene.max.cut = 5000,
+  max.genes.in.ram = 5000,
+  verbose = T
+)
 }
 \arguments{
 \item{count.data}{(Matrix or dgCMatrix) UMI expression data, with rows as genes and columns as cells}

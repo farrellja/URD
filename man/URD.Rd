@@ -4,7 +4,6 @@
 \name{URD}
 \alias{URD}
 \alias{URD-package}
-\alias{URD-package}
 \title{URD - Reconstruction of Branching Developmental Trajectories}
 \description{
 URD reconstructs transcriptional trajectories underlying specification or differentiation 

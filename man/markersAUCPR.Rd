@@ -4,10 +4,21 @@
 \alias{markersAUCPR}
 \title{Test for markers of a population using a precision-recall curve}
 \usage{
-markersAUCPR(object, clust.1 = NULL, clust.2 = NULL, cells.1 = NULL,
-  cells.2 = NULL, clustering = NULL, effect.size = 0.25,
-  frac.must.express = 0.1, exp.thresh = 0, frac.min.diff = 0,
-  auc.factor = 1, max.auc.threshold = 1, genes.use = NULL)
+markersAUCPR(
+  object,
+  clust.1 = NULL,
+  clust.2 = NULL,
+  cells.1 = NULL,
+  cells.2 = NULL,
+  clustering = NULL,
+  effect.size = 0.25,
+  frac.must.express = 0.1,
+  exp.thresh = 0,
+  frac.min.diff = 0,
+  auc.factor = 1,
+  max.auc.threshold = 1,
+  genes.use = NULL
+)
 }
 \arguments{
 \item{object}{An URD object}

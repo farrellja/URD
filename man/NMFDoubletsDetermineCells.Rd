@@ -4,8 +4,13 @@
 \alias{NMFDoubletsDetermineCells}
 \title{NMF Doublets: Identify cells that express non-overlapping NMF modules}
 \usage{
-NMFDoubletsDetermineCells(object, module.combos, module.expressed.thresh,
-  frac.overlap.max, frac.overlap.diff.max)
+NMFDoubletsDetermineCells(
+  object,
+  module.combos,
+  module.expressed.thresh,
+  frac.overlap.max,
+  frac.overlap.diff.max
+)
 }
 \arguments{
 \item{object}{An URD object}

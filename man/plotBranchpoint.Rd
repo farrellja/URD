@@ -4,11 +4,25 @@
 \alias{plotBranchpoint}
 \title{Plot Data On Branchpoint Layout}
 \usage{
-plotBranchpoint(object, branchpoint.layout, label, label.2 = NULL,
-  label.type = "search", populations = NULL, visited.size = T,
-  point.alpha = 0.2, pt.lim = NULL, color.scale = NULL,
-  discrete.colors = NULL, ylab = "Pseudotime", xlab = "Preference",
-  title = label, axis.lines = T, legend = T, fade.low = 0.5)
+plotBranchpoint(
+  object,
+  branchpoint.layout,
+  label,
+  label.2 = NULL,
+  label.type = "search",
+  populations = NULL,
+  visited.size = T,
+  point.alpha = 0.2,
+  pt.lim = NULL,
+  color.scale = NULL,
+  discrete.colors = NULL,
+  ylab = "Pseudotime",
+  xlab = "Preference",
+  title = label,
+  axis.lines = T,
+  legend = T,
+  fade.low = 0.5
+)
 }
 \arguments{
 \item{object}{An URD object}

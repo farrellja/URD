@@ -4,8 +4,14 @@
 \alias{pseudotimeBreakpointByStretch}
 \title{Pseudotime Breakpoint By Stretch}
 \usage{
-pseudotimeBreakpointByStretch(div.pseudotime, segment.1, segment.2, visit.data,
-  pseudotime.windows, verbose = T)
+pseudotimeBreakpointByStretch(
+  div.pseudotime,
+  segment.1,
+  segment.2,
+  visit.data,
+  pseudotime.windows,
+  verbose = T
+)
 }
 \description{
 Pseudotime Breakpoint By Stretch

@@ -4,12 +4,22 @@
 \alias{plotDimDiscretized}
 \title{Dimensionality Reduction Plot (Multi-Color, Discretized)}
 \usage{
-plotDimDiscretized(object, labels, label.types = rep("search",
-  length(labels)), label.min = rep(0, length(labels)), label.max = rep(Inf,
-  length(labels)), colors = c("grey", "blue", "green", "red", "cyan",
-  "magenta", "yellow", "black"), reduction.use = c("tsne", "pca", "dm"),
-  dim.x = 1, dim.y = 2, point.size = 1, alpha = 1, plot.title = NULL,
-  x.lim = NULL, y.lim = NULL)
+plotDimDiscretized(
+  object,
+  labels,
+  label.types = rep("search", length(labels)),
+  label.min = rep(0, length(labels)),
+  label.max = rep(Inf, length(labels)),
+  colors = c("grey", "blue", "green", "red", "cyan", "magenta", "yellow", "black"),
+  reduction.use = c("tsne", "pca", "dm"),
+  dim.x = 1,
+  dim.y = 2,
+  point.size = 1,
+  alpha = 1,
+  plot.title = NULL,
+  x.lim = NULL,
+  y.lim = NULL
+)
 }
 \arguments{
 \item{object}{An URD object}

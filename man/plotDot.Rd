@@ -4,9 +4,19 @@
 \alias{plotDot}
 \title{Dot Plot}
 \usage{
-plotDot(object, genes, clustering, clusters.use = NULL, min.exp = 0.05,
-  size.min = 0, size.max = 5, scale.by = c("radius", "area"),
-  colors = NULL, mean.expressing.only = F, title = "")
+plotDot(
+  object,
+  genes,
+  clustering,
+  clusters.use = NULL,
+  min.exp = 0.05,
+  size.min = 0,
+  size.max = 5,
+  scale.by = c("radius", "area"),
+  colors = NULL,
+  mean.expressing.only = F,
+  title = ""
+)
 }
 \arguments{
 \item{object}{An URD object}

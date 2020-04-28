@@ -4,9 +4,17 @@
 \alias{plotDim3DStoreView}
 \title{Store a 3D view for plotDim3D}
 \usage{
-plotDim3DStoreView(object, view.name, reduction.use = c("dm", "pca"),
-  dim.1 = 1, dim.2 = 2, dim.3 = 3, w.1 = NULL, w.2 = NULL,
-  w.3 = NULL)
+plotDim3DStoreView(
+  object,
+  view.name,
+  reduction.use = c("dm", "pca"),
+  dim.1 = 1,
+  dim.2 = 2,
+  dim.3 = 3,
+  w.1 = NULL,
+  w.2 = NULL,
+  w.3 = NULL
+)
 }
 \arguments{
 \item{object}{An URD object}

@@ -4,9 +4,16 @@
 \alias{treeForceRotateCoords}
 \title{Rotate points in force-directed layout}
 \usage{
-treeForceRotateCoords(object, cells = NULL, seg = NULL, angle,
-  axis = c("x", "y", "z"), around.cell = NULL, throw.out.cells = 0,
-  pseudotime = NULL)
+treeForceRotateCoords(
+  object,
+  cells = NULL,
+  seg = NULL,
+  angle,
+  axis = c("x", "y", "z"),
+  around.cell = NULL,
+  throw.out.cells = 0,
+  pseudotime = NULL
+)
 }
 \arguments{
 \item{object}{An URD object}

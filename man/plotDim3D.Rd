@@ -4,13 +4,32 @@
 \alias{plotDim3D}
 \title{Dimensionality reduction plot in 3D.}
 \usage{
-plotDim3D(object, label, label.type = "search", reduction.use = c("dm",
-  "pca"), view = NULL, dim.1 = NULL, dim.2 = NULL, dim.3 = NULL,
-  w.1 = NULL, w.2 = NULL, w.3 = NULL, cells = NULL, alpha = 0.2,
-  size = 4, title = NULL, title.cex = 3, title.line = 0,
-  bounding.box = T, xlab = NULL, ylab = NULL, zlab = NULL,
-  continuous.colors = NULL, continuous.color.limits = NULL,
-  discrete.colors = NULL)
+plotDim3D(
+  object,
+  label,
+  label.type = "search",
+  reduction.use = c("dm", "pca"),
+  view = NULL,
+  dim.1 = NULL,
+  dim.2 = NULL,
+  dim.3 = NULL,
+  w.1 = NULL,
+  w.2 = NULL,
+  w.3 = NULL,
+  cells = NULL,
+  alpha = 0.2,
+  size = 4,
+  title = NULL,
+  title.cex = 3,
+  title.line = 0,
+  bounding.box = T,
+  xlab = NULL,
+  ylab = NULL,
+  zlab = NULL,
+  continuous.colors = NULL,
+  continuous.color.limits = NULL,
+  discrete.colors = NULL
+)
 }
 \arguments{
 \item{object}{An URD object}

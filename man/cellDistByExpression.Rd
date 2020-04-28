@@ -4,8 +4,11 @@
 \alias{cellDistByExpression}
 \title{Calculates the distance matrix between cells given their gene expression}
 \usage{
-cellDistByExpression(object, genes.use = object@var.genes,
-  return.as.matrix = T)
+cellDistByExpression(
+  object,
+  genes.use = object@var.genes,
+  return.as.matrix = T
+)
 }
 \arguments{
 \item{object}{An URD object}

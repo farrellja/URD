@@ -4,8 +4,15 @@
 \alias{plotDists}
 \title{Plot distributions}
 \usage{
-plotDists(object, label, category.label, label.type = "search",
-  category.label.type = "search", legend = T, plot.title = "")
+plotDists(
+  object,
+  label,
+  category.label,
+  label.type = "search",
+  category.label.type = "search",
+  legend = T,
+  plot.title = ""
+)
 }
 \arguments{
 \item{object}{An URD object}

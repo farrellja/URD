@@ -4,9 +4,17 @@
 \alias{plotTreeHighlight}
 \title{Plot 2D Dendrogram of URD Tree (with cells that meet arbitrary criteria highlighted)}
 \usage{
-plotTreeHighlight(object, label.name, label.value, color = "red",
-  bg.color = "#CCCCCC", highlight.alpha = 0.6, highlight.size = 1.5,
-  combine = c("intersect", "union"), ...)
+plotTreeHighlight(
+  object,
+  label.name,
+  label.value,
+  color = "red",
+  bg.color = "#CCCCCC",
+  highlight.alpha = 0.6,
+  highlight.size = 1.5,
+  combine = c("intersect", "union"),
+  ...
+)
 }
 \arguments{
 \item{object}{An URD object}

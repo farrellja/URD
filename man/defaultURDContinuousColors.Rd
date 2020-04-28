@@ -4,8 +4,7 @@
 \alias{defaultURDContinuousColors}
 \title{Default URD continuous colors}
 \usage{
-defaultURDContinuousColors(with.grey = F, symmetric = F,
-  evenly.spaced = F)
+defaultURDContinuousColors(with.grey = F, symmetric = F, evenly.spaced = F)
 }
 \value{
 Vector of default colors

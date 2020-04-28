@@ -4,13 +4,30 @@
 \alias{plotScatter}
 \title{Gene Expression Scatterplot}
 \usage{
-plotScatter(object, label.x, label.y, label.color = NULL,
-  label.x.type = "search", label.y.type = "search",
-  label.color.type = "search", cells = NULL, point.size = 1,
-  point.alpha = 1, xlim = NULL, ylim = NULL, density.background = T,
-  density.color = "#888888", density.bandwidth = 1, density.bins = 128,
-  density.exclude.origin = T, xlab = label.x, ylab = label.y,
-  colorlab = label.color, title = "", legend = T)
+plotScatter(
+  object,
+  label.x,
+  label.y,
+  label.color = NULL,
+  label.x.type = "search",
+  label.y.type = "search",
+  label.color.type = "search",
+  cells = NULL,
+  point.size = 1,
+  point.alpha = 1,
+  xlim = NULL,
+  ylim = NULL,
+  density.background = T,
+  density.color = "#888888",
+  density.bandwidth = 1,
+  density.bins = 128,
+  density.exclude.origin = T,
+  xlab = label.x,
+  ylab = label.y,
+  colorlab = label.color,
+  title = "",
+  legend = T
+)
 }
 \arguments{
 \item{object}{An URD object}

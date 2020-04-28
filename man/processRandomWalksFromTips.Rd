@@ -4,8 +4,13 @@
 \alias{processRandomWalksFromTips}
 \title{Process random walks from all tips}
 \usage{
-processRandomWalksFromTips(object, walks.list, aggregate.fun = mean,
-  n.subsample = 10, verbose = T)
+processRandomWalksFromTips(
+  object,
+  walks.list,
+  aggregate.fun = mean,
+  n.subsample = 10,
+  verbose = T
+)
 }
 \arguments{
 \item{object}{An URD object}

@@ -4,12 +4,23 @@
 \alias{plotTreeDiscretized}
 \title{Plot 2D Dendrogram of URD Tree, Discretized}
 \usage{
-plotTreeDiscretized(object, labels, label.types = rep("search",
-  length(labels)), label.min = rep(0, length(labels)), label.max = rep(Inf,
-  length(labels)), colors = c("grey", "blue", "green", "red", "cyan",
-  "magenta", "yellow", "black"), title = NULL, tree.alpha = 1,
-  tree.size = 1, tree.color = "grey", cell.alpha = 0.5, cell.size = 0.3,
-  label.x = T, label.segments = F, hide.y.ticks = T)
+plotTreeDiscretized(
+  object,
+  labels,
+  label.types = rep("search", length(labels)),
+  label.min = rep(0, length(labels)),
+  label.max = rep(Inf, length(labels)),
+  colors = c("grey", "blue", "green", "red", "cyan", "magenta", "yellow", "black"),
+  title = NULL,
+  tree.alpha = 1,
+  tree.size = 1,
+  tree.color = "grey",
+  cell.alpha = 0.5,
+  cell.size = 0.3,
+  label.x = T,
+  label.segments = F,
+  hide.y.ticks = T
+)
 }
 \arguments{
 \item{object}{An URD object}

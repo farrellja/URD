@@ -4,10 +4,19 @@
 \alias{binomTestAlongTree}
 \title{Test for differential gene expression along tree using binomial test}
 \usage{
-binomTestAlongTree(object, pseudotime, tips, log.effect.size = log(2),
-  p.thresh = 0.01, frac.must.express = 0.1, genes.use = NULL,
-  root = NULL, only.return.global = F, must.beat.sibs = 0.5,
-  report.stats = F)
+binomTestAlongTree(
+  object,
+  pseudotime,
+  tips,
+  log.effect.size = log(2),
+  p.thresh = 0.01,
+  frac.must.express = 0.1,
+  genes.use = NULL,
+  root = NULL,
+  only.return.global = F,
+  must.beat.sibs = 0.5,
+  report.stats = F
+)
 }
 \arguments{
 \item{object}{An URD object}

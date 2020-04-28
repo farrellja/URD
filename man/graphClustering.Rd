@@ -4,9 +4,16 @@
 \alias{graphClustering}
 \title{Spectral Graph Clustering}
 \usage{
-graphClustering(object, dim.use = c("pca", "dm"), cells.use = NULL,
-  which.dims = which(object@pca.sig), num.nn = 30, do.jaccard = TRUE,
-  method = c("Louvain", "Infomap"), group.id = method)
+graphClustering(
+  object,
+  dim.use = c("pca", "dm"),
+  cells.use = NULL,
+  which.dims = which(object@pca.sig),
+  num.nn = 30,
+  do.jaccard = TRUE,
+  method = c("Louvain", "Infomap"),
+  group.id = method
+)
 }
 \arguments{
 \item{object}{An URD object}

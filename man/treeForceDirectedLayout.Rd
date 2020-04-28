@@ -4,14 +4,26 @@
 \alias{treeForceDirectedLayout}
 \title{Generate force-directed layout using tip-walk data.}
 \usage{
-treeForceDirectedLayout(object, num.nn = NULL, method = c("fr", "drl",
-  "kk"), cells.to.do = NULL, cell.minimum.walks = 1,
-  cut.outlier.cells = NULL, cut.outlier.edges = NULL,
-  max.pseudotime.diff = NULL, cut.unconnected.segments = 2,
-  min.final.neighbors = 2, remove.duplicate.cells = T,
-  tips = object@tree$tips, coords = "auto", start.temp = NULL,
-  n.iter = NULL, density.neighbors = 10, plot.outlier.cuts = F,
-  verbose = F)
+treeForceDirectedLayout(
+  object,
+  num.nn = NULL,
+  method = c("fr", "drl", "kk"),
+  cells.to.do = NULL,
+  cell.minimum.walks = 1,
+  cut.outlier.cells = NULL,
+  cut.outlier.edges = NULL,
+  max.pseudotime.diff = NULL,
+  cut.unconnected.segments = 2,
+  min.final.neighbors = 2,
+  remove.duplicate.cells = T,
+  tips = object@tree$tips,
+  coords = "auto",
+  start.temp = NULL,
+  n.iter = NULL,
+  density.neighbors = 10,
+  plot.outlier.cuts = F,
+  verbose = F
+)
 }
 \arguments{
 \item{object}{An URD object}

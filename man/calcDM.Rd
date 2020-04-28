@@ -4,9 +4,18 @@
 \alias{calcDM}
 \title{Calculate a diffusion map}
 \usage{
-calcDM(object, genes.use = object@var.genes, cells.use = NULL, knn = NULL,
-  sigma.use = NULL, n_local = 5:7, distance = c("euclidean", "cosine",
-  "rankcor"), density.norm = T, dcs.store = 200, verbose = T)
+calcDM(
+  object,
+  genes.use = object@var.genes,
+  cells.use = NULL,
+  knn = NULL,
+  sigma.use = NULL,
+  n_local = 5:7,
+  distance = c("euclidean", "cosine", "rankcor"),
+  density.norm = T,
+  dcs.store = 200,
+  verbose = T
+)
 }
 \arguments{
 \item{object}{An URD object}

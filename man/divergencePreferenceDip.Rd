@@ -4,8 +4,12 @@
 \alias{divergencePreferenceDip}
 \title{Calculate visitation divergence based on bimodality of visitation preference}
 \usage{
-divergencePreferenceDip(visit.data, cells.in.windows, cells.segment.1,
-  cells.segment.2)
+divergencePreferenceDip(
+  visit.data,
+  cells.in.windows,
+  cells.segment.1,
+  cells.segment.2
+)
 }
 \arguments{
 \item{visit.data}{(data.frame) Rows are cells, columns are: "segment.1" and "segment.2" (visitation frequency from random walks

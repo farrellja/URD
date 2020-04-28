@@ -4,10 +4,22 @@
 \alias{aucprTestByFactor}
 \title{Test for differential gene expression along tree using binomial test}
 \usage{
-aucprTestByFactor(object, cells.1, cells.2, label, groups,
-  log.effect.size = 0.25, auc.factor = 1, min.auc.thresh = 0.1,
-  max.auc.thresh = Inf, frac.must.express = 0.1, frac.min.diff = 0,
-  genes.use = NULL, min.groups.to.mark = 1, report.debug = F)
+aucprTestByFactor(
+  object,
+  cells.1,
+  cells.2,
+  label,
+  groups,
+  log.effect.size = 0.25,
+  auc.factor = 1,
+  min.auc.thresh = 0.1,
+  max.auc.thresh = Inf,
+  frac.must.express = 0.1,
+  frac.min.diff = 0,
+  genes.use = NULL,
+  min.groups.to.mark = 1,
+  report.debug = F
+)
 }
 \arguments{
 \item{object}{An URD object}

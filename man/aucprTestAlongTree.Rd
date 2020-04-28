@@ -4,11 +4,22 @@
 \alias{aucprTestAlongTree}
 \title{Test for differential gene expression along tree using precision-recall test}
 \usage{
-aucprTestAlongTree(object, pseudotime, tips, log.effect.size = 0.25,
-  auc.factor = 1, max.auc.threshold = 1, frac.must.express = 0.1,
-  frac.min.diff = 0.1, genes.use = NULL, root = NULL,
-  segs.to.skip = NULL, only.return.global = F, must.beat.sibs = 0.5,
-  report.debug = F)
+aucprTestAlongTree(
+  object,
+  pseudotime,
+  tips,
+  log.effect.size = 0.25,
+  auc.factor = 1,
+  max.auc.threshold = 1,
+  frac.must.express = 0.1,
+  frac.min.diff = 0.1,
+  genes.use = NULL,
+  root = NULL,
+  segs.to.skip = NULL,
+  only.return.global = F,
+  must.beat.sibs = 0.5,
+  report.debug = F
+)
 }
 \arguments{
 \item{object}{An URD object}

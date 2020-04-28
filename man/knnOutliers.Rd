@@ -4,8 +4,18 @@
 \alias{knnOutliers}
 \title{Find outliers in terms of their distance in the k-nearest neighbor network}
 \usage{
-knnOutliers(object, nn.1 = 1, nn.2 = 20, x.max, slope.r, int.r, slope.b,
-  int.b, title = "", invert = F)
+knnOutliers(
+  object,
+  nn.1 = 1,
+  nn.2 = 20,
+  x.max,
+  slope.r,
+  int.r,
+  slope.b,
+  int.b,
+  title = "",
+  invert = F
+)
 }
 \arguments{
 \item{object}{An URD object}

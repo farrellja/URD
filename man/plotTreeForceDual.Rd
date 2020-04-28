@@ -4,15 +4,30 @@
 \alias{plotTreeForceDual}
 \title{Plot force-directed layout of tree}
 \usage{
-plotTreeForceDual(object, label.red, label.green, label.red.type = "search",
-  label.green.type = "search", view = "default", alpha = 0.8,
-  alpha.fade = 0.025, size = 5, title = NULL, title.cex = 3,
-  title.line = 0, label.tips = (!is.null(object@tree$segment.names) |
-  !is.null(object@tree$segment.names.short)),
+plotTreeForceDual(
+  object,
+  label.red,
+  label.green,
+  label.red.type = "search",
+  label.green.type = "search",
+  view = "default",
+  alpha = 0.8,
+  alpha.fade = 0.025,
+  size = 5,
+  title = NULL,
+  title.cex = 3,
+  title.line = 0,
+  label.tips = (!is.null(object@tree$segment.names) |
+    !is.null(object@tree$segment.names.short)),
   use.short.names = !is.null(object@tree$segment.names.short),
-  seg.show = NULL, cells.show = NULL, fade.below = (1/3),
-  fade.method = c("max", "min", "mean"), density.alpha = T,
-  label.spacing = 5, text.cex = 0.8)
+  seg.show = NULL,
+  cells.show = NULL,
+  fade.below = (1/3),
+  fade.method = c("max", "min", "mean"),
+  density.alpha = T,
+  label.spacing = 5,
+  text.cex = 0.8
+)
 }
 \arguments{
 \item{object}{An URD object}

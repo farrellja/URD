@@ -4,10 +4,19 @@
 \alias{batchComBat}
 \title{Batch correct data using ComBat}
 \usage{
-batchComBat(object, batch.column, adjustment.columns = NULL,
-  reference.batch = NULL, genes.correct = NULL, thresh.out = 0.05,
-  min.out = 0, max.out = (ceiling(max(object@logupx.data)) + 1),
-  parametric.prior = T, prior.plots = F, verbose = F)
+batchComBat(
+  object,
+  batch.column,
+  adjustment.columns = NULL,
+  reference.batch = NULL,
+  genes.correct = NULL,
+  thresh.out = 0.05,
+  min.out = 0,
+  max.out = (ceiling(max(object@logupx.data)) + 1),
+  parametric.prior = T,
+  prior.plots = F,
+  verbose = F
+)
 }
 \arguments{
 \item{object}{An URD object}

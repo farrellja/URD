@@ -4,12 +4,23 @@
 \alias{visitDivergenceByPseudotime}
 \title{Visitation Divergence for Pseudotime Windows}
 \usage{
-visitDivergenceByPseudotime(object, pseudotime, segment.1, segment.2,
-  cells.in.segments = NULL, cells.segment.1 = NULL,
-  cells.segment.2 = NULL, divergence.method = c("ks", "preference"),
-  pseudotime.cuts = 80, window.size = 5, pseudotime.min = NULL,
-  pseudotime.max = NULL, p.thresh = 0.01, pref.thresh = 0.5,
-  verbose = T)
+visitDivergenceByPseudotime(
+  object,
+  pseudotime,
+  segment.1,
+  segment.2,
+  cells.in.segments = NULL,
+  cells.segment.1 = NULL,
+  cells.segment.2 = NULL,
+  divergence.method = c("ks", "preference"),
+  pseudotime.cuts = 80,
+  window.size = 5,
+  pseudotime.min = NULL,
+  pseudotime.max = NULL,
+  p.thresh = 0.01,
+  pref.thresh = 0.5,
+  verbose = T
+)
 }
 \arguments{
 \item{object}{An URD object}
