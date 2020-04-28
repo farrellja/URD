@@ -122,7 +122,7 @@ setMethod(
 #' \code{meta}, and an initial grouping of the data drawn from the cell names, up to the
 #' first dash (-) or underscore (_) in slot \code{group.ids}.
 #' 
-#' @importClassesFrom Matrix dgCMatrix
+#' @importClassesFrom Matrix dgCMatrix rowSums colSums
 #' @importFrom methods new
 #' 
 #' @param count.data (Matrix or dgCMatrix) UMI expression data, with rows as genes and columns as cells
@@ -130,38 +130,49 @@ setMethod(
 #' @param min.cells (Numeric) Minimum number of cells that must express a gene to retain it
 #' @param min.genes (Numeric) Minimum number of genes a cell must express to retain it
 #' @param min.counts (Numeric) Minimum number of UMIs detected for a gene across the entire data to retain it
-#' @param gene.max.cut (Numeric) Maximum number of UMIs observed for a gene in a single cell to retain it
+#' @param gene.max.cut (Numeric) Maximum number of UMIs observed for a gene in a single cell to retain it. If \code{NA}, this step will be skipped.
 #' @param max.genes.in.ram (Numeric) Number of genes to normalize and log-transform at a time (to prevent running out of memory as matrices become non-sparse during the process)
 #' 
 #' @return An URD object
 #' 
 #' @export
 createURD <- function(count.data, meta=NULL, min.cells=3, min.genes=500, min.counts=10, gene.max.cut=5000, max.genes.in.ram=5000, verbose=T) {
-
+  # Ensuring matrices are in sparse format
+  if (class(count.data) != "dgCMatrix") {
+    if (verbose) message(paste0(Sys.time(), ": Converting counts to sparse matrix."))
+    count.data <- as(as.matrix(count.data), "dgCMatrix")
+  }
+  if (verbose) message(paste0(Sys.time(), ": Creating binary count matrix."))
+  count.data.binary <- count.data > 0
   # Filter cells by nGenes
   if (verbose) message(paste0(Sys.time(), ": Filtering cells by number of genes."))
-  num.genes <- apply(count.data, 2, function(x) sum(x > 0))
-  names(num.genes) <- colnames(count.data)
+  num.genes <- Matrix::colSums(count.data.binary)
+  names(num.genes) <- colnames(count.data.binary)
   cells.enough.genes <- names(num.genes[which(num.genes>min.genes)])
   shhhh <- gc()
   # Filter genes by nCells
   if (verbose) message(paste0(Sys.time(), ": Filtering genes by number of cells."))
-  num.cells <- apply(count.data[,cells.enough.genes], 1, function(x) sum(x > 0))            
+  count.data.binary <- count.data.binary[,cells.enough.genes]
+  num.cells <- Matrix::rowSums(count.data.binary)
   genes.enough.cells <- names(num.cells[which(num.cells>min.cells)])
   shhhh <- gc()
   # Filter genes by total counts
   if (verbose) message(paste0(Sys.time(), ": Filtering genes by number of counts across entire data."))
-  num.counts <- apply(count.data[,cells.enough.genes], 1, sum)
+  num.counts <- Matrix::rowSums(count.data[,cells.enough.genes])
   genes.enough.counts <- names(num.counts[which(num.counts>min.counts)])
   shhhh <- gc()
   # Filter genes by maximum expression
-  if (verbose) message(paste0(Sys.time(), ": Filtering genes by maximum observed expression."))
-  maxgene <- apply(count.data[, cells.enough.genes], 1, max)
-  genes.not.above.max <- rownames(count.data)[maxgene <= gene.max.cut]
-  shhhh <- gc()
+  if (!is.na(gene.max.cut)) {
+    if (verbose) message(paste0(Sys.time(), ": Filtering genes by maximum observed expression."))
+    count.data.binary <- count.data[, cells.enough.genes] > gene.max.cut
+    gene.over.max <- names(which(Matrix::rowSums(count.data.binary) > 0))
+    shhhh <- gc()
+  } else {
+    gene.over.max <- c()
+  }
   # Figure out genes to retain
-  genes.use <- intersect(intersect(genes.enough.cells, genes.enough.counts), genes.not.above.max)
-
+  genes.use <- setdiff(intersect(genes.enough.cells, genes.enough.counts), gene.over.max)
+  
   # Create an URD object
   if (verbose) message(paste0(Sys.time(), ": Creating URD object."))
   object <- methods::new("URD", count.data=as(count.data[genes.use, cells.enough.genes], "dgCMatrix"))
@@ -169,9 +180,8 @@ createURD <- function(count.data, meta=NULL, min.cells=3, min.genes=500, min.cou
   
   # Determine normalization factor
   if (verbose) message(paste0(Sys.time(), ": Determining normalization factors."))
-  cs <- apply(object@count.data, 2, sum)
+  cs <- Matrix::colSums(object@count.data)
   norm_factors <- (10**ceiling(log10(median(cs))))/cs
-  #if (verbose) message(summary(norm_factors))
   shhhh <- gc()
   
   # Log-normalize the data
@@ -179,6 +189,7 @@ createURD <- function(count.data, meta=NULL, min.cells=3, min.genes=500, min.cou
   n.chunks <- ceiling(ncol(object@count.data) / max.genes.in.ram)
   n.cells <- ncol(object@count.data)
   lognorm.chunks <- lapply(1:n.chunks, function(chunk) {
+    if (verbose) message(paste0(Sys.time(), ":   Chunk ", chunk, " of ", n.chunks))
     shhhh <- gc()
     i <- (chunk-1) * max.genes.in.ram + 1
     j <- min((chunk * max.genes.in.ram), n.cells)
