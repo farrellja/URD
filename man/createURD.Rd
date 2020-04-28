@@ -26,7 +26,7 @@ createURD(
 
 \item{min.counts}{(Numeric) Minimum number of UMIs detected for a gene across the entire data to retain it}
 
-\item{gene.max.cut}{(Numeric) Maximum number of UMIs observed for a gene in a single cell to retain it}
+\item{gene.max.cut}{(Numeric) Maximum number of UMIs observed for a gene in a single cell to retain it. If \code{NA}, this step will be skipped.}
 
 \item{max.genes.in.ram}{(Numeric) Number of genes to normalize and log-transform at a time (to prevent running out of memory as matrices become non-sparse during the process)}
 }
