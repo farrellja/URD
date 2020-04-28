@@ -4,8 +4,12 @@
 \alias{NMFDoubletsPlotModulesInCell}
 \title{Plot cells' expression of modules}
 \usage{
-NMFDoubletsPlotModulesInCell(object, modules, cells,
-  module.expressed.thresh = Inf)
+NMFDoubletsPlotModulesInCell(
+  object,
+  modules,
+  cells,
+  module.expressed.thresh = Inf
+)
 }
 \arguments{
 \item{object}{An URD object}

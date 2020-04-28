@@ -4,9 +4,15 @@
 \alias{pseudotimeDetermineLogistic}
 \title{Determine logistic parameters for biasing transition matrix}
 \usage{
-pseudotimeDetermineLogistic(object, pseudotime, optimal.cells.forward,
-  max.cells.back, pseudotime.direction = "<", do.plot = T,
-  print.values = T)
+pseudotimeDetermineLogistic(
+  object,
+  pseudotime,
+  optimal.cells.forward,
+  max.cells.back,
+  pseudotime.direction = "<",
+  do.plot = T,
+  print.values = T
+)
 }
 \arguments{
 \item{object}{An URD object}

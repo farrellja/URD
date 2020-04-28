@@ -4,9 +4,15 @@
 \alias{tipPotential}
 \title{Find tip potential}
 \usage{
-tipPotential(object, pseudotime, range.function = prop.nonexp,
-  genes.use = object@var.genes, nn.dist.range = c(20, 22),
-  pseudotime.name = "tip.potential", cell.dist = NULL)
+tipPotential(
+  object,
+  pseudotime,
+  range.function = prop.nonexp,
+  genes.use = object@var.genes,
+  nn.dist.range = c(20, 22),
+  pseudotime.name = "tip.potential",
+  cell.dist = NULL
+)
 }
 \arguments{
 \item{object}{An URD object}

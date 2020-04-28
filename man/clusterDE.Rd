@@ -4,9 +4,16 @@
 \alias{clusterDE}
 \title{Cluster Differential Expression}
 \usage{
-clusterDE(object, clustering, genes.dist = object@var.genes,
-  effect.size = log(2), p.thresh = 0.01, frac.must.express = 0.1,
-  genes.de = NULL, verbose = T)
+clusterDE(
+  object,
+  clustering,
+  genes.dist = object@var.genes,
+  effect.size = log(2),
+  p.thresh = 0.01,
+  frac.must.express = 0.1,
+  genes.de = NULL,
+  verbose = T
+)
 }
 \arguments{
 \item{object}{An URD object}

@@ -4,8 +4,12 @@
 \alias{dsReadStats}
 \title{Read cell barcode statistics produced by Dropseq pipeline}
 \usage{
-dsReadStats(dge.summary.reports, cell.readcount.reports = NULL, sample.names,
-  name.cells.with.sample = T)
+dsReadStats(
+  dge.summary.reports,
+  cell.readcount.reports = NULL,
+  sample.names,
+  name.cells.with.sample = T
+)
 }
 \arguments{
 \item{dge.summary.reports}{(Character vector) Paths of DGE report files. (These files typically end with the suffix ".report_dge.summary.txt")}

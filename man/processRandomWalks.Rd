@@ -4,8 +4,14 @@
 \alias{processRandomWalks}
 \title{Process random walks into visitation frequency}
 \usage{
-processRandomWalks(object, walks, walks.name, aggregate.fun = mean,
-  n.subsample = 10, verbose = T)
+processRandomWalks(
+  object,
+  walks,
+  walks.name,
+  aggregate.fun = mean,
+  n.subsample = 10,
+  verbose = T
+)
 }
 \arguments{
 \item{object}{An URD object}

@@ -104,12 +104,14 @@ markersBinom <- function(object, pseudotime, clust.1=NULL,clust.2=NULL,cells.1=N
 #' @param frac.must.express (Numeric) Gene must be expressed in at least this fraction of cells in one of the two clusters to be considered.
 #' @param exp.thresh (Numeric) Minimum expression value to consider 'expressed.'
 #' @param frac.min.diff (Numeric) Fraction of cells expressing the gene must be at least this different between two populations to be considered.
+#'  @param auc.factor (Numeric) The precision-recall AUC is determined for a random classifier is determined based on the size of populations. To be considered differential, genes must have an AUC that is \code{auc.factor} times the expected AUC for a random classifier.
+#' @param max.auc.threshold (Numeric) This acts as an upper bound for how high the AUC must be for a gene to be considered differential (i.e. you can choose that no matter the expectation for a random classifier, any gene with an AUC > 0.9 is considered differential).
 #' @param genes.use (Character vector) Genes to compare, default is NULL (all genes)
 #' 
 #' @return (data.frame)
 #' 
 #' @export
-markersAUCPR <- function(object, clust.1=NULL, clust.2=NULL, cells.1=NULL, cells.2=NULL, clustering=NULL, effect.size=0.25, frac.must.express=0.1, exp.thresh=0, frac.min.diff=0, genes.use=NULL) {
+markersAUCPR <- function(object, clust.1=NULL, clust.2=NULL, cells.1=NULL, cells.2=NULL, clustering=NULL, effect.size=0.25, frac.must.express=0.1, exp.thresh=0, frac.min.diff=0, auc.factor=1, max.auc.threshold=1, genes.use=NULL) {
   if (is.null(genes.use)) genes.use <- rownames(object@logupx.data)
   
   if (is.null(clustering)) {
@@ -123,15 +125,22 @@ markersAUCPR <- function(object, clust.1=NULL, clust.2=NULL, cells.1=NULL, cells
   if (is.null(cells.1)) {
     if (is.null(clust.1)) stop("Must provide either cells.1 or clust.1")
     cells.1 <- names(clust.use[which(clust.use%in%clust.1)])
+    label.1 <- clust.1
+  } else {
+    label.1 <- "1"
   }
   
   if (is.null(cells.2)) {
     if (is.null(clust.2)) {
       clust.2 <- "rest"
       cells.2 <- setdiff(names(clust.use), cells.1)
+      label.2 <- "rest"
     } else {
       cells.2 <- names(clust.use[which(clust.use%in%clust.2)])
+      label.2 <- clust.2
     }
+  } else {
+    label.2 <- "2"
   }
   
   # Figure out proportion expressing and mean expression
@@ -141,14 +150,15 @@ markersAUCPR <- function(object, clust.1=NULL, clust.2=NULL, cells.1=NULL, cells
     exp.1=round(apply(object@logupx.data[genes.use, cells.1, drop=F], 1, mean.of.logs), digits=3),
     exp.2=round(apply(object@logupx.data[genes.use, cells.2, drop=F], 1, mean.of.logs), digits=3)
   )
-  genes.data$exp.fc <- genes.data$exp.1 - genes.data$exp.2
+  genes.data$exp.fc <- log2((2^genes.data$exp.1-1)/(2^genes.data$exp.2-1))
+  #genes.data$exp.fc <- genes.data$exp.1 - genes.data$exp.2
   
   # Throw out genes that don't mark either population or obviously change between the two
   # populations to reduce downstream computation.
   genes.use <- names(which(
     (apply(genes.data[,c("frac.1", "frac.2")], 1, max) > frac.must.express) &
     (apply(genes.data[,c("frac.1", "frac.2")], 1, function(x) abs(diff(x))) > frac.min.diff) & 
-    (apply(genes.data[,c("exp.1", "exp.2")], 1, function(x) abs(diff(x))) > effect.size)
+    (genes.data$exp.fc > effect.size)
   ))
   genes.data <- genes.data[genes.use,]
   
@@ -156,9 +166,15 @@ markersAUCPR <- function(object, clust.1=NULL, clust.2=NULL, cells.1=NULL, cells
   genes.data$AUCPR <- unlist(lapply(genes.use, function(gene) differentialAUCPR(object@logupx.data[gene,cells.1], object@logupx.data[gene,cells.2])))
   genes.data[is.na(genes.data$AUCPR),"AUCPR"] <- 0
   
+  # Calculate ratio, compared to AUCPR for random classifier, 
+  thresh <- aucprThreshold(cells.1=cells.1, cells.2=cells.2)
+  thresh.select <- min(thresh * auc.factor, max.auc.threshold)
+  genes.data$AUCPR.ratio <- genes.data$AUCPR / thresh
+  genes.data <- genes.data[genes.data$AUCPR >= thresh.select,]
+  
   # Order by AUC
-  genes.data <- genes.data[order(genes.data$AUCPR, decreasing=T),c("AUCPR", "exp.fc", "frac.1", "frac.2", "exp.1", "exp.2")]
-  names(genes.data)[3:6] <- paste(c("posFrac", "posFrac", "nTrans", "nTrans"), c(clust.1, clust.2, clust.1, clust.2), sep="_")
+  genes.data <- genes.data[order(genes.data$AUCPR, decreasing=T),c("AUCPR", "AUCPR.ratio", "exp.fc", "frac.1", "frac.2", "exp.1", "exp.2")]
+  names(genes.data)[4:7] <- paste(c("posFrac", "posFrac", "nTrans", "nTrans"), c(label.1, label.2, label.1, label.2), sep="_")
   
   # Return
   return(genes.data)
@@ -298,15 +314,6 @@ binomTestAlongTree <- function(object, pseudotime, tips, log.effect.size=log(2),
     markers.2 <- markers.2[1:keep.markers.until]
     tip.list <- tip.list[1:keep.markers.until]
   }
-  
-  # # Now, determine the remaining markers
-  # if (must.beat.all.sibs) {
-  #   markers.remain <- unique(unlist(lapply(unique(tip.list), function(tip) {
-  #     Reduce(intersect, lapply(markers.2[which(tip.list == tip)], function(m) rownames(m)[m$log.effect > 0]))
-  #   })))
-  # } else {
-  #   markers.remain <- unique(unlist(lapply(markers.2, function(m) rownames(m)[m$log.effect > 0])))
-  # }
 
   # Now, determine how many siblings each marker beats and curate them.
   markers.3 <- markers.2
@@ -441,13 +448,12 @@ aucprTestAlongTree <- function(object, pseudotime, tips, log.effect.size=0.25, a
             stats <- rbind(stats, c(n.1, n.2, pt.1.mean, pt.2.mean, pt.1.median, pt.2.median, genes.1.mean, genes.2.mean, genes.1.median, genes.2.median, trans.1.mean, trans.2.mean, trans.1.median, trans.2.median))
           }
           # Test for markers of these cells with AUCPR test
-          these.markers <- markersAUCPR(object=object, cells.1=cells.1, cells.2=cells.2, genes.use=genes.use, effect.size=log.effect.size, frac.must.express=frac.must.express, frac.min.diff=frac.min.diff)
-          these.markers$AUCPR.ratio <- these.markers$AUCPR / aucprThreshold(cells.1, cells.2, factor=1, max.auc=Inf)
+          these.markers <- markersAUCPR(object=object, cells.1=cells.1, cells.2=cells.2, genes.use=genes.use, effect.size=log.effect.size, frac.must.express=frac.must.express, frac.min.diff=frac.min.diff, auc.factor = auc.factor, max.auc.threshold = max.auc.threshold)
           # Since AUCPR is not symmetric, must test explicitly for markers of the other branch ("anti-marker")
-          these.anti.markers <- markersAUCPR(object=object, cells.1=cells.2, cells.2=cells.1, genes.use=genes.use, effect.size=log.effect.size, frac.must.express=frac.must.express, frac.min.diff=frac.min.diff)
+          these.anti.markers <- markersAUCPR(object=object, cells.1=cells.2, cells.2=cells.1, genes.use=genes.use, effect.size=log.effect.size, frac.must.express=frac.must.express, frac.min.diff=frac.min.diff, auc.factor = auc.factor, max.auc.threshold = max.auc.threshold)
           # Limit markers to those that pass the minimum AUC and are positive markers of their respective branch
-          markers[[(length(markers)+1)]] <- these.markers[these.markers$AUCPR >= aucprThreshold(cells.1, cells.2, factor = auc.factor, max.auc = max.auc.threshold) & these.markers$exp.fc > 0,]
-          anti.markers[[(length(anti.markers)+1)]] <- these.anti.markers[these.anti.markers$AUCPR >= aucprThreshold(cells.2, cells.1, factor = auc.factor, max.auc = max.auc.threshold) & these.anti.markers$exp.fc > 0,]
+          markers[[(length(markers)+1)]] <- these.markers[these.markers$exp.fc > 0,]
+          anti.markers[[(length(anti.markers)+1)]] <- these.anti.markers[these.anti.markers$exp.fc > 0,]
           names(markers)[length(markers)] <- paste0(current.tip, "-", opposing.tip)
           names(anti.markers)[length(anti.markers)] <- paste0(current.tip, "-", opposing.tip)
         }
@@ -500,19 +506,17 @@ aucprTestAlongTree <- function(object, pseudotime, tips, log.effect.size=0.25, a
   
   # Summarize data by calculating across _all_ cells considered, and also max and min passing (by AUCPR.ratio) in any branch.
   if (only.return.global) {
-    markers.summary <- markersAUCPR(object=object, cells.1=cells.1.all, cells.2=cells.2.all, genes.use=markers.remain, frac.must.express = frac.must.express, effect.size=log.effect.size, frac.min.diff=frac.min.diff)
-    markers.summary <- markers.summary[markers.summary$AUCPR >= aucprThreshold(cells.1.all, cells.2.all, factor = auc.factor, max.auc = max.auc.threshold),]
+    markers.summary <- markersAUCPR(object=object, cells.1=cells.1.all, cells.2=cells.2.all, genes.use=markers.remain, frac.must.express = frac.must.express, effect.size=log.effect.size, frac.min.diff=frac.min.diff, auc.factor = auc.factor, max.auc.threshold = max.auc.threshold)
   } else {
     markers.summary <- markersAUCPR(object=object, cells.1=cells.1.all, cells.2=cells.2.all, genes.use=markers.remain, frac.must.express = 0, effect.size=0, frac.min.diff=0)
   }
-  markers.summary$AUCPR.ratio <- markers.summary$AUCPR / aucprThreshold(cells.1.all, cells.2.all, factor=auc.factor, max.auc=Inf)
-  names(markers.summary) <- c("AUCPR.all", "expfc.all", "posFrac_lineage", "posFrac_rest", "nTrans_lineage", "nTrans_rest", "AUCPR.ratio.all")
+  names(markers.summary) <- c("AUCPR.all", "AUCPR.ratio.all", "expfc.all", "posFrac_lineage", "posFrac_rest", "nTrans_lineage", "nTrans_rest")
   markers.max.segment <- c()
   markers.max <- lapply(rownames(markers.summary), function(marker) {
     id <- which.max(unlist(lapply(markers.3, function(x) x[marker,"AUCPR.ratio"])))
     to.return <- markers.3[[id]][marker,]
     markers.max.segment <<- c(markers.max.segment, names(markers.3)[id])
-    names(to.return) <- c("AUCPR_maxBranch", "expfc.maxBranch", "posFrac_maxBranch", "posFrac_opposingMaxBranch", "nTrans_maxBranch", "nTrans_opposingMaxBranch", "AUCPR.ratio.maxBranch")
+    names(to.return) <- c("AUCPR_maxBranch", "AUCPR.ratio.maxBranch", "expfc.maxBranch", "posFrac_maxBranch", "posFrac_opposingMaxBranch", "nTrans_maxBranch", "nTrans_opposingMaxBranch")
     return(to.return)  
   })
   markers.max <- do.call(what = "rbind", markers.max)
@@ -521,7 +525,7 @@ aucprTestAlongTree <- function(object, pseudotime, tips, log.effect.size=0.25, a
     id <- which.min(unlist(lapply(markers.3, function(x) x[marker,"AUCPR.ratio"])))
     to.return <- markers.3[[id]][marker,]
     markers.min.segment <<- c(markers.min.segment, names(markers.3)[id])
-    names(to.return) <- c("AUCPR_minBranch", "expfc.minBranch", "posFrac_minBranch", "posFrac_opposingMinBranch", "nTrans_minBranch", "nTrans_opposingMinBranch", "AUCPR.ratio.minBranch")
+    names(to.return) <- c("AUCPR_minBranch", "AUCPR.ratio.minBranch", "expfc.minBranch", "posFrac_minBranch", "posFrac_opposingMinBranch", "nTrans_minBranch", "nTrans_opposingMinBranch")
     return(to.return)  
   })
   markers.min <- do.call(what = "rbind", markers.min)

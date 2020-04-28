@@ -4,9 +4,19 @@
 \alias{moduleTestAlongTree}
 \title{Differential NMF module expression testing along tree}
 \usage{
-moduleTestAlongTree(object, tips, data, genelist, pseudotime,
-  exclude.upstream = F, effect.size = log(2), p.thresh = 0.01,
-  min.expression = 0.1, root = NULL, must.beat.all.sibs = T)
+moduleTestAlongTree(
+  object,
+  tips,
+  data,
+  genelist,
+  pseudotime,
+  exclude.upstream = F,
+  effect.size = log(2),
+  p.thresh = 0.01,
+  min.expression = 0.1,
+  root = NULL,
+  must.beat.all.sibs = T
+)
 }
 \arguments{
 \item{object}{An URD object}

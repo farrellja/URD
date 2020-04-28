@@ -4,9 +4,17 @@
 \alias{plotSmoothFitMultiCascade}
 \title{Gene Smooth: Plot multiple fits}
 \usage{
-plotSmoothFitMultiCascade(smoothed.fits, genes, colors = NULL, scaled = T,
-  plot.data = T, alpha.data = 0.2, alpha.smooth = 1, lwd.smooth = 1,
-  ncol = NULL)
+plotSmoothFitMultiCascade(
+  smoothed.fits,
+  genes,
+  colors = NULL,
+  scaled = T,
+  plot.data = T,
+  alpha.data = 0.2,
+  alpha.smooth = 1,
+  lwd.smooth = 1,
+  ncol = NULL
+)
 }
 \arguments{
 \item{genes}{(Character vector) Genes to include in the plot(s)}

@@ -4,8 +4,12 @@
 \alias{NMFDoubletsDefineModules}
 \title{NMF Doublets: Calculate module pair overlap}
 \usage{
-NMFDoubletsDefineModules(object, modules.use, module.thresh.high = 0.3,
-  module.thresh.low = 0.15)
+NMFDoubletsDefineModules(
+  object,
+  modules.use,
+  module.thresh.high = 0.3,
+  module.thresh.low = 0.15
+)
 }
 \arguments{
 \item{object}{An URD object}

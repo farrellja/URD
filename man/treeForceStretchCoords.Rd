@@ -4,8 +4,15 @@
 \alias{treeForceStretchCoords}
 \title{Stretch points in force-directed layout}
 \usage{
-treeForceStretchCoords(object, factor, cells = NULL, seg = NULL,
-  stretch.from = 20, throw.out.cells = 0, ramp = 0.1)
+treeForceStretchCoords(
+  object,
+  factor,
+  cells = NULL,
+  seg = NULL,
+  stretch.from = 20,
+  throw.out.cells = 0,
+  ramp = 0.1
+)
 }
 \arguments{
 \item{object}{An URD object}

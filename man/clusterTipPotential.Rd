@@ -4,8 +4,12 @@
 \alias{clusterTipPotential}
 \title{Tip Potential of Clusters}
 \usage{
-clusterTipPotential(object, pseudotime, clustering,
-  name.store = "tip.potential")
+clusterTipPotential(
+  object,
+  pseudotime,
+  clustering,
+  name.store = "tip.potential"
+)
 }
 \arguments{
 \item{object}{An URD object}

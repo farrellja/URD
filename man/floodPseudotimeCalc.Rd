@@ -4,8 +4,13 @@
 \alias{floodPseudotimeCalc}
 \title{A single iteration of flood pseudotime calculation.}
 \usage{
-floodPseudotimeCalc(object, start.cells, minimum.cells.flooded = 2,
-  tm.flood = NULL, verbose.freq = 0)
+floodPseudotimeCalc(
+  object,
+  start.cells,
+  minimum.cells.flooded = 2,
+  tm.flood = NULL,
+  verbose.freq = 0
+)
 }
 \arguments{
 \item{object}{An URD object}

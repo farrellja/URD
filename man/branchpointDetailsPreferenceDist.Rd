@@ -4,8 +4,14 @@
 \alias{branchpointDetailsPreferenceDist}
 \title{Investigate Branchpoint - Visit Preference Distributions}
 \usage{
-branchpointDetailsPreferenceDist(object, seg.1, seg.2, file = NULL,
-  file.width = 375, file.height = 300)
+branchpointDetailsPreferenceDist(
+  object,
+  seg.1,
+  seg.2,
+  file = NULL,
+  file.width = 375,
+  file.height = 300
+)
 }
 \arguments{
 \item{object}{An URD object}

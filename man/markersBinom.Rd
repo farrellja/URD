@@ -4,10 +4,19 @@
 \alias{markersBinom}
 \title{Test for differential gene expression in two populations using a binomial test}
 \usage{
-markersBinom(object, pseudotime, clust.1 = NULL, clust.2 = NULL,
-  cells.1 = NULL, cells.2 = NULL, clustering = NULL,
-  effect.size = log(2), p.thresh = 0.01, frac.must.express = 0.1,
-  genes.use = NULL)
+markersBinom(
+  object,
+  pseudotime,
+  clust.1 = NULL,
+  clust.2 = NULL,
+  cells.1 = NULL,
+  cells.2 = NULL,
+  clustering = NULL,
+  effect.size = log(2),
+  p.thresh = 0.01,
+  frac.must.express = 0.1,
+  genes.use = NULL
+)
 }
 \arguments{
 \item{object}{An URD object}

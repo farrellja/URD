@@ -4,14 +4,27 @@
 \alias{buildTree}
 \title{Build Tree}
 \usage{
-buildTree(object, pseudotime, tips.use = NULL, divergence.method = c("ks",
-  "preference"), weighted.fusion = T, use.only.original.tips = T,
-  cells.per.pseudotime.bin = 80, bins.per.pseudotime.window = 5,
-  minimum.visits = 10, visit.threshold = 0.7,
-  save.breakpoint.plots = NULL, save.all.breakpoint.info = F,
-  p.thresh = 0.01, min.cells.per.segment = 1,
-  min.pseudotime.per.segment = 0.01, dendro.node.size = 100,
-  dendro.cell.jitter = 0.15, dendro.cell.dist.to.tree = 0.05, verbose = T)
+buildTree(
+  object,
+  pseudotime,
+  tips.use = NULL,
+  divergence.method = c("ks", "preference"),
+  weighted.fusion = T,
+  use.only.original.tips = T,
+  cells.per.pseudotime.bin = 80,
+  bins.per.pseudotime.window = 5,
+  minimum.visits = 10,
+  visit.threshold = 0.7,
+  save.breakpoint.plots = NULL,
+  save.all.breakpoint.info = F,
+  p.thresh = 0.01,
+  min.cells.per.segment = 1,
+  min.pseudotime.per.segment = 0.01,
+  dendro.node.size = 100,
+  dendro.cell.jitter = 0.15,
+  dendro.cell.dist.to.tree = 0.05,
+  verbose = T
+)
 }
 \arguments{
 \item{object}{An URD object}

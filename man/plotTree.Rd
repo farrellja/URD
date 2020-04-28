@@ -4,13 +4,33 @@
 \alias{plotTree}
 \title{Plot 2D Dendrogram of URD Tree}
 \usage{
-plotTree(object, label = NULL, label.type = "search", title = label,
-  legend = T, legend.title = "", legend.point.size = 6 * cell.size,
-  plot.tree = T, tree.alpha = 1, tree.size = 1, plot.cells = T,
-  cell.alpha = 0.25, cell.size = 0.5, label.x = T, label.segments = F,
-  discrete.ignore.na = F, color.tree = NULL, continuous.colors = NULL,
-  discrete.colors = NULL, color.limits = NULL,
-  symmetric.color.scale = NULL, hide.y.ticks = T)
+plotTree(
+  object,
+  label = NULL,
+  label.type = "search",
+  title = label,
+  legend = T,
+  legend.title = "",
+  legend.point.size = 6 * cell.size,
+  plot.tree = T,
+  tree.alpha = 1,
+  tree.size = 1,
+  plot.cells = T,
+  cell.alpha = 0.25,
+  cell.size = 0.5,
+  label.x = T,
+  label.segments = F,
+  discrete.ignore.na = F,
+  color.tree = NULL,
+  continuous.colors = NULL,
+  discrete.colors = NULL,
+  color.limits = NULL,
+  symmetric.color.scale = NULL,
+  hide.y.ticks = T,
+  cells.highlight = NULL,
+  cells.highlight.alpha = 1,
+  cells.highlight.size = 2
+)
 }
 \arguments{
 \item{object}{An URD object}
@@ -27,7 +47,7 @@ plotTree(object, label = NULL, label.type = "search", title = label,
 
 \item{legend.point.size}{(Numeric) How big should points be in the legend?}
 
-\item{plot.tree}{(Logical) Whether to plot the dendrogram}
+\item{plot.tree}{(Logical) Whether cells should be plotted with the tree}
 
 \item{tree.alpha}{(Numeric) Transparency of dendrogram (0 is transparent, 1 is opaque)}
 
@@ -55,7 +75,11 @@ plotTree(object, label = NULL, label.type = "search", title = label,
 
 \item{hide.y.ticks}{(Logical) Should the pseudotime values on the y-axis be hidden?}
 
-\item{plot.tree}{(Logical) Whether cells should be plotted with the tree}
+\item{cells.highlight}{(Character vector) Group of cells to plot last, ensuring that they are highlighted on the tree.}
+
+\item{cells.highlight.alpha}{(Numeric) Transparency of highlighted cells (0 is transparent, 1 is opaque)}
+
+\item{cells.highlight.size}{(Numeric) Size of highlighted cells}
 }
 \value{
 A ggplot2 object

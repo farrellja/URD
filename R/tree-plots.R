@@ -25,11 +25,14 @@
 #' @param color.limits (Numeric vector, length 2) Minimum and maximum values for color scale. Default \code{NULL} auto-detects.
 #' @param symmetric.color.scale (Logical) Should the color scale be symmetric and centered around 0? (Default \code{NULL} is \code{FALSE} if all values are positive, and \code{TRUE} if both positive and negative values are present.)
 #' @param hide.y.ticks (Logical) Should the pseudotime values on the y-axis be hidden?
+#' @param cells.highlight (Character vector) Group of cells to plot last, ensuring that they are highlighted on the tree.
+#' @param cells.highlight.alpha (Numeric) Transparency of highlighted cells (0 is transparent, 1 is opaque)
+#' @param cells.highlight.size (Numeric) Size of highlighted cells
 #' 
 #' @return A ggplot2 object
 #' 
 #' @export
-plotTree <- function(object, label=NULL, label.type="search", title=label, legend=T, legend.title="", legend.point.size=6*cell.size, plot.tree=T, tree.alpha=1, tree.size=1, plot.cells=T, cell.alpha=0.25, cell.size=0.5, label.x=T, label.segments=F, discrete.ignore.na=F, color.tree=NULL, continuous.colors=NULL, discrete.colors=NULL, color.limits=NULL, symmetric.color.scale=NULL, hide.y.ticks=T) {
+plotTree <- function(object, label=NULL, label.type="search", title=label, legend=T, legend.title="", legend.point.size=6*cell.size, plot.tree=T, tree.alpha=1, tree.size=1, plot.cells=T, cell.alpha=0.25, cell.size=0.5, label.x=T, label.segments=F, discrete.ignore.na=F, color.tree=NULL, continuous.colors=NULL, discrete.colors=NULL, color.limits=NULL, symmetric.color.scale=NULL, hide.y.ticks=T, cells.highlight=NULL, cells.highlight.alpha=1, cells.highlight.size=2) {
   
   # Validation of parameters
   if (class(object) != "URD") stop("Must provide an URD object as input to plotTree.")
@@ -110,7 +113,15 @@ plotTree <- function(object, label=NULL, label.type="search", title=label, legen
         cell.layout$expression <- color.data[cell.layout$cell, "value"]
       }
       # With color
-      the.plot <- the.plot + geom_point(data=cell.layout, aes(x=x,y=y,color=expression), alpha=cell.alpha, size=cell.size)
+      if (is.null(cells.highlight)) {
+        # Plot all cells.
+        the.plot <- the.plot + geom_point(data=cell.layout, aes(x=x,y=y,color=expression), alpha=cell.alpha, size=cell.size)
+      } else {
+        # Plot non-highlighted cells
+        the.plot <- the.plot + geom_point(data=cell.layout[setdiff(rownames(cell.layout), cells.highlight),], aes(x=x,y=y,color=expression), alpha=cell.alpha, size=cell.size)
+        # Plot highlighted cells
+        the.plot <- the.plot + geom_point(data=cell.layout[cells.highlight,], aes(x=x,y=y,color=expression), alpha=cells.highlight.alpha, size=cells.highlight.size)
+      }
     } else {
       # Just plain black if no label
       the.plot <- the.plot + geom_point(data=cell.layout, aes(x=x,y=y), alpha=cell.alpha, size=cell.size)
@@ -185,6 +196,44 @@ plotTree <- function(object, label=NULL, label.type="search", title=label, legen
   }
   
   return(the.plot)
+}
+
+#' Plot 2D Dendrogram of URD Tree (with cells that meet arbitrary criteria highlighted)
+#' 
+#' This produces an URD dendrogram with cells that meet any group of arbitrary criteria highlighted on the tree. It uses the \code{highlight.cells}, \code{highlight.cells.alpha}, and \code{highlight.cells.size} parameters of \code{\link{plotTree}} which can alternatively be used to accomplish this.
+#' 
+#' @param object An URD object
+#' @param label.name (Character vector) Data to use for selecting cells, see \link{data.for.plot}
+#' @param label.value (List of vectors) List of same length as \code{label.name}; Each entry is the acceptable values for the corresponding entry in \code{label.name}
+#' @param color (Character) Color to use for highlighted cells
+#' @param bg.color (Character) Color to use for non-highlighted cells
+#' @param highlight.alpha (Numeric) Transparency of highlighted cells (0 is fully transparent, 1 is fully opaque)
+#' @param highlight.size (Numeric) Size of points of highlighted cells
+#' @param combine (Character) Should highlighted cells be the \code{intersect} (i.e. cells that meet ALL criteria) or the \code{union} (i.e. cells that meet any criteria)
+#' @param ... all additional parameters are passed to \code{\link{plotTree}}
+#' 
+#' @return A ggplot2 object
+#' @export
+plotTreeHighlight <- function(object, label.name, label.value, color="red", bg.color="#CCCCCC", highlight.alpha=0.6, highlight.size=1.5, combine=c("intersect", "union"), ...) {
+  # Parse input
+  if (length(label.name) != length(label.value)) stop("label.name must be a vector and label.value must be a list of the same length as label.name")
+  if (length(combine) > 1) combine <- combine[1]
+  
+  # Get cells that meet all criteria
+  cell.lists <- lapply(1:length(label.name), function(i) whichCells(object, label = label.name[i], value = label.value[[i]]))
+  if (tolower(combine) == "intersect") {
+    cells.highlight <- names(which(table(unlist(cell.lists)) == length(cell.lists)))
+  } else if (tolower(combine) == "union") {
+    cells.highlight <- unique(unlist(cell.lists))
+  } else {
+    stop("combine must be 'intersect' or 'union'.")
+  }
+  # Make a fake group.id for them
+  object@group.ids$data.plot <- "NO"
+  object@group.ids[cells.highlight, "data.plot"] <- "YES"
+  
+  # Do the plot
+  return(plotTree(object, "data.plot", discrete.colors=c(bg.color, color), cells.highlight = cells.highlight, legend = F, cells.highlight.alpha = highlight.alpha, cells.highlight.size = highlight.size, ...))
 }
 
 #' Plot 2D Dendrogram of URD Tree

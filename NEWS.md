@@ -1,5 +1,27 @@
 # News
 
+## 1.1.1 - April 28, 2020
+This release incorporates fixes to many bugs uncovered by users over the last several months.
+
+### Added
+- `plotTreeHighlight` can be used to plot an URD dendrogram-style plot where particular cells on the tree are highlighted for visualizing their location.
+- A more evenly spaced color scale is now accessible by using the `evenly.spaced = T` parameter to `defaultURDContinuousColors`.
+- `combineSmoothFit` function can be used to put multiple spline curves together into a single spline curve.
+- Additional visualization options for `plotDot`, including minimum and maximum point sizes, choice of scaling by area or radius, and customizable color scale.
+- Additional visualization options for `plotViolin`, allowing customization of point size, color, and transparency.
+- `treeForceDirectedLayout`: `cells.minimum.walks` parameter can automatically exclude poorly visited cells from the force-directed layout calculation.
+- Calculations that use moving windows in pseudotime (including `geneSmoothFit` and its related functions) can now support minimum pseudotime and minimum cell numbers simultaneously. If both are set, windows are determined by number of cells, but then windows whose pseudotime is too small are collapsed.
+
+### Changed
+- Fixed installation failures for R > 3.4 due to changes in BioConductor's package management (i.e. to use BiocManager for R >= 3.5).
+- `markersAUCPR` now calculates AUC ratio compared to random classifier and correctly reports cluster labels. `auc.factor` parameter allows selecting only results that are some factor better than a random classifier.
+- `markersAUCPR` now correctly takes pseudocount of 1 into account when determining expression fold-change.
+- `plotDot` now uses a more evenly spaced color scale by default.
+- Removed delta symbol from NMF doublets plots to prevent Unicode failures during installation.
+- `buildTree`: If `tips.use` is not specified, will attempt to auto-detect.
+- `buildTree`: Fixed error where function would fail if a tip was specified that had no member cells as defined by `loadTipCells` function.
+- `buildTree` / `treeLayoutDendrogram`: Fixed bug in related to changes in ggraph 2.0.0 that was creating crazy dendrograms.
+
 ## 1.1.0 - July 25, 2019
 This release accompanies the release of our manuscript **[Stem cell differentiation trajectories in Hydra resolved at single-cell resolution](https://science.sciencemag.org/content/365/6451/eaav9314)** and includes new functions developed during the analysis presented in that work.
 

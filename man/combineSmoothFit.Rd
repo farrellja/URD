@@ -4,17 +4,14 @@
 \alias{combineSmoothFit}
 \title{Gene Smooth: Combine smoothed fits}
 \usage{
-combineSmoothFit(smoothed.fit, fits.use)
+combineSmoothFit(fit.list)
 }
 \arguments{
-\item{smoothed.fit}{(List) A list of smoothed.fits to combine}
-
-\item{fits.use}{(Character) Names of smoothed.fits in the list to use}
+\item{fit.list}{(List) A list of smoothed.fits to combine}
 }
 \value{
-(List)
+(List) Akin to a single output from \code{\link{geneSmoothFit}}.
 }
 \description{
-???
+This function takes a list of smoothed.fits (i.e. output from \code{\link{geneSmoothFit}}) and combines them in the order provided into a single smoothed fit. This is useful, for instance, for combining multiple pieces of fits together for plotting on a heatmap with several panels.
 }
-\keyword{internal}

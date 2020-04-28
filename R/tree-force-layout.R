@@ -27,7 +27,7 @@
 #' into place and to increase the angular distance at the first branchpoint in the blastoderm
 #' so that the more fine-grained branches from the different germ layers didn't overlap.)
 #' 
-#' Thanks for Dorde Relic for debugging and creating the \code{remove.duplicate.cells} parameter.
+#' Thanks for Dorde Relic for debugging and creating the \code{remove.duplicate.cells} parameter and Simon Cai for debugging that led to the \code{cell.minimum.walks} parameter.
 #' 
 #' @importFrom RANN nn2
 #' @importFrom stats quantile
@@ -38,6 +38,7 @@
 #' @param num.nn (Numeric) Number of nearest neighbors to use. (\code{NULL} will use the square root of the number of cells as default.)
 #' @param method (Character: "fr", "drl", or "kk") Which force-directed layout algorithm to use (\link[igraph:layout_with_fr]{Fruchterman-Reingold}, \link[igraph:layout_with_drl]{DrL}, or \link[igraph:layout_with_kk]{Kamada-Kawai})
 #' @param cells.to.do (Character vector) Cells to use in the layout (default \code{NULL} is all cells in the tree.)
+#' @param cell.minimum.walks (Numeric) Minimum number of times a cell must have been visited by random walks in order to be included in the force-directed layout (Cells that have been visited only a few times are more likely to be assigned incorrectly or poorly.)
 #' @param cut.outlier.cells (Numeric) If desired, omit cells with unusual second nearest neighbor distances (i.e. those that are likely outliers only well connected to one other cell). Parameter is given as a factor of the interquartile range calculated across all cells' distance to their second nearest neighbor. (Default is not to omit any cells.)
 #' @param cut.outlier.edges (Numeric) If desired, cut edges in the nearest neighbor graph with unusually long distances. Parameters is given as a factor of the interquartile range calculated across all edges in the graph. (Default is not to cut any edges based on their length.)
 #' @param max.pseudotime.diff (Numeric) If desired, cut edges in the nearest neighbor graph between cells with longer difference in pseudotime. (Default is not to cut any edges based on their pseudotime.)
@@ -64,7 +65,7 @@
 #' 
 #' @export
 
-treeForceDirectedLayout <- function(object, num.nn=NULL, method=c("fr", "drl", "kk"), cells.to.do=NULL, cut.outlier.cells=NULL, cut.outlier.edges=NULL, max.pseudotime.diff=NULL, cut.unconnected.segments=2, min.final.neighbors=2, remove.duplicate.cells=T, tips=object@tree$tips, coords="auto", start.temp=NULL, n.iter=NULL, density.neighbors=10, plot.outlier.cuts=F, verbose=F) {
+treeForceDirectedLayout <- function(object, num.nn=NULL, method=c("fr", "drl", "kk"), cells.to.do=NULL, cell.minimum.walks=1, cut.outlier.cells=NULL, cut.outlier.edges=NULL, max.pseudotime.diff=NULL, cut.unconnected.segments=2, min.final.neighbors=2, remove.duplicate.cells=T, tips=object@tree$tips, coords="auto", start.temp=NULL, n.iter=NULL, density.neighbors=10, plot.outlier.cuts=F, verbose=F) {
   # Params
   if (length(method) > 1) method <- method[1]
   if (is.null(cells.to.do)) cells.to.do <- rownames(object@diff.data)
@@ -94,9 +95,17 @@ treeForceDirectedLayout <- function(object, num.nn=NULL, method=c("fr", "drl", "
   # Get and normalize walk data, then add pseudotime (unless NULL in which case don't use)
   if (verbose) print(paste0(Sys.time(), ": Preparing walk data."))
   walk.data <- object@diff.data[cells.to.do,paste0("visitfreq.raw.", object@tree$tips)]
-  walk.total <- apply(walk.data, 1, sum)
-  walk.data <- sweep(walk.data, 1, walk.total, "/")
   walk.data$pseudotime <- object@tree$pseudotime[cells.to.do]
+  walk.total <- apply(walk.data, 1, sum)
+  # If some cells weren't walked enough
+  if (any(walk.total < cell.minimum.walks)) {
+    if (verbose) print(paste0("Removing ", length(which(walk.total < cell.minimum.walks)), " cells that were visited fewer than ", cell.minimum.walks, " times by random walks."))
+    # Remove those cells
+    walk.data <- walk.data[which(walk.total >= cell.minimum.walks),]
+    # And recalculate walk totals
+    walk.total <- apply(walk.data, 1, sum)
+  }
+  walk.data <- sweep(walk.data, 1, walk.total, "/")
   walk.data <- as.matrix(walk.data)
   
   duped <- which(duplicated(walk.data))

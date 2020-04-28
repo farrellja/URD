@@ -4,8 +4,12 @@
 \alias{NMFDoubletsPlotModuleThresholds}
 \title{NMF Doublets: Plot module overlaps}
 \usage{
-NMFDoubletsPlotModuleThresholds(module.combos, frac.overlap.max,
-  frac.overlap.diff.max, modules.highlight = NULL)
+NMFDoubletsPlotModuleThresholds(
+  module.combos,
+  frac.overlap.max,
+  frac.overlap.diff.max,
+  modules.highlight = NULL
+)
 }
 \arguments{
 \item{module.combos}{(List) Output from \code{\link{NMFDoubletsDefineModules}}}

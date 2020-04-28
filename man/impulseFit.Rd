@@ -4,8 +4,7 @@
 \alias{impulseFit}
 \title{Fit gene expression data with an impulse model}
 \usage{
-impulseFit(x, y, k = 50, interpolate = NULL, pulse.only = T,
-  min.slope = 0.1)
+impulseFit(x, y, k = 50, interpolate = NULL, pulse.only = T, min.slope = 0.1)
 }
 \arguments{
 \item{x}{(Numeric) Expression data to fit (e.g. pseudotime)}

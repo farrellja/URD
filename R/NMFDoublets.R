@@ -294,7 +294,7 @@ NMFDoubletsPlotModuleCombos <- function(object, path, module.combos, module.expr
   
   # Actually loop through and generate the plots
   for (i in 1:n.plots) {
-    p1.title <- paste0(module.combos.to.plot[i, "Mod1"], " + ", module.combos.to.plot[i, "Mod2"], " (Overlap: ", 100*module.combos.to.plot[i, "frac.overlap.high"], "%; Δ Overlap: ", 100*module.combos.to.plot[i, "frac.overlap.diff"], "%)")
+    p1.title <- paste0(module.combos.to.plot[i, "Mod1"], " + ", module.combos.to.plot[i, "Mod2"], " (Overlap: ", 100*module.combos.to.plot[i, "frac.overlap.high"], "%; Overlap Diff: ", 100*module.combos.to.plot[i, "frac.overlap.diff"], "%)")
     p1 <- plotDimDual(object, module.combos.to.plot[i,"Mod1"], module.combos.to.plot[i,"Mod2"], plot.title = p1.title, ...)
     overlap.cells <- intersect(intersect(cells.express.mod.crop[[module.combos.to.plot[i,"Mod1"]]],cells.express.mod.crop[[module.combos.to.plot[i,"Mod2"]]]), colnames(object@logupx.data))
     object <- groupFromCells(object, "overlap.cells", overlap.cells)

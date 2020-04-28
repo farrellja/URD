@@ -4,9 +4,16 @@
 \alias{pseudotimeWeightTransitionMatrix}
 \title{Weight transition matrix by pseudotime}
 \usage{
-pseudotimeWeightTransitionMatrix(object, pseudotime, x0 = NULL, k = NULL,
-  logistic.params = NULL, pseudotime.direction = "<",
-  max.records = 2.25e+08, verbose = F)
+pseudotimeWeightTransitionMatrix(
+  object,
+  pseudotime,
+  x0 = NULL,
+  k = NULL,
+  logistic.params = NULL,
+  pseudotime.direction = "<",
+  max.records = 2.25e+08,
+  verbose = F
+)
 }
 \arguments{
 \item{object}{An URD object}

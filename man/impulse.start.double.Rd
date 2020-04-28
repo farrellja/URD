@@ -4,8 +4,7 @@
 \alias{impulse.start.double}
 \title{Starting Conditions for Impulse Model (double sigmoid)}
 \usage{
-impulse.start.double(x, y, k, h0.frac = 0.2, h2.frac = 0.2,
-  interpolate = NULL)
+impulse.start.double(x, y, k, h0.frac = 0.2, h2.frac = 0.2, interpolate = NULL)
 }
 \arguments{
 \item{x}{(Numeric vector) Expression data to fit (x)}

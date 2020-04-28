@@ -8,8 +8,6 @@
 
 R can be obtained and installed from [https://cran.rstudio.com](https://cran.rstudio.com). 
 
-URD has only been tested under R 3.4.x and may fail to install under R 3.5.x until some of its dependencies are updated.
-
 Following installation of R, Rstudio can be obtained and installed from [https://www.rstudio.com/products/rstudio/download/](https://www.rstudio.com/products/rstudio/download/). The free version of RStudio Desktop is sufficient.
 
 ### 2. Install an X11 window client (Mac only)

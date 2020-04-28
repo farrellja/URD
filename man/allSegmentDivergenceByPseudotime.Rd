@@ -4,11 +4,21 @@
 \alias{allSegmentDivergenceByPseudotime}
 \title{All Segment Divergence By Pseudotime}
 \usage{
-allSegmentDivergenceByPseudotime(object, pseudotime, segments,
-  divergence.method = c("ks", "preference"), pseudotime.cuts = 80,
-  window.size = 5, minimum.visits = 10, visit.threshold = 0.7,
-  p.thresh = 0.01, pref.thresh = 0.5, breakpoint.decision.plots = NULL,
-  cache = T, verbose = F)
+allSegmentDivergenceByPseudotime(
+  object,
+  pseudotime,
+  segments,
+  divergence.method = c("ks", "preference"),
+  pseudotime.cuts = 80,
+  window.size = 5,
+  minimum.visits = 10,
+  visit.threshold = 0.7,
+  p.thresh = 0.01,
+  pref.thresh = 0.5,
+  breakpoint.decision.plots = NULL,
+  cache = T,
+  verbose = F
+)
 }
 \arguments{
 \item{object}{An URD object}

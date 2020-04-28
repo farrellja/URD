@@ -4,8 +4,15 @@
 \alias{branchpointPreferenceLayout}
 \title{Generate Branchpoint Preference Layout}
 \usage{
-branchpointPreferenceLayout(object, pseudotime, lineages.1, lineages.2,
-  parent.of.lineages, opposite.parent, min.visit = 0)
+branchpointPreferenceLayout(
+  object,
+  pseudotime,
+  lineages.1,
+  lineages.2,
+  parent.of.lineages,
+  opposite.parent,
+  min.visit = 0
+)
 }
 \arguments{
 \item{object}{An URD object}

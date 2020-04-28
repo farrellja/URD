@@ -1,10 +1,21 @@
-# Load Bioconductor
-message("Loading Bioconductor to install required packages.")
-source("https://bioconductor.org/biocLite.R")
-
 # Install Bioconductor requirements: Biobase, S4Vectors, AnnotationDbi, destiny
-message("Installing required packages from Bioconductor.")
-biocLite(c('Biobase', 'S4Vectors', 'AnnotationDbi', 'destiny'), suppressUpdates=T)
+# Needs to check R version because installation method changed between R 3.4 and 3.5
+
+if (as.numeric(R.version$major) <= 3 && as.numeric(R.version$minor) < 5) {
+  # R < 3.5
+  message("Loading Bioconductor (biocLite) to install required packages.")
+  source("https://bioconductor.org/biocLite.R")
+  message("Installing required packages from Bioconductor.")
+  biocLite(c('Biobase', 'S4Vectors', 'AnnotationDbi', 'destiny'), suppressUpdates=T)
+} else {
+  # R >= 3.5
+  if (!requireNamespace("BiocManager", quietly = TRUE)) {
+    message("Installing biocManager to install required Bioconductor packages.")
+    install.packages("BiocManager")
+  }
+  message("Installing required packages from Bioconductor (BiocManager).")
+  BiocManager::install(c('Biobase', 'S4Vectors', 'AnnotationDbi', 'destiny'), suppressUpdates=T)
+}
 
 # Check that Bioconductor installation went smoothly.
 if (!requireNamespace("Biobase", quietly = TRUE)) {stop("Failed to install required package 'Biobase' from Bioconductor.")}

@@ -4,9 +4,15 @@
 \alias{calcTsne}
 \title{Calculate tSNE projection of data}
 \usage{
-calcTsne(object, dim.use = c("pca", "dm"),
-  which.dims = which(object@pca.sig), perplexity = 30, theta = 0.5,
-  max_iter = 1000, verbose = FALSE)
+calcTsne(
+  object,
+  dim.use = c("pca", "dm"),
+  which.dims = which(object@pca.sig),
+  perplexity = 30,
+  theta = 0.5,
+  max_iter = 1000,
+  verbose = FALSE
+)
 }
 \arguments{
 \item{object}{An URD object}

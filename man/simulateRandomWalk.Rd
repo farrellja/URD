@@ -4,8 +4,15 @@
 \alias{simulateRandomWalk}
 \title{Simulate random walks}
 \usage{
-simulateRandomWalk(start.cells, transition.matrix, end.cells, n = 10000,
-  end.visits = 1, verbose.freq = 0, max.steps = 5000)
+simulateRandomWalk(
+  start.cells,
+  transition.matrix,
+  end.cells,
+  n = 10000,
+  end.visits = 1,
+  verbose.freq = 0,
+  max.steps = 5000
+)
 }
 \arguments{
 \item{start.cells}{(Character vector) Cells to use as a starting pool. One cell is chosen at random each simulation.}

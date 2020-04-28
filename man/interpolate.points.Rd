@@ -4,10 +4,17 @@
 \alias{interpolate.points}
 \title{Interpolate dimensionality reduction dimensions}
 \usage{
-interpolate.points(raw.coordinates, coord.prefix = "DC", dim.1, dim.2, dim.3,
-  w.1 = rep(1/length(dim.1), length(dim.1)), w.2 = rep(1/length(dim.2),
-  length(dim.2)), w.3 = rep(1/length(dim.3), length(dim.3)),
-  rows.subset = NULL)
+interpolate.points(
+  raw.coordinates,
+  coord.prefix = "DC",
+  dim.1,
+  dim.2,
+  dim.3,
+  w.1 = rep(1/length(dim.1), length(dim.1)),
+  w.2 = rep(1/length(dim.2), length(dim.2)),
+  w.3 = rep(1/length(dim.3), length(dim.3)),
+  rows.subset = NULL
+)
 }
 \arguments{
 \item{raw.coordinates}{(data.frame) Rows are cells, and columns are dimensions to use for interpolation.}

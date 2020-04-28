@@ -4,8 +4,13 @@
 \alias{txCutoffPlot}
 \title{Plot Cumulative Distribution of Reads per Cell Barcode}
 \usage{
-txCutoffPlot(tx.reads.per.cell = NULL, molecule.info.path = NULL,
-  n.cells = NULL, main = "", xmax = 5000)
+txCutoffPlot(
+  tx.reads.per.cell = NULL,
+  molecule.info.path = NULL,
+  n.cells = NULL,
+  main = "",
+  xmax = 5000
+)
 }
 \arguments{
 \item{n.cells}{(Numeric) Draw a line at putative number of cells to use downstream}

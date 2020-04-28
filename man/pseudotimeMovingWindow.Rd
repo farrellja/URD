@@ -4,9 +4,15 @@
 \alias{pseudotimeMovingWindow}
 \title{Moving window through pseudotime}
 \usage{
-pseudotimeMovingWindow(object, pseudotime, cells, moving.window,
-  cells.per.window = NULL, pseudotime.per.window = NULL,
-  name.by = c("mean", "min", "max"))
+pseudotimeMovingWindow(
+  object,
+  pseudotime,
+  cells,
+  moving.window,
+  cells.per.window = NULL,
+  pseudotime.per.window = NULL,
+  name.by = c("mean", "min", "max")
+)
 }
 \arguments{
 \item{object}{A URD object}
@@ -27,6 +33,6 @@ pseudotimeMovingWindow(object, pseudotime, cells, moving.window,
 List of windows of cells, named by either the mean, min, or max pseudotime of those cells (depending on \code{name.by}).
 }
 \description{
-Generates lists of cells using a moving window. Size of windows is either determined by pseudotime (if \code{pseudotime.per.window} is set) or by number of cells (if \code{cells.per.window} is set).
+Generates lists of cells using a moving window. Size of windows is either determined by pseudotime (if \code{pseudotime.per.window} is set) or by number of cells (if \code{cells.per.window} is set). If both are set, windows are determined by number of cells, but then windows whose pseudotime differ by less than \code{pseudotime.per.window} are collapsed.
 }
 \keyword{internal}

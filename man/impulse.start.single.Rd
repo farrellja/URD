@@ -4,8 +4,7 @@
 \alias{impulse.start.single}
 \title{Starting conditions for single sigmoid model}
 \usage{
-impulse.start.single(x, y, k, h.frac = 0.2, l.frac = 0.2,
-  interpolate = NULL)
+impulse.start.single(x, y, k, h.frac = 0.2, l.frac = 0.2, interpolate = NULL)
 }
 \arguments{
 \item{x}{(Numeric vector) Expression data to fit (x)}

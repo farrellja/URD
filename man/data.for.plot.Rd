@@ -4,11 +4,19 @@
 \alias{data.for.plot}
 \title{Retrieve data for plotting}
 \usage{
-data.for.plot(object, label, label.type = c("search", "meta", "group", "sig",
-  "gene", "counts", "pseudotime", "nmf", "pca", "diff.data"),
-  cells.use = NULL, as.color = F, as.single.color = F,
-  as.discrete.list = F, continuous.colors = NULL,
-  continuous.color.limits = NULL, colors.use = NULL)
+data.for.plot(
+  object,
+  label,
+  label.type = c("search", "meta", "group", "sig", "gene", "counts", "pseudotime",
+    "nmf", "pca", "diff.data"),
+  cells.use = NULL,
+  as.color = F,
+  as.single.color = F,
+  as.discrete.list = F,
+  continuous.colors = NULL,
+  continuous.color.limits = NULL,
+  colors.use = NULL
+)
 }
 \arguments{
 \item{object}{An URD object}

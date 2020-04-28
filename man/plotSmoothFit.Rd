@@ -4,9 +4,17 @@
 \alias{plotSmoothFit}
 \title{Gene Smooth: Plot a single fit}
 \usage{
-plotSmoothFit(smoothed.fit, genes, scaled = T, multiplot = F,
-  plot.data = T, alpha.data = 0.2, alpha.smooth = 1, lwd.smooth = 1,
-  plot.title = NULL)
+plotSmoothFit(
+  smoothed.fit,
+  genes,
+  scaled = T,
+  multiplot = F,
+  plot.data = T,
+  alpha.data = 0.2,
+  alpha.smooth = 1,
+  lwd.smooth = 1,
+  plot.title = NULL
+)
 }
 \arguments{
 \item{smoothed.fit}{(List) Output from either \code{\link{geneSmoothFit}} or \code{\link{geneCascadeProcess}}}

@@ -4,8 +4,15 @@
 \alias{calcPCA}
 \title{Calculate principal components}
 \usage{
-calcPCA(object, genes.use = object@var.genes, pcs.store = NULL,
-  store.thresh = 2, mp.factor = 1, do.print = T, verbose = T)
+calcPCA(
+  object,
+  genes.use = object@var.genes,
+  pcs.store = NULL,
+  store.thresh = 2,
+  mp.factor = 1,
+  do.print = T,
+  verbose = T
+)
 }
 \arguments{
 \item{object}{URD object}

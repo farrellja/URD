@@ -4,8 +4,12 @@
 \alias{collapseShortSegments}
 \title{Collapse Short Segments}
 \usage{
-collapseShortSegments(object, min.cells.per.segment = 1,
-  min.pseudotime.per.segment = 0.01, collapse.root = F)
+collapseShortSegments(
+  object,
+  min.cells.per.segment = 1,
+  min.pseudotime.per.segment = 0.01,
+  collapse.root = F
+)
 }
 \arguments{
 \item{object}{An URD object}

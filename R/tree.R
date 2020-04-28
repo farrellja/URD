@@ -80,6 +80,11 @@ buildTree <- function(object, pseudotime, tips.use=NULL, divergence.method=c("ks
   # Check divergence.method parameter
   if (length(divergence.method) > 1) divergence.method <- divergence.method[1]
   if (!(divergence.method %in% c("ks", "preference"))) stop("Divergence method must be 'ks' or 'preference'.")
+  # If tips were not specified, define them.
+  if (is.null(tips.use)) {
+    tips.use <- suppressWarnings(as.character(setdiff(as.numeric(gsub("visitfreq.raw.", "", grep("visitfreq.raw.", colnames(object@diff.data), value=T))), NA)))
+    if (verbose) message(paste0("Tips not provided, so using: ", paste0(tips.use, collapse=", ")))
+  }
   # Make sure tips is a character vector
   tips <- as.character(tips.use)
   # Record tips for posterity
@@ -88,6 +93,10 @@ buildTree <- function(object, pseudotime, tips.use=NULL, divergence.method=c("ks
   if (weighted.fusion) {
     tip.size <- unlist(lapply(object@tree$cells.in.tip, length))
     if (length(tip.size)==0) stop("Either weighted.fusion must be false, or loadTipCells must be run prior.")
+    tip.size <- tip.size[tip.size > 0]
+    if (!all(tips.use %in% names(tip.size))) {
+      stop(paste0("tips.use included tips (", paste0(setdiff(tips.use, names(tip.size)), collapse=", "), ") for which no cells were defined by loadTipCells. Does that tip exist in your tip clustering?"))
+    }
   }
   # Load the pseudotime used into the tree object for use later with plotting
   object@tree$pseudotime <- object@pseudotime[,pseudotime]

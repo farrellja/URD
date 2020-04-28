@@ -4,8 +4,15 @@
 \alias{floodPseudotime}
 \title{Calculate pseudotime by 'flooding'}
 \usage{
-floodPseudotime(object, root.cells, n = 20, minimum.cells.flooded = 2,
-  tm.flood = NULL, verbose = F, verbose.freq = 10)
+floodPseudotime(
+  object,
+  root.cells,
+  n = 20,
+  minimum.cells.flooded = 2,
+  tm.flood = NULL,
+  verbose = F,
+  verbose.freq = 10
+)
 }
 \arguments{
 \item{object}{An URD object}
@@ -37,7 +44,7 @@ of the graph is performed. The probability that a cell is newly visited is the
 cumulative transition probability from all cells that have previously been
 visited in the graph. The process continues until either the entire graph is
 visited, or fewer than \code{minimum.cells.flooded} new cells are visited in
-a given iteration.
+a given iteration. 
 
 On a computing cluster, this step can be parallelized by running a smaller number
 of simulations on many computers and combining the resulting data.frames with \code{\link{cbind}}.

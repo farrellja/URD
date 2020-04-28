@@ -166,7 +166,7 @@ data.for.plot <- function(object, label, label.type=c("search", "meta", "group",
 #' @export
 #' 
 #' @keywords internal
-defaultURDContinuousColors <- function(with.grey=F, symmetric=F) {
+defaultURDContinuousColors <- function(with.grey=F, symmetric=F, evenly.spaced=F) {
   if (symmetric) {
     return(c("#B3006B", "#C04981", "#CA7197", "#D396AE", "#D9B9C5", "#DDDDDD", 
              "#BFD6B7", "#A0CE91", "#7FC66B", "#57BD43", "#0CB300"))
@@ -176,6 +176,12 @@ defaultURDContinuousColors <- function(with.grey=F, symmetric=F) {
              "#00F2FF", "#27FFD7", "#8CFF71", "#F1FF0D", "#FFEE00", "#FFDB00", 
              "#FFC900", "#FFB700", "#FFA500", "#FF9200", "#FF8000", "#FF6D00", 
              "#FF5B00", "#FF4800", "#FF3600", "#FF2400", "#FF1200", "#FF0000"))
+  } else if (evenly.spaced) { 
+    return(c("#0000FF", "#0023FF", "#0046FF", "#0069FF", "#008CFF", "#00AFFF", 
+             "#00D2FF", "#00F6FF", "#1AFFE4", "#3DFFC1", "#60FF9D", "#83FF7A", 
+             "#A6FF57", "#CAFF34", "#EDFF11", "#FFF800", "#FFEC00", "#FFDF00", 
+             "#FFD300", "#FFC700", "#FFBA00", "#FFAE00", "#FF9F00", "#FF8800", 
+             "#FF7100", "#FF5A00", "#FF4300", "#FF2D00", "#FF1600", "#FF0000"))
   } else {
     return(c("#0000FF", "#0013FF", "#0028FF", "#003CFF", "#0050FF", "#0065FF", 
              "#0078FF", "#008DFF", "#00A1FF", "#00B5FF", "#00CAFF", "#00DEFF", 

@@ -4,9 +4,16 @@
 \alias{simulateRandomWalksFromTips}
 \title{Simulate Random Walks From All Tips}
 \usage{
-simulateRandomWalksFromTips(object, tip.group.id, root.cells, transition.matrix,
-  n.per.tip = 10000, root.visits = 1,
-  max.steps = ncol(object@logupx.data), verbose = T)
+simulateRandomWalksFromTips(
+  object,
+  tip.group.id,
+  root.cells,
+  transition.matrix,
+  n.per.tip = 10000,
+  root.visits = 1,
+  max.steps = ncol(object@logupx.data),
+  verbose = T
+)
 }
 \arguments{
 \item{object}{An URD object}

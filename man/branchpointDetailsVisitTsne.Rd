@@ -4,8 +4,14 @@
 \alias{branchpointDetailsVisitTsne}
 \title{Investigate Branchpoint - tSNE Visitation Groups}
 \usage{
-branchpointDetailsVisitTsne(object, seg.1, seg.2, file = NULL,
-  file.width = 750, file.height = 600)
+branchpointDetailsVisitTsne(
+  object,
+  seg.1,
+  seg.2,
+  file = NULL,
+  file.width = 750,
+  file.height = 600
+)
 }
 \arguments{
 \item{object}{An URD object}

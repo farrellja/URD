@@ -4,9 +4,16 @@
 \alias{findVariableGenes}
 \title{Find variable genes}
 \usage{
-findVariableGenes(object, cells.fit = NULL, set.object.var.genes = T,
-  diffCV.cutoff = 0.5, mean.min = 0.005, mean.max = 100, main.use = "",
-  do.plot = T)
+findVariableGenes(
+  object,
+  cells.fit = NULL,
+  set.object.var.genes = T,
+  diffCV.cutoff = 0.5,
+  mean.min = 0.005,
+  mean.max = 100,
+  main.use = "",
+  do.plot = T
+)
 }
 \arguments{
 \item{object}{An URD object}

@@ -4,8 +4,13 @@
 \alias{segChildrenAll}
 \title{All children of segment}
 \usage{
-segChildrenAll(object, segment, include.self = F, original.joins = F,
-  format = c("unary", "binary"))
+segChildrenAll(
+  object,
+  segment,
+  include.self = F,
+  original.joins = F,
+  format = c("unary", "binary")
+)
 }
 \arguments{
 \item{object}{An URD object}

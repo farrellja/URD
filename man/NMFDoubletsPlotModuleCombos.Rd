@@ -4,11 +4,21 @@
 \alias{NMFDoubletsPlotModuleCombos}
 \title{Plot NMF module combinations and dual-expressing cells}
 \usage{
-NMFDoubletsPlotModuleCombos(object, path, module.combos,
-  module.expressed.thresh, frac.overlap.max, frac.overlap.diff.max,
-  boundary = c("pass", "discarded"), sort = c("near", "random"),
-  only.combos.with.doublets = T, n.plots = 50, width = 1400,
-  height = 600, ...)
+NMFDoubletsPlotModuleCombos(
+  object,
+  path,
+  module.combos,
+  module.expressed.thresh,
+  frac.overlap.max,
+  frac.overlap.diff.max,
+  boundary = c("pass", "discarded"),
+  sort = c("near", "random"),
+  only.combos.with.doublets = T,
+  n.plots = 50,
+  width = 1400,
+  height = 600,
+  ...
+)
 }
 \arguments{
 \item{object}{An URD object}

@@ -4,8 +4,19 @@
 \alias{plotDot}
 \title{Dot Plot}
 \usage{
-plotDot(object, genes, clustering, clusters.use = NULL, min.exp = 0.05,
-  mean.expressing.only = F, title = "")
+plotDot(
+  object,
+  genes,
+  clustering,
+  clusters.use = NULL,
+  min.exp = 0.05,
+  size.min = 0,
+  size.max = 5,
+  scale.by = c("radius", "area"),
+  colors = NULL,
+  mean.expressing.only = F,
+  title = ""
+)
 }
 \arguments{
 \item{object}{An URD object}
@@ -17,6 +28,14 @@ plotDot(object, genes, clustering, clusters.use = NULL, min.exp = 0.05,
 \item{clusters.use}{(Character vector) Names of specific clusters to plot (default: all clusters)}
 
 \item{min.exp}{(Numeric) Minimum proportion of expressing cells (0-1) to be shown on the plot}
+
+\item{size.min}{(Numeric) Point size for clusters with no cells expressing}
+
+\item{size.max}{(Numeric) Point size for clusters with all cells expressing}
+
+\item{scale.by}{(Character) Should point size scale by \code{radius} or \code{area}? See \code{\link[ggplot2]{scale_radius}} and \code{\link[ggplot2]{scale_size}}.}
+
+\item{colors}{(Character vector) Vector of colors to use for a palette.}
 
 \item{mean.expressing.only}{(Logical) Should mean expression value exclude cells with no expression}
 

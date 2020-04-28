@@ -4,12 +4,28 @@
 \alias{plotTreeDual}
 \title{Plot 2D Dendrogram of URD Tree}
 \usage{
-plotTreeDual(object, label.red, label.green, label.type.red = "search",
-  label.type.green = "search", title = NULL, legend = T,
-  legend.title = "", plot.tree = T, tree.alpha = 1, tree.size = 1,
-  plot.cells = T, cell.alpha = 0.25, cell.size = 0.5, label.x = T,
-  label.segments = F, color.tree = T, color.limits.red = NULL,
-  color.limits.green = NULL, hide.y.ticks = T)
+plotTreeDual(
+  object,
+  label.red,
+  label.green,
+  label.type.red = "search",
+  label.type.green = "search",
+  title = NULL,
+  legend = T,
+  legend.title = "",
+  plot.tree = T,
+  tree.alpha = 1,
+  tree.size = 1,
+  plot.cells = T,
+  cell.alpha = 0.25,
+  cell.size = 0.5,
+  label.x = T,
+  label.segments = F,
+  color.tree = T,
+  color.limits.red = NULL,
+  color.limits.green = NULL,
+  hide.y.ticks = T
+)
 }
 \arguments{
 \item{object}{An URD object}
@@ -28,7 +44,7 @@ plotTreeDual(object, label.red, label.green, label.type.red = "search",
 
 \item{legend.title}{(Character) Title to display on the legend}
 
-\item{plot.tree}{(Logical) Whether to plot the dendrogram}
+\item{plot.tree}{(Logical) Whether cells should be plotted with the tree}
 
 \item{tree.alpha}{(Numeric) Transparency of dendrogram (0 is transparent, 1 is opaque)}
 
@@ -49,8 +65,6 @@ plotTreeDual(object, label.red, label.green, label.type.red = "search",
 \item{color.limits.green}{(Numeric vector, length 2) Minimum and maximum values for color scale. Default \code{NULL} auto-detects.}
 
 \item{hide.y.ticks}{(Logical) Should the pseudotime values on the y-axis be hidden?}
-
-\item{plot.tree}{(Logical) Whether cells should be plotted with the tree}
 }
 \value{
 A ggplot2 object

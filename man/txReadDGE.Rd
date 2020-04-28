@@ -4,8 +4,13 @@
 \alias{txReadDGE}
 \title{Read in Digital Gene Expression Matrix from 10X Cellranger}
 \usage{
-txReadDGE(output.path, dge.name = NULL, cells.read = NULL,
-  name.by = c("gene", "id"), strip.num = T)
+txReadDGE(
+  output.path,
+  dge.name = NULL,
+  cells.read = NULL,
+  name.by = c("gene", "id"),
+  strip.num = T
+)
 }
 \arguments{
 \item{output.path}{(Character) Path that contains barcodes.tsv, genes.tsv, and matrix.mtx from Cellranger}
