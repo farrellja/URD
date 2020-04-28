@@ -31,7 +31,7 @@ Science 26 Apr 2018. doi: 10.1126/science.aar3131
 
 Detailed changes and minor versions are listed in [NEWS.md](NEWS.md)
 
-#### Most recent bugfix: 1.1.0 (July 25, 2019)
+#### Most recent bugfix: 1.1.1 (April 28, 2020)
 
 #### 2019/07/25:
 Version 1.1 released! This includes new functions for using NMF module analysis to detect and remove doublets, new functions for looking at gene expression relative to pseudotime, and new plotting functions for inspecting data. It accompanies the publication [Stem cell differentiation trajectories in Hydra resolved at single-cell resolution.](https://science.sciencemag.org/content/365/6451/eaav9314)
