@@ -116,3 +116,60 @@ sparseApply <- function(x, margin, fun, max.dim, verbose=F, ...) {
     }
   }
 }
+
+#' Equivalent of sweep function for sparse matrices from Matrix
+#' 
+#' Matrix package will 'automagically' and silently convert dgCMatrix sparse matrices to a
+#' dense matrix when they are passed to the apply function. For loops are remarkably inefficient, 
+#' so this will chunk the original matrix into
+#' pieces, process them using sweep, convert the results back to sparse, then assemble
+#' into a final result and return. It's a mediocre balance between memory usage and speed.
+#' 
+#' @param x (dgCMatrix) Input
+#' @param margin (Numeric) \code{1} for rows, \code{2} for columns
+#' @param stats (Vector) Summary statistic to be swept out
+#' @param fun (Function)
+#' @param max.dim (Numeric) Number of rows or columns to process at a time
+#' @param verbose (Logical) Report progress reports on chunks
+#' @param ... Additional arguments to pass to \code{fun}
+#' 
+#' @keywords internal
+#' @export
+sparseSweep <- function(x, margin, stats, fun, max.dim, verbose=F, ...) {
+  if (class(x) != "dgCMatrix") stop ("Designed to be used with sparse matrices.")
+  # Calculate sizes of chunks
+  n.chunks <- ceiling(dim(x)[margin] / max.dim)
+  dim.chunk <- dim(x)[margin]
+  # If only one chunk, then just use sweep
+  if (n.chunks == 1) return(sweep(x, margin, stats, fun, ...))
+  if (margin == 1) {
+    # Cut data into chunks and process individually
+    done.chunks <- lapply(1:n.chunks, function(chunk) {
+      if (verbose) message(paste0(Sys.time(), ":   Chunk ", chunk, " of ", n.chunks))
+      shhh <- gc()
+      i <- (chunk-1) * max.dim + 1
+      j <- min((chunk * max.dim), dim.chunk)
+      k <- sweep(x[i:j,], MARGIN = margin, STATS = stats[i:j], FUN = fun, ...)
+      # Make sure matrices stay sparse
+      k <- as(k, "dgCMatrix")
+      return(k)
+    })
+    # Put results together and return
+    return(do.call("rbind", done.chunks))
+  }
+  if (margin == 2) {
+    # Cut data into chunks and process individually
+    done.chunks <- lapply(1:n.chunks, function(chunk) {
+      if (verbose) message(paste0(Sys.time(), ":   Chunk ", chunk, " of ", n.chunks))
+      shhh <- gc()
+      i <- (chunk-1) * max.dim + 1
+      j <- min((chunk * max.dim), dim.chunk)
+      k <- sweep(x[,i:j], MARGIN = margin, STATS = stats[i:j], FUN = fun, ...)
+      # Make sure matrices stay sparse
+      k <- as(k, "dgCMatrix")
+      return(k)
+    })
+    # Put results together and return
+    return(do.call("cbind", done.chunks))
+  }
+}

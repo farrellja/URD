@@ -4,6 +4,7 @@
 
 ### Added
 - `sparseApply` to use in place of `apply` on sparse matrices to prevent memory errors resulting from silent densification.
+- `sparseSweep` to use in place of `sweep` on sparse matrices to prevent memory errors resulting from silent densification.
 
 ### Changed
 - Fixed errors in `createURD` that would result from silent conversion of sparse matrix to dense matrix and create memory errors with large cell numbers.
