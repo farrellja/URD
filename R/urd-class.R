@@ -122,8 +122,9 @@ setMethod(
 #' \code{meta}, and an initial grouping of the data drawn from the cell names, up to the
 #' first dash (-) or underscore (_) in slot \code{group.ids}.
 #' 
-#' @importClassesFrom Matrix dgCMatrix rowSums colSums
+#' @importClassesFrom Matrix dgCMatrix
 #' @importFrom methods new
+#' @importFrom Matrix rowSums colSums
 #' 
 #' @param count.data (Matrix or dgCMatrix) UMI expression data, with rows as genes and columns as cells
 #' @param meta (data.frame) Metadata, with rows as cells (row names should match column names of \code{count.data})
