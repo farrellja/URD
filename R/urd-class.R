@@ -210,7 +210,7 @@ createURD <- function(count.data, meta=NULL, min.cells=3, min.genes=500, min.cou
   
   # Set up the metadata
   object@meta <- data.frame(n.Genes=num.genes[colnames(object@count.data)])
-  object@meta[,"n.Trans"] <- apply(object@count.data, 2, sum)
+  object@meta[,"n.Trans"] <- Matrix::colSums(object@count.data)
   if (!is.null(meta)) {
     object@meta <- cbind(object@meta, meta[rownames(object@meta),])
   }
