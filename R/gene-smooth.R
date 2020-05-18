@@ -303,7 +303,7 @@ combineSmoothFit <- function(fit.list) {
   
   # Re-scale scaled values according to the max of any present 
   out.scaled.expression <- sweep(out.mean.expression, 1, apply(out.mean.expression, 1, max), "/")
-  out.scaled.smooth <- sweep(out.mean.smooth, 1, apply(out.mean.smooth, 1, max), "/")
+  out.scaled.smooth <- sweep(out.mean.smooth, 1, apply(out.mean.expression, 1, max), "/")
   out.scaled.expression.red <- sweep(out.mean.expression.red, 1, apply(out.mean.expression.red, 1, max), "/")
   
   # Return a new list
