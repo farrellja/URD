@@ -16,11 +16,21 @@ Following installation of R, Rstudio can be obtained and installed from [https:/
 
 ### 3. Install required R packages and URD
 
-We wrote a script that will attempt to install all requirements for URD and then URD itself. Start RStudio and then run the installation script from the console:
+We wrote a script that will attempt to install all requirements for URD and then URD itself. It has been tested on R 3.5 and R 3.6. Start RStudio and then run the installation script from the console:
 
 ```source("https://raw.githubusercontent.com/farrellja/URD/master/URD-Install.R")```
 
 ## Troubleshooting
+
+### A separate conda environment
+
+If you have trouble installing URD because of version conflicts with your currently installed packages, you can create a separate conda environment for URD:
+
+```
+conda create urd base-r==3.5.1 udunits2 -c conda-forge 
+conda activate urd
+Rscript -e 'source("https://raw.githubusercontent.com/farrellja/URD/master/URD-Install.R")'
+```
 
 ### udunits
 
@@ -28,6 +38,11 @@ URD's dependencies require the installation of the **udunits2** package, which d
 
 ```
 sudo apt-get install libudunits2-dev
+```
+
+Or if using conda:
+```
+conda install udunits2
 ```
 
 ### DLL error
