@@ -23,9 +23,9 @@ Science 26 Apr 2018. doi: 10.1126/science.aar3131
 
 ## Processed Data to Explore
 
-- The processed URD object from zebrafish embryogenesis (3.3 - 12 hours post-fertilization) from Farrell & Wang, *et al.* can be downloaded from the [Broad Single-cell Portal](https://portals.broadinstitute.org/single_cell/data/public/single-cell-reconstruction-of-developmental-trajectories-during-zebrafish-embryogenesis?filename=URD_Zebrafish_Object.rds) (requires log-in).
+- The processed URD object from zebrafish embryogenesis (3.3 - 12 hours post-fertilization) from Farrell & Wang, *et al.* can be downloaded from the [Broad Single-cell Portal](https://singlecell.broadinstitute.org/single_cell/data/public/SCP162/single-cell-reconstruction-of-developmental-trajectories-during-zebrafish-embryogenesis?filename=URD_Zebrafish_Object.rds) (requires log-in).
 
-- The processed URD objects from adult Hydra from Siebert, Farrell, *et al.* can be downloaded from the [Broad Single-cell Portal](https://portals.broadinstitute.org/single_cell/study/SCP260/stem-cell-differentiation-trajectories-in-hydra-resolved-at-single-cell-resolution) (requires log-in) or from [Data Dryad](https://datadryad.org/resource/doi:10.5061/dryad.v5r6077).
+- The processed URD objects from adult Hydra from Siebert, Farrell, *et al.* can be downloaded from the [Broad Single-cell Portal](https://singlecell.broadinstitute.org/single_cell/study/SCP260/stem-cell-differentiation-trajectories-in-hydra-resolved-at-single-cell-resolution) (requires log-in) or from [Data Dryad](https://datadryad.org/resource/doi:10.5061/dryad.v5r6077).
 
 ## Version History
 
