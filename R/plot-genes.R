@@ -220,10 +220,10 @@ plotDists <- function(object, label, category.label, label.type="search", catego
   # Make a data frame for ggplot.
   gg.data <- data.frame(
     label=label.data$data,
-    category=category.data$data,
     stringsAsFactors=F,
     row.names = names(label.data$data)
   )
+  gg.data$category <- category.data$data[rownames(gg.data)]
   
   # Make the plot
   the.plot <- ggplot(data=gg.data, aes(x=label, color=category, fill=category)) + geom_density(alpha=0.4) + theme_bw() + labs(x=label, fill=category.label, color=category.label, title=plot.title)
