@@ -10,7 +10,6 @@ Depends:
 Imports:
 	caTools,
 	data.table,
-	destiny,
 	diptest,
 	gdata,
 	ggraph,
@@ -34,7 +33,9 @@ Suggests:
 	bit64,
 	rgl,
 	rhdf5,
-	sva
+	sva 
+Remotes:
+	github::theislab/destiny 
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
